@@ -11,11 +11,13 @@
 #define XGB_EXTERN_C extern "C"
 #include <cstdio>
 #include <cstdint>
+#include <string>
 #else
 #define XGB_EXTERN_C
 #include <stdio.h>
 #include <stdint.h>
 #endif  // __cplusplus
+
 
 #if defined(_MSC_VER) || defined(_WIN32)
 #define XGB_DLL XGB_EXTERN_C __declspec(dllexport)
@@ -320,6 +322,7 @@ XGB_DLL int XGDMatrixNumCol(DMatrixHandle handle,
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                             bst_ulong len,
                             BoosterHandle *out);
+
 /*!
  * \brief free obj in handle
  * \param handle handle to be freed
@@ -564,5 +567,21 @@ XGB_DLL int XGBoosterLoadRabitCheckpoint(
  * \return 0 when success, -1 when failure happens
  */
 XGB_DLL int XGBoosterSaveRabitCheckpoint(BoosterHandle handle);
+
+#if defined(__SGX__) && defined(__HOST__)
+// Ocalls
+int ocall_rabit__GetRank();
+
+int ocall_rabit__GetWorldSize();
+
+int ocall_rabit__IsDistributed();
+
+void* ocall_data__SimpleCSRSource();
+
+void* ocall_dmlc__Parser__Create(char* fname, int partid, int npart, char* file_format);
+
+void* ocall_ObjFunction__Create(const std::string& name);
+#endif // __SGX__ && __HOST__
+
 
 #endif  // XGBOOST_C_API_H_

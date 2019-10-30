@@ -88,6 +88,8 @@ set_target_properties(objxgboost PROPERTIES
   CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(objxgboost
   PRIVATE
+  -D__SGX__
+  -D__HOST__
   -DDMLC_LOG_CUSTOMIZE=1  # enable custom logging
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:_MWAITXINTRIN_H_INCLUDED>
   ${XGBOOST_DEFINITIONS})

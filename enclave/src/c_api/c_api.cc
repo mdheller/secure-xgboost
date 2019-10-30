@@ -1,5 +1,6 @@
 // Copyright (c) 2014 by Contributors
 
+
 #include <xgboost/data.h>
 #include <xgboost/learner.h>
 #include <xgboost/c_api.h>
@@ -22,6 +23,9 @@
 #include "../common/io.h"
 #include "../common/group_data.h"
 
+#ifdef __SGX__
+#include "xgboost_t.h"
+#endif
 
 namespace xgboost {
 // booster wrapper for backward compatible reason.
@@ -32,8 +36,21 @@ class Booster {
         initialized_(false),
         learner_(Learner::Create(cache_mats)) {}
 
+  //Booster() {}
+
+  //void Init(const std::vector<std::shared_ptr<DMatrix> >& cache_mats) {
+  //  fprintf(stdout, "Booster::Init 0\n");
+  //  configured_ = false;
+  //  initialized_ = false;
+  //  learner_ = std::unique_ptr<Learner>(Learner::Create(cache_mats));
+  //  fprintf(stdout, "Booster::Init 1\n");
+  //}
+
   inline Learner* learner() {  // NOLINT
-    return learner_.get();
+    fprintf(stdout, "Booster::learner 0\n");
+    Learner* l = learner_.get();
+    fprintf(stdout, "Booster::learner 1\n");
+    return l;
   }
 
   inline void SetParam(const std::string& name, const std::string& val) {
@@ -55,21 +72,31 @@ class Booster {
   }
 
   inline void LazyInit() {
+    fprintf(stdout, "Booster::LazyInit 0\n");
     if (!configured_) {
       LoadSavedParamFromAttr();
+      fprintf(stdout, "Booster::LazyInit 0-1\n");
       learner_->Configure(cfg_);
+      fprintf(stdout, "Booster::LazyInit 0-2\n");
       configured_ = true;
     }
+    fprintf(stdout, "Booster::LazyInit 1\n");
     if (!initialized_) {
       learner_->InitModel();
       initialized_ = true;
     }
+    fprintf(stdout, "Booster::LazyInit 2\n");
   }
 
   inline void LoadSavedParamFromAttr() {
+    fprintf(stdout, "LoadSavedParamFromAttr 0\n");
     // Locate saved parameters from learner attributes
     const std::string prefix = "SAVED_PARAM_";
+    fprintf(stdout, "LoadSavedParamFromAttr 0-1\n");
+    //learner_->print();
+    fprintf(stdout, "LoadSavedParamFromAttr 0-2\n");
     for (const std::string& attr_name : learner_->GetAttrNames()) {
+      fprintf(stdout, "LoadSavedParamFromAttr 1\n");
       if (attr_name.find(prefix) == 0) {
         const std::string saved_param = attr_name.substr(prefix.length());
         if (std::none_of(cfg_.begin(), cfg_.end(),
@@ -83,6 +110,7 @@ class Booster {
         }
       }
     }
+    fprintf(stdout, "LoadSavedParamFromAttr 2\n");
   }
 
   inline void LoadModel(dmlc::Stream* fi) {
@@ -99,6 +127,8 @@ class Booster {
   std::unique_ptr<Learner> learner_;
   std::vector<std::pair<std::string, std::string> > cfg_;
 };
+
+#ifndef __SGX__
 
 // declare the data callback.
 XGB_EXTERN_C int XGBoostNativeDataIterSetData(
@@ -208,10 +238,12 @@ int XGBoostNativeDataIterSetData(
   static_cast<xgboost::NativeDataIter*>(handle)->SetData(batch);
   API_END();
 }
+#endif // __SGX__
 }  // namespace xgboost
 
 using namespace xgboost; // NOLINT(*);
 
+#ifndef __SGX__
 /*! \brief entry to to easily hold returning information */
 struct XGBAPIThreadLocalEntry {
   /*! \brief result holder for returning string */
@@ -235,21 +267,27 @@ int XGBRegisterLogCallback(void (*callback)(const char*)) {
   registry->Register(callback);
   API_END();
 }
+#endif // __SGX__
 
 int XGDMatrixCreateFromFile(const char *fname,
                             int silent,
                             DMatrixHandle *out) {
   API_BEGIN();
   bool load_row_split = false;
-  if (rabit::IsDistributed()) {
-    LOG(CONSOLE) << "XGBoost distributed mode detected, "
-                 << "will split data among workers";
+  int ret;
+  oe_result_t res = host_rabit__IsDistributed(&ret);
+  // TODO ocall error handling
+  if (ret) {
+    //LOG(CONSOLE) << "XGBoost distributed mode detected, "
+                 //<< "will split data among workers";
     load_row_split = true;
   }
+  fprintf(stdout, "Checked rabit distribution\n");
   *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
   API_END();
 }
 
+#ifndef __SGX__
 int XGDMatrixCreateFromDataIter(
     void* data_handle,
     XGBCallbackDataIterNext* callback,
@@ -839,26 +877,35 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
       static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info().num_col_);
   API_END();
 }
+#endif // __SGX__
 
 // xgboost implementation
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                     xgboost::bst_ulong len,
                     BoosterHandle *out) {
   API_BEGIN();
+  fprintf(stdout, "XGBoosterCreate 1\n");
   std::vector<std::shared_ptr<DMatrix> > mats;
   for (xgboost::bst_ulong i = 0; i < len; ++i) {
     mats.push_back(*static_cast<std::shared_ptr<DMatrix>*>(dmats[i]));
   }
+  fprintf(stdout, "XGBoosterCreate 2\n");
+  //Booster* _out = new Booster();
+  //_out->Init(mats);
+  //*out = _out;
   *out = new Booster(mats);
+  fprintf(stdout, "XGBoosterCreate 3\n");
   API_END();
 }
 
+#ifndef __SGX__
 XGB_DLL int XGBoosterFree(BoosterHandle handle) {
   API_BEGIN();
   CHECK_HANDLE();
   delete static_cast<Booster*>(handle);
   API_END();
 }
+#endif // __SGX__
 
 XGB_DLL int XGBoosterSetParam(BoosterHandle handle,
                               const char *name,
@@ -872,17 +919,25 @@ XGB_DLL int XGBoosterSetParam(BoosterHandle handle,
 XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
                                    int iter,
                                    DMatrixHandle dtrain) {
+  fprintf(stdout, "XGBoosterUpdateOneIter 0\n");
   API_BEGIN();
-  CHECK_HANDLE();
+  //CHECK_HANDLE();
+  if (handle == nullptr) 
+      fprintf(stdout, "DMatrix/Booster has not been intialized or has already been disposed.\n");
+  fprintf(stdout, "XGBoosterUpdateOneIter 1\n");
   auto* bst = static_cast<Booster*>(handle);
   auto *dtr =
       static_cast<std::shared_ptr<DMatrix>*>(dtrain);
+  fprintf(stdout, "XGBoosterUpdateOneIter 2\n");
 
   bst->LazyInit();
+  fprintf(stdout, "XGBoosterUpdateOneIter 3\n");
   bst->learner()->UpdateOneIter(iter, dtr->get());
+  fprintf(stdout, "XGBoosterUpdateOneIter 4\n");
   API_END();
 }
 
+#ifndef __SGX__
 XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
                                   DMatrixHandle dtrain,
                                   bst_float *grad,
@@ -904,6 +959,7 @@ XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
   bst->learner()->BoostOneIter(0, dtr->get(), &tmp_gpair);
   API_END();
 }
+#endif // __SGX__
 
 XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  int iter,
@@ -911,24 +967,37 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  const char* evnames[],
                                  xgboost::bst_ulong len,
                                  const char** out_str) {
-  std::string& eval_str = XGBAPIThreadLocalStore::Get()->ret_str;
+  fprintf(stdout, "XGBoosterEvalOneIter 0\n");
+  std::string eval_str; // = XGBAPIThreadLocalStore::Get()->ret_str;
   API_BEGIN();
-  CHECK_HANDLE();
+  fprintf(stdout, "XGBoosterEvalOneIter 0-1\n");
+  //CHECK_HANDLE();
+  if (handle == nullptr) 
+      fprintf(stdout, "DMatrix/Booster has not been intialized or has already been disposed.\n");
+  fprintf(stdout, "XGBoosterEvalOneIter 1\n");
   auto* bst = static_cast<Booster*>(handle);
   std::vector<DMatrix*> data_sets;
   std::vector<std::string> data_names;
 
+  fprintf(stdout, "XGBoosterEvalOneIter 2\n");
   for (xgboost::bst_ulong i = 0; i < len; ++i) {
     data_sets.push_back(static_cast<std::shared_ptr<DMatrix>*>(dmats[i])->get());
     data_names.emplace_back(evnames[i]);
   }
 
+  fprintf(stdout, "XGBoosterEvalOneIter 3\n");
   bst->LazyInit();
-  eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
+  fprintf(stdout, "XGBoosterEvalOneIter 4\n");
+  //eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
+  Learner* l = bst->learner();
+  fprintf(stdout, "XGBoosterEvalOneIter 5\n");
+  eval_str = l->EvalOneIter(iter, data_sets, data_names);
+  fprintf(stdout, "XGBoosterEvalOneIter 6\n");
   *out_str = eval_str.c_str();
   API_END();
 }
 
+#ifndef __SGX__
 XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              DMatrixHandle dmat,
                              int option_mask,
@@ -1159,33 +1228,4 @@ QueryBoosterConfigurationArguments(BoosterHandle handle) {
 
 // force link rabit
 static DMLC_ATTRIBUTE_UNUSED int XGBOOST_LINK_RABIT_C_API_ = RabitLinkTag();
-
-
-#ifdef __SGX__
-int ocall_rabit__GetRank() {
-    return rabit::GetRank();
-}
-
-int ocall_rabit__GetWorldSize() {
-    return rabit::GetWorldSize();
-}
-
-int ocall_rabit__IsDistributed() {
-    return rabit::IsDistributed();
-}
-
-void* ocall_data__SimpleCSRSource() {
-    return new data::SimpleCSRSource();
-}
-
-void* ocall_dmlc__Parser__Create(char* fname, int partid, int npart, char* file_format) {
-    return dmlc::Parser<uint32_t>::Create(fname, partid, npart, file_format);
-}
-
-void* ocall_ObjFunction__Create(const std::string& name) {
-    fprintf(stdout, "Creating objective function\n");
-    ObjFunction* f = ObjFunction::Create(name);
-    fprintf(stdout, "Created objective function\n");
-    return f;
-}
 #endif // __SGX__

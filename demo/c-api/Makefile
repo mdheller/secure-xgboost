@@ -1,19 +1,29 @@
-SRC=c-api-demo.c
+SRC=c-api-demo.cc xgboost_u.c ocalls.cc
 TGT=c-api-demo
 
-cc=cc
-CFLAGS ?=-O3
+cc=g++
+CFLAGS ?=-O3 -D__SGX__ -D__HOST__
 XGBOOST_ROOT ?=../..
 INCLUDE_DIR=-I$(XGBOOST_ROOT)/include -I$(XGBOOST_ROOT)/dmlc-core/include -I$(XGBOOST_ROOT)/rabit/include
 LIB_DIR=-L$(XGBOOST_ROOT)/lib
+#LIB_DIR=-Wl,-rpath,$(XGBOOST_ROOT)/lib
+
+CFLAGS += $(shell pkg-config oehost-g++ --cflags)
+LDFLAGS = $(shell pkg-config oehost-g++ --libs)
 
 build: $(TGT)
 
 $(TGT): $(SRC) Makefile
-	$(cc) $(CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT) $(SRC) -lxgboost
+	oeedger8r ../../enclave/xgboost.edl --untrusted
+	$(cc) $(CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT) $(SRC) -lxgboost $(LDFLAGS)
 
 run: $(TGT)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT)
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT) ../../enclave/build/xgboost_enclave.signed
+
+
+simulate: $(TGT)
+	#LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib /opt/openenclave/bin/oegdb -arg ./$(TGT) ../../enclave/build/xgboost_enclave.signed --simulate
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT) ../../enclave/build/xgboost_enclave.signed --simulate
 
 clean:
 	rm -f $(TGT)

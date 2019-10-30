@@ -1,0 +1,53 @@
+enclave {
+    include "xgboost/c_api.h"
+    trusted {
+        public void enclave_helloworld();
+        public int enclave_XGDMatrixCreateFromFile(
+                [user_check] const char *fname,
+                int silent,
+                [out] DMatrixHandle *out); 
+
+        public int enclave_XGBoosterCreate(
+                [user_check] const DMatrixHandle* dmats, 
+                bst_ulong len, 
+                [user_check] BoosterHandle* out);
+
+        public int enclave_XGBoosterSetParam(
+                [user_check, isptr] BoosterHandle handle,
+                [user_check] const char *name,
+                [user_check] const char *value); 
+
+        public int enclave_XGBoosterUpdateOneIter(
+                [user_check, isptr] BoosterHandle handle,
+                int iter,
+                [user_check, isptr] DMatrixHandle dtrain);
+
+        public int enclave_XGBoosterEvalOneIter(
+                [user_check, isptr] BoosterHandle handle,
+                int iter,
+                [user_check] DMatrixHandle* dmats,
+                [user_check]const char** evnames,
+                bst_ulong len,
+                [user_check] const char** out_str);
+    };
+
+    untrusted {
+        void host_helloworld();
+        int host_rabit__GetRank();
+        int host_rabit__GetWorldSize();
+        int host_rabit__IsDistributed();
+        // FIXME void* -> data::SimpleCSRSource*
+        void* host_data__SimpleCSRSource();
+        // FIXME void* -> dmlc::Parser<uint32_t>
+        void* host_dmlc__Parser__Create(
+                [out] char* fname, 
+                int partid, 
+                int npart, 
+                [out] char* file_format);
+        // FIXME void* -> xgboost::ObjFunction*
+        // FIXME this ocall should not exist
+        void* host_ObjFunction__Create(
+                [user_check] char* name); 
+    };
+};
+
