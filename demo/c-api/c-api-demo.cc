@@ -11,8 +11,10 @@
 #include <stdlib.h>
 #include <xgboost/c_api.h>
 
+#ifdef __SGX__
 #include <openenclave/host.h>
 #include "xgboost_u.h"
+#endif
 
 #define safe_xgboost(call) {                                            \
 int err = (call);                                                       \
@@ -22,6 +24,7 @@ if (err != 0) {                                                         \
 }                                                                       \
 }
 
+#ifdef __SGX__
 bool check_simulate_opt(int* argc, char* argv[])
 {
   for (int i = 0; i < *argc; i++)
@@ -36,6 +39,7 @@ bool check_simulate_opt(int* argc, char* argv[])
   }
   return false;
 }
+#endif
 
 int main(int argc, char** argv) {
 
