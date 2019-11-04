@@ -245,10 +245,8 @@ class LearnerImpl : public Learner {
       const std::vector<std::pair<std::string, std::string> >& args) override {
     // add to configurations
     tparam_.InitAllowUnknown(args);
-#ifndef __SGX__
-    // FIXME
     ConsoleLogger::Configure(args.cbegin(), args.cend());
-#endif
+    // FIXME
     //monitor_.Init("Learner");
     cfg_.clear();
 
