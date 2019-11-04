@@ -16,15 +16,9 @@ namespace xgboost {
 
 TreeUpdater* TreeUpdater::Create(const std::string& name) {
   auto *e = ::dmlc::Registry< ::xgboost::TreeUpdaterReg>::Get()->Find(name);
-  fprintf(stdout, "TreeUpdater::Create 0\n");
-  fprintf(stdout, "Name: ");
-  fprintf(stdout, name.c_str());
-  fprintf(stdout, "\n");
   if (e == nullptr) {
-    fprintf(stdout, "TreeUpdater::Create FAILED\n");
-    //LOG(FATAL) << "Unknown tree updater " << name;
+    LOG(FATAL) << "Unknown tree updater " << name;
   }
-  fprintf(stdout, "TreeUpdater::Create 1\n");
   return (e->body)();
 }
 

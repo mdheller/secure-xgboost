@@ -38,8 +38,8 @@ void TemporaryDirectory::RecursiveDelete(const std::string &path) {
       RecursiveDelete(info.path.name);
     } else {
       if (std::remove(info.path.name.c_str()) != 0) {
-        //LOG(INFO) << "Couldn't remove file " << info.path.name
-        //          << "; you may want to remove it manually";
+        LOG(INFO) << "Couldn't remove file " << info.path.name
+                  << "; you may want to remove it manually";
       }
     }
   }
@@ -50,12 +50,12 @@ void TemporaryDirectory::RecursiveDelete(const std::string &path) {
 #endif
   if (rmdir_success) {
     if (verbose_) {
-      //LOG(INFO) << "Successfully deleted temporary directory " << path;
+      LOG(INFO) << "Successfully deleted temporary directory " << path;
     }
   } else {
-    //LOG(INFO) << "~TemporaryDirectory(): "
-    //          << "Could not remove temporary directory " << path
-    //          << "; you may want to remove it manually";
+    LOG(INFO) << "~TemporaryDirectory(): "
+              << "Could not remove temporary directory " << path
+              << "; you may want to remove it manually";
   }
 }
 }  // namespace dmlc

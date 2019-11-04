@@ -181,7 +181,7 @@ class LearnerImpl : public Learner {
 
   static void AssertGPUSupport() {
 #ifndef XGBOOST_USE_CUDA
-    //LOG(FATAL) << "XGBoost version not compiled with GPU support.";
+    LOG(FATAL) << "XGBoost version not compiled with GPU support.";
 #endif  // XGBOOST_USE_CUDA
   }
 
@@ -195,11 +195,11 @@ class LearnerImpl : public Learner {
     }
     // `updater` parameter was manually specified
     if (cfg_.count("updater") > 0) {
-      //LOG(WARNING) << "DANGER AHEAD: You have manually specified `updater` "
-      //                "parameter. The `tree_method` parameter will be ignored. "
-      //                "Incorrect sequence of updaters will produce undefined "
-      //                "behavior. For common uses, we recommend using "
-      //                "`tree_method` parameter instead.";
+      LOG(WARNING) << "DANGER AHEAD: You have manually specified `updater` "
+                      "parameter. The `tree_method` parameter will be ignored. "
+                      "Incorrect sequence of updaters will produce undefined "
+                      "behavior. For common uses, we recommend using "
+                      "`tree_method` parameter instead.";
       return;
     }
 
@@ -216,9 +216,9 @@ class LearnerImpl : public Learner {
       cfg_["updater"] = "grow_colmaker,prune";
       break;
      case TreeMethod::kHist:
-      //LOG(INFO) <<
-      //    "Tree method is selected to be 'hist', which uses a "
-      //    "single updater grow_quantile_histmaker.";
+      LOG(INFO) <<
+          "Tree method is selected to be 'hist', which uses a "
+          "single updater grow_quantile_histmaker.";
       cfg_["updater"] = "grow_quantile_histmaker";
       break;
      case TreeMethod::kGPUExact:
@@ -236,25 +236,21 @@ class LearnerImpl : public Learner {
       }
       break;
      default:
-      //LOG(FATAL) << "Unknown tree_method ("
-      //           << static_cast<int>(tparam_.tree_method) << ") detected";
-      fprintf(stdout, "Unknown tree method detected");
+      LOG(FATAL) << "Unknown tree_method ("
+                 << static_cast<int>(tparam_.tree_method) << ") detected";
     }
   }
 
   void Configure(
       const std::vector<std::pair<std::string, std::string> >& args) override {
     // add to configurations
-    fprintf(stdout, "LearnerImpl::Configure 0\n");
     tparam_.InitAllowUnknown(args);
 #ifndef __SGX__
     // FIXME
     ConsoleLogger::Configure(args.cbegin(), args.cend());
 #endif
-    fprintf(stdout, "LearnerImpl::Configure 1\n");
     //monitor_.Init("Learner");
     cfg_.clear();
-    fprintf(stdout, "LearnerImpl::Configure 2\n");
 
     for (const auto& kv : args) {
       if (kv.first == "eval_metric") {
@@ -270,11 +266,9 @@ class LearnerImpl : public Learner {
         cfg_[kv.first] = kv.second;
       }
     }
-    fprintf(stdout, "LearnerImpl::Configure 3\n");
     if (tparam_.nthread != 0) {
       omp_set_num_threads(tparam_.nthread);
     }
-    fprintf(stdout, "LearnerImpl::Configure 4\n");
 
     // add additional parameters
     // These are cosntraints that need to be satisfied.
@@ -290,20 +284,17 @@ class LearnerImpl : public Learner {
       tparam_.dsplit = DataSplitMode::kRow;
     }
 #endif
-    fprintf(stdout, "LearnerImpl::Configure 6\n");
     if (cfg_.count("num_class") != 0) {
       cfg_["num_output_group"] = cfg_["num_class"];
       if (atoi(cfg_["num_class"].c_str()) > 1 && cfg_.count("objective") == 0) {
         cfg_["objective"] = "multi:softmax";
       }
     }
-    fprintf(stdout, "LearnerImpl::Configure 7\n");
 
     if (cfg_.count("max_delta_step") == 0 && cfg_.count("objective") != 0 &&
         cfg_["objective"] == "count:poisson") {
       cfg_["max_delta_step"] = kMaxDeltaStepDefaultValue;
     }
-    fprintf(stdout, "LearnerImpl::Configure 8\n");
 
     if (cfg_.count("objective") == 0) {
       cfg_["objective"] = "reg:squarederror";
@@ -311,11 +302,9 @@ class LearnerImpl : public Learner {
     if (cfg_.count("booster") == 0) {
       cfg_["booster"] = "gbtree";
     }
-    fprintf(stdout, "LearnerImpl::Configure 9\n");
 
     ConfigureUpdaters();
 
-    fprintf(stdout, "LearnerImpl::Configure 10\n");
     if (!this->ModelInitialized()) {
       mparam_.InitAllowUnknown(args);
       name_obj_ = cfg_["objective"];
@@ -326,7 +315,6 @@ class LearnerImpl : public Learner {
       common::GlobalRandom().seed(tparam_.seed);
 #endif // __SGX__
     }
-    fprintf(stdout, "LearnerImpl::Configure 11\n");
 
     // set number of features correctly.
     cfg_["num_feature"] = common::ToString(mparam_.num_feature);
@@ -342,7 +330,6 @@ class LearnerImpl : public Learner {
     for (auto& p_metric : metrics_) {
       p_metric->Configure(cfg_.begin(), cfg_.end());
     }
-    fprintf(stdout, "LearnerImpl::Configure 12\n");
   }
 
   void InitModel() override { this->LazyInitModel(); }
@@ -350,7 +337,8 @@ class LearnerImpl : public Learner {
   void Load(dmlc::Stream* fi) override {
 #ifndef __SGX__
     // FIXME 
-    fprintf(stdout, "LearnerImpl::Load not implemented");
+    LOG(FATAL) << "LearnerImpl::Load not implemented";
+
     // TODO(tqchen) mark deprecation of old format.
     common::PeekableInStream fp(fi);
     // backward compatible header check.
@@ -402,23 +390,23 @@ class LearnerImpl : public Learner {
           if (saved_param == "predictor" || saved_param == "n_gpus"
               || saved_param == "gpu_id") {
             cfg_[saved_param] = kv.second;
-            //LOG(INFO)
-            //  << "Parameter '" << saved_param << "' has been recovered from "
-            //  << "the saved model. It will be set to "
-            //  << RenderParamVal(kv.second) << " for prediction. To "
-            //  << "override the predictor behavior, explicitly set '"
-            //  << saved_param << "' parameter as follows:\n"
-            //  << "  * Python package: bst.set_param('"
-            //  << saved_param << "', [new value])\n"
-            //  << "  * R package:      xgb.parameters(bst) <- list("
-            //  << saved_param << " = [new value])\n"
-            //  << "  * JVM packages:   bst.setParam(\""
-            //  << saved_param << "\", [new value])";
+            LOG(INFO)
+              << "Parameter '" << saved_param << "' has been recovered from "
+              << "the saved model. It will be set to "
+              << RenderParamVal(kv.second) << " for prediction. To "
+              << "override the predictor behavior, explicitly set '"
+              << saved_param << "' parameter as follows:\n"
+              << "  * Python package: bst.set_param('"
+              << saved_param << "', [new value])\n"
+              << "  * R package:      xgb.parameters(bst) <- list("
+              << saved_param << " = [new value])\n"
+              << "  * JVM packages:   bst.setParam(\""
+              << saved_param << "\", [new value])";
           }
 #else
           if (saved_param == "predictor" && kv.second == "gpu_predictor") {
-            //LOG(INFO) << "Parameter 'predictor' will be set to 'cpu_predictor' "
-            //          << "since XGBoost wasn't compiled with GPU support.";
+            LOG(INFO) << "Parameter 'predictor' will be set to 'cpu_predictor' "
+                      << "since XGBoost wasn't compiled with GPU support.";
             cfg_["predictor"] = "cpu_predictor";
             kv.second = "cpu_predictor";
           }
@@ -512,7 +500,6 @@ class LearnerImpl : public Learner {
     //monitor_.Start("UpdateOneIter");
 
     // TODO(trivialfis): Merge the duplicated code with BoostOneIter
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 0\n");
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
 #ifndef __SGX__
@@ -521,22 +508,16 @@ class LearnerImpl : public Learner {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
 #endif // __SGX__
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 1\n");
     this->ValidateDMatrix(train);
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 2\n");
     this->PerformTreeMethodHeuristic(train);
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 3\n");
 
     //monitor_.Start("PredictRaw");
     this->PredictRaw(train, &preds_[train]);
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 4\n");
     //monitor_.Stop("PredictRaw");
     //monitor_.Start("GetGradient");
     obj_->GetGradient(preds_[train], train->Info(), iter, &gpair_);
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 5\n");
     //monitor_.Stop("GetGradient");
     gbm_->DoBoost(train, &gpair_, obj_.get());
-    fprintf(stdout, "LearnerImpl::UpdateOneIter 6\n");
     //monitor_.Stop("UpdateOneIter");
   }
 
@@ -561,19 +542,13 @@ class LearnerImpl : public Learner {
 
   std::string EvalOneIter(int iter, const std::vector<DMatrix*>& data_sets,
                           const std::vector<std::string>& data_names) override {
-    fprintf(stdout, "LearnerImpl::EvalOneIter 0\n");
     //monitor_.Start("EvalOneIter");
-    fprintf(stdout, "LearnerImpl::EvalOneIter 1\n");
     std::ostringstream os;
     os << '[' << iter << ']' << std::setiosflags(std::ios::fixed);
-    fprintf(stdout, "LearnerImpl::EvalOneIter 1-1\n");
     if (metrics_.size() == 0 && tparam_.disable_default_eval_metric <= 0) {
-      fprintf(stdout, "LearnerImpl::EvalOneIter 1-2\n");
       metrics_.emplace_back(Metric::Create(obj_->DefaultEvalMetric()));
-      fprintf(stdout, "LearnerImpl::EvalOneIter 1-3\n");
       metrics_.back()->Configure(cfg_.begin(), cfg_.end());
     }
-    fprintf(stdout, "LearnerImpl::EvalOneIter 2\n");
     for (size_t i = 0; i < data_sets.size(); ++i) {
       DMatrix * dmat = data_sets[i];
       this->PredictRaw(data_sets[i], &preds_[dmat]);
@@ -584,10 +559,8 @@ class LearnerImpl : public Learner {
                        tparam_.dsplit == DataSplitMode::kRow);
       }
     }
-    fprintf(stdout, "LearnerImpl::EvalOneIter 3\n");
 
     //monitor_.Stop("EvalOneIter");
-    fprintf(stdout, "LearnerImpl::EvalOneIter 4\n");
     return os.str();
   }
 
@@ -611,14 +584,11 @@ class LearnerImpl : public Learner {
   }
 
   std::vector<std::string> GetAttrNames() const override {
-    fprintf(stdout, "GetAttrNames 0\n");
     std::vector<std::string> out;
     out.reserve(attributes_.size());
-    fprintf(stdout, "GetAttrNames 1\n");
     for (auto& p : attributes_) {
       out.push_back(p.first);
     }
-    fprintf(stdout, "GetAttrNames 2\n");
     return out;
   }
 
@@ -682,80 +652,78 @@ class LearnerImpl : public Learner {
       if (tparam_.dsplit == DataSplitMode::kCol) {
         // 'distcol' updater hidden until it becomes functional again
         // See discussion at https://github.com/dmlc/xgboost/issues/1832
-        //LOG(FATAL) << "Column-wise data split is currently not supported.";
+        LOG(FATAL) << "Column-wise data split is currently not supported.";
       }
       switch (current_tree_method) {
        case TreeMethod::kAuto:
-        //LOG(WARNING) <<
-        //    "Tree method is automatically selected to be 'approx' "
-        //    "for distributed training.";
+        LOG(WARNING) <<
+            "Tree method is automatically selected to be 'approx' "
+            "for distributed training.";
         break;
        case TreeMethod::kApprox:
        case TreeMethod::kHist:
         // things are okay, do nothing
         break;
        case TreeMethod::kExact:
-        //LOG(CONSOLE) << "Tree method was set to be "
-        //             << "exact"
-        //             << "', but only 'approx' and 'hist' is available for distributed "
-        //                "training. The `tree_method` parameter is now being "
-        //                "changed to 'approx'";
+        LOG(CONSOLE) << "Tree method was set to be "
+                     << "exact"
+                     << "', but only 'approx' and 'hist' is available for distributed "
+                        "training. The `tree_method` parameter is now being "
+                        "changed to 'approx'";
         break;
        case TreeMethod::kGPUExact:
        case TreeMethod::kGPUHist:
-        //LOG(FATAL) << "Distributed training is not available with GPU algoritms";
+        LOG(FATAL) << "Distributed training is not available with GPU algoritms";
         break;
        default:
-        //LOG(FATAL) << "Unknown tree_method ("
-        //           << static_cast<int>(current_tree_method) << ") detected";
-        fprintf(stdout, "Unknown tree method detected");
+        LOG(FATAL) << "Unknown tree_method ("
+                   << static_cast<int>(current_tree_method) << ") detected";
       }
       if (current_tree_method != TreeMethod::kHist) {
-        //LOG(CONSOLE) << "Tree method is automatically selected to be 'approx'"
-        //                " for distributed training.";
+        LOG(CONSOLE) << "Tree method is automatically selected to be 'approx'"
+                        " for distributed training.";
         tparam_.tree_method = TreeMethod::kApprox;
       } else {
-        //LOG(CONSOLE) << "Tree method is specified to be 'hist'"
-        //                " for distributed training.";
+        LOG(CONSOLE) << "Tree method is specified to be 'hist'"
+                        " for distributed training.";
         tparam_.tree_method = TreeMethod::kHist;
       }
     } else if (!p_train->SingleColBlock()) {
       /* Some tree methods are not available for external-memory DMatrix */
       switch (current_tree_method) {
        case TreeMethod::kAuto:
-        //LOG(WARNING) << "Tree method is automatically set to 'approx' "
-        //                "since external-memory data matrix is used.";
+        LOG(WARNING) << "Tree method is automatically set to 'approx' "
+                        "since external-memory data matrix is used.";
         break;
        case TreeMethod::kApprox:
         // things are okay, do nothing
         break;
        case TreeMethod::kExact:
-        //LOG(WARNING) << "Tree method was set to be 'exact', "
-        //                "but currently we are only able to proceed with "
-        //                "approximate algorithm ('approx') because external-"
-        //                "memory data matrix is used.";
+        LOG(WARNING) << "Tree method was set to be 'exact', "
+                        "but currently we are only able to proceed with "
+                        "approximate algorithm ('approx') because external-"
+                        "memory data matrix is used.";
         break;
        case TreeMethod::kHist:
         // things are okay, do nothing
         break;
        case TreeMethod::kGPUExact:
        case TreeMethod::kGPUHist:
-        //LOG(FATAL)
-        //  << "External-memory data matrix is not available with GPU algorithms";
+        LOG(FATAL)
+          << "External-memory data matrix is not available with GPU algorithms";
         break;
        default:
-        //LOG(FATAL) << "Unknown tree_method ("
-        //           << static_cast<int>(current_tree_method) << ") detected";
-        fprintf(stdout, "Unknown tree method detected");
+        LOG(FATAL) << "Unknown tree_method ("
+                   << static_cast<int>(current_tree_method) << ") detected";
       }
       tparam_.tree_method = TreeMethod::kApprox;
     } else if (p_train->Info().num_row_ >= (4UL << 20UL)
                && current_tree_method == TreeMethod::kAuto) {
       /* Choose tree_method='approx' automatically for large data matrix */
-      //LOG(WARNING) << "Tree method is automatically selected to be "
-      //                "'approx' for faster speed. To use old behavior "
-      //                "(exact greedy algorithm on single machine), "
-      //                "set tree_method to 'exact'.";
+      LOG(WARNING) << "Tree method is automatically selected to be "
+                      "'approx' for faster speed. To use old behavior "
+                      "(exact greedy algorithm on single machine), "
+                      "set tree_method to 'exact'.";
       tparam_.tree_method = TreeMethod::kApprox;
     }
 
@@ -772,9 +740,7 @@ class LearnerImpl : public Learner {
   inline bool ModelInitialized() const { return gbm_ != nullptr; }
   // lazily initialize the model if it haven't yet been initialized.
   inline void LazyInitModel() {
-    fprintf(stdout, "Learner::LazyInit 0\n");
     if (this->ModelInitialized()) return;
-    fprintf(stdout, "Learner::LazyInit 1\n");
     // estimate feature bound
     // TODO(hcho3): Change num_feature to 64-bit integer
     unsigned num_feature = 0;
@@ -786,7 +752,6 @@ class LearnerImpl : public Learner {
         << std::numeric_limits<unsigned>::max() << " features or greater";
       num_feature = std::max(num_feature, static_cast<unsigned>(num_col));
     }
-    fprintf(stdout, "Learner::LazyInit 2\n");
     // run allreduce on num_feature to find the maximum value
 #ifndef __SGX__
     // FIXME
@@ -795,43 +760,17 @@ class LearnerImpl : public Learner {
     if (num_feature > mparam_.num_feature) {
       mparam_.num_feature = num_feature;
     }
-    fprintf(stdout, "Learner::LazyInit 3\n");
     CHECK_NE(mparam_.num_feature, 0)
         << "0 feature is supplied.  Are you using raw Booster interface?";
-    fprintf(stdout, "Learner::LazyInit 4\n");
     // setup
     cfg_["num_feature"] = common::ToString(mparam_.num_feature);
-    fprintf(stdout, "Learner::LazyInit 4-1\n");
-    CHECK(gbm_ == nullptr);
-    fprintf(stdout, "Learner::LazyInit 4-2\n");
-    CHECK(obj_ == nullptr);
-    fprintf(stdout, "Learner::LazyInit 5\n");
-
-    // FIXME do within enclave
-    //char *out_string;
-    //fprintf(stdout, "out_string: ");
-    //out_string = oe_host_strndup(name_obj_.c_str(), name_obj_.length());
-    //fprintf(stdout, out_string);
-    //fprintf(stdout, "\n");
-    //// TODO ocall error handling
-    //void* ret;
-    //oe_result_t res = host_ObjFunction__Create(&ret, out_string);
-    //obj_.reset((ObjFunction*) ret);
-
+    CHECK(obj_ == nullptr && gbm_ == nullptr);
     obj_.reset(ObjFunction::Create(name_obj_));
-    fprintf(stdout, "Learner::LazyInit 5-1\n");
     obj_->Configure(cfg_.begin(), cfg_.end());
-    fprintf(stdout, "Learner::LazyInit 6\n");
     // reset the base score
     mparam_.base_score = obj_->ProbToMargin(mparam_.base_score);
-    fprintf(stdout, "Learner::LazyInit 7\n");
-    GradientBooster* g = GradientBooster::Create(name_gbm_, cache_, mparam_.base_score);
-    fprintf(stdout, "Learner::LazyInit 7-1\n");
-    gbm_.reset(g);
-    //gbm_.reset(GradientBooster::Create(name_gbm_, cache_, mparam_.base_score));
-    fprintf(stdout, "Learner::LazyInit 8\n");
+    gbm_.reset(GradientBooster::Create(name_gbm_, cache_, mparam_.base_score));
     gbm_->Configure(cfg_.begin(), cfg_.end());
-    fprintf(stdout, "Learner::LazyInit 9\n");
   }
   /*!
    * \brief get un-transformed prediction
@@ -889,9 +828,7 @@ class LearnerImpl : public Learner {
 
 Learner* Learner::Create(
     const std::vector<std::shared_ptr<DMatrix> >& cache_data) {
-  fprintf(stdout, "Learner::Create 1\n");
   Learner* learner = new LearnerImpl(cache_data);
-  fprintf(stdout, "Learner::Create 2\n");
   return learner;
 }
 }  // namespace xgboost

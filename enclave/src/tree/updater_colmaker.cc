@@ -34,22 +34,16 @@ class ColMaker: public TreeUpdater {
               DMatrix* dmat,
               const std::vector<RegTree*> &trees) override {
     // rescale learning rate according to size of trees
-    fprintf(stdout, "ColMaker::Update 0\n");
     float lr = param_.learning_rate;
     param_.learning_rate = lr / trees.size();
     // build tree
-    fprintf(stdout, "ColMaker::Update 1\n");
     for (auto tree : trees) {
-      fprintf(stdout, "ColMaker::Update 1-1\n");
       Builder builder(
         param_,
         std::unique_ptr<SplitEvaluator>(spliteval_->GetHostClone()));
-      fprintf(stdout, "ColMaker::Update 1-2\n");
       builder.Update(gpair->ConstHostVector(), dmat, tree);
-      fprintf(stdout, "ColMaker::Update 1-3\n");
     }
     param_.learning_rate = lr;
-    fprintf(stdout, "ColMaker::Update 2\n");
   }
 
  protected:
@@ -97,12 +91,9 @@ class ColMaker: public TreeUpdater {
     virtual void Update(const std::vector<GradientPair>& gpair,
                         DMatrix* p_fmat,
                         RegTree* p_tree) {
-      fprintf(stdout, "Builder::Update 0\n");
       std::vector<int> newnodes;
       this->InitData(gpair, *p_fmat, *p_tree);
-      fprintf(stdout, "Builder::Update 1\n");
       this->InitNewNode(qexpand_, gpair, *p_fmat, *p_tree);
-      fprintf(stdout, "Builder::Update 2\n");
       for (int depth = 0; depth < param_.max_depth; ++depth) {
         this->FindSplit(depth, qexpand_, gpair, p_fmat, p_tree);
         this->ResetPosition(qexpand_, p_fmat, *p_tree);
@@ -125,19 +116,16 @@ class ColMaker: public TreeUpdater {
         // if nothing left to be expand, break
         if (qexpand_.size() == 0) break;
       }
-      fprintf(stdout, "Builder::Update 3\n");
       // set all the rest expanding nodes to leaf
       for (const int nid : qexpand_) {
         (*p_tree)[nid].SetLeaf(snode_[nid].weight * param_.learning_rate);
       }
-      fprintf(stdout, "Builder::Update 4\n");
       // remember auxiliary statistics in the tree node
       for (int nid = 0; nid < p_tree->param.num_nodes; ++nid) {
         p_tree->Stat(nid).loss_chg = snode_[nid].best.loss_chg;
         p_tree->Stat(nid).base_weight = snode_[nid].weight;
         p_tree->Stat(nid).sum_hess = static_cast<float>(snode_[nid].stats.sum_hess);
       }
-      fprintf(stdout, "Builder::Update 5\n");
     }
 
    protected:

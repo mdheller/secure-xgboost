@@ -172,29 +172,22 @@ class GBTree : public GradientBooster {
   void DoBoost(DMatrix* p_fmat,
                HostDeviceVector<GradientPair>* in_gpair,
                ObjFunction* obj) override {
-    fprintf(stdout, "DoBoost 0\n");
     std::vector<std::vector<std::unique_ptr<RegTree> > > new_trees;
     const int ngroup = model_.param.num_output_group;
     //monitor_.Start("BoostNewTrees");
-    fprintf(stdout, "DoBoost 1\n");
     if (ngroup == 1) {
-      fprintf(stdout, "DoBoost 2\n");
       std::vector<std::unique_ptr<RegTree> > ret;
       BoostNewTrees(in_gpair, p_fmat, 0, &ret);
       new_trees.push_back(std::move(ret));
-      fprintf(stdout, "DoBoost 3\n");
     } else {
-      fprintf(stdout, "DoBoost 4\n");
       CHECK_EQ(in_gpair->Size() % ngroup, 0U)
           << "must have exactly ngroup*nrow gpairs";
       // TODO(canonizer): perform this on GPU if HostDeviceVector has device set.
       HostDeviceVector<GradientPair> tmp
         (in_gpair->Size() / ngroup, GradientPair(),
          GPUDistribution::Block(in_gpair->Distribution().Devices()));
-      fprintf(stdout, "DoBoost 5\n");
       const auto& gpair_h = in_gpair->ConstHostVector();
       auto nsize = static_cast<bst_omp_uint>(tmp.Size());
-      fprintf(stdout, "DoBoost 6\n");
       for (int gid = 0; gid < ngroup; ++gid) {
         std::vector<GradientPair>& tmp_h = tmp.HostVector();
         #pragma omp parallel for schedule(static)
@@ -205,13 +198,10 @@ class GBTree : public GradientBooster {
         BoostNewTrees(&tmp, p_fmat, gid, &ret);
         new_trees.push_back(std::move(ret));
       }
-      fprintf(stdout, "DoBoost 7\n");
     }
-    fprintf(stdout, "DoBoost 8\n");
     //monitor_.Stop("BoostNewTrees");
     //monitor_.Start("CommitModel");
     this->CommitModel(std::move(new_trees));
-    fprintf(stdout, "DoBoost 9\n");
     //monitor_.Stop("CommitModel");
   }
 
@@ -279,11 +269,9 @@ class GBTree : public GradientBooster {
                             DMatrix *p_fmat,
                             int bst_group,
                             std::vector<std::unique_ptr<RegTree> >* ret) {
-    fprintf(stdout, "BoostNewTrees 0\n");
     this->InitUpdater();
     std::vector<RegTree*> new_trees;
     ret->clear();
-    fprintf(stdout, "BoostNewTrees 1\n");
     // create the trees
     for (int i = 0; i < tparam_.num_parallel_tree; ++i) {
       if (tparam_.process_type == kDefault) {
@@ -301,12 +289,10 @@ class GBTree : public GradientBooster {
         ret->push_back(std::move(t));
       }
     }
-    fprintf(stdout, "BoostNewTrees 3\n");
     // update the trees
     for (auto& up : updaters_) {
       up->Update(gpair, p_fmat, new_trees);
     }
-fprintf(stdout, "BoostNewTrees 4\n");
   }
 
   // commit new trees all at once
@@ -499,8 +485,8 @@ class Dart : public GBTree {
       model_.CommitModel(std::move(new_trees[gid]), gid);
     }
     size_t num_drop = NormalizeTrees(num_new_trees);
-    //LOG(INFO) << "drop " << num_drop << " trees, "
-    //          << "weight = " << weight_drop_.back();
+    LOG(INFO) << "drop " << num_drop << " trees, "
+              << "weight = " << weight_drop_.back();
   }
 
   // predict the leaf scores without dropped trees
@@ -639,11 +625,8 @@ DMLC_REGISTER_PARAMETER(DartTrainParam);
 XGBOOST_REGISTER_GBM(GBTree, "gbtree")
 .describe("Tree booster, gradient boosted trees.")
 .set_body([](const std::vector<std::shared_ptr<DMatrix> >& cached_mats, bst_float base_margin) {
-    fprintf(stdout, "gbtree body 0\n");
     auto* p = new GBTree(base_margin);
-    fprintf(stdout, "gbtree body 1\n");
     p->InitCache(cached_mats);
-    fprintf(stdout, "gbtree body 2\n");
     return p;
   });
 XGBOOST_REGISTER_GBM(Dart, "dart")

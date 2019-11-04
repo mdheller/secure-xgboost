@@ -92,7 +92,7 @@ namespace xgboost {
           std::vector<int>& label_correct_h = label_correct_.HostVector();
           for (auto const flag : label_correct_h) {
             if (flag == 0) {
-              //LOG(FATAL) << Loss::LabelErrorMsg();
+              LOG(FATAL) << Loss::LabelErrorMsg();
             }
           }
         }
@@ -126,11 +126,10 @@ ObjFunction* ObjFunction::Create(const std::string& name) {
 #else
   auto *e = ::dmlc::Registry< ::xgboost::ObjFunctionReg>::Get()->Find(name);
   if (e == nullptr) {
-    fprintf(stdout, "Got nullptr\n");
     for (const auto& entry : ::dmlc::Registry< ::xgboost::ObjFunctionReg>::List()) {
-      //LOG(INFO) << "Objective candidate: " << entry->name;
+      LOG(INFO) << "Objective candidate: " << entry->name;
     }
-    //LOG(FATAL) << "Unknown objective function " << name;
+    LOG(FATAL) << "Unknown objective function " << name;
   }
   return (e->body)();
 #endif

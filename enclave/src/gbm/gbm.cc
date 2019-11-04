@@ -15,16 +15,10 @@ GradientBooster* GradientBooster::Create(
     const std::string& name,
     const std::vector<std::shared_ptr<DMatrix> >& cache_mats,
     bst_float base_margin) {
-  fprintf(stdout, "GradientBooster::Create 0\n");
-  fprintf(stdout, "Name:");
-  fprintf(stdout, name.c_str());
-  fprintf(stdout, "\n");
   auto *e = ::dmlc::Registry< ::xgboost::GradientBoosterReg>::Get()->Find(name);
   if (e == nullptr) {
-    fprintf(stdout, "FAILED\n");
-    //LOG(FATAL) << "Unknown gbm type " << name;
+    LOG(FATAL) << "Unknown gbm type " << name;
   }
-  fprintf(stdout, "GradientBooster::Create 1\n");
   return (e->body)(cache_mats, base_margin);
 }
 

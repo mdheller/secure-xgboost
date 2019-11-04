@@ -53,8 +53,6 @@ class LocalFileSystem : public FileSystem {
    */
   inline static LocalFileSystem *GetInstance(void) {
     static LocalFileSystem instance;
-    fprintf(stdout, "LocalFileSystem::GetInstance 0\n");
-
     return &instance;
   }
 

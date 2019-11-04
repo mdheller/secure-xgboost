@@ -145,7 +145,7 @@ class CPUPredictor : public Predictor {
         }
         oss << "Instead, all data points will use "
             << "base_score = " << model.base_margin;
-        //LOG(INFO) << oss.str();
+        LOG(INFO) << oss.str();
       }
       std::fill(out_preds_h.begin(), out_preds_h.end(), model.base_margin);
     }

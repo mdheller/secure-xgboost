@@ -91,79 +91,58 @@ class FileStream : public SeekStream {
 };
 
 FileInfo LocalFileSystem::GetPathInfo(const URI &path) {
-  fprintf(stdout, "LocalFileSystem::GetPathInfo 0\n");
   struct stat_struct sb;
   FileInfo ret;
   ret.path = path;
 
+#ifdef __ENCLAVE__
   char *out_string;
-  fprintf(stdout, "out_string: ");
   out_string = oe_host_strndup(path.name.c_str(), path.name.length());
-  fprintf(stdout, out_string);
-  fprintf(stdout, "\n");
   //TODO ocall error handling
-
   std::vector<char*> *name_list;
   oe_result_t res = host_stat(&sb, out_string);
-  fprintf(stdout, "LocalFileSystem::GetPathInfo 1\n");
-
   if (&sb == NULL)
-    fprintf(stdout, "NULL ptr \n");
-
-#ifndef __SGX__
+    LOG(FATAL) << "NULL ptr";
+#else
+  //FIXME
   if (stat(path.name.c_str(), &sb) == -1) {
     int errsv = errno;
 #ifndef _WIN32
-#ifndef __SGX__
     // If lstat succeeds where stat failed, assume a problematic
     // symlink and treat this as if it were a 0-length file.
     if (lstat(path.name.c_str(), &sb) == 0) {
       ret.size = 0;
       ret.type = kFile;
-      //LOG(INFO) << "LocalFileSystem.GetPathInfo: detected symlink "
-      //          << path.name << " error: " << strerror(errsv);
+      LOG(INFO) << "LocalFileSystem.GetPathInfo: detected symlink "
+                << path.name << " error: " << strerror(errsv);
       return ret;
     }
-#endif // __SGX__
 #endif  // _WIN32
-    //LOG(FATAL) << "LocalFileSystem.GetPathInfo: "
-    //           << path.name << " error: " << strerror(errsv);
-    fprintf(stdout, "LocalFileSystem::GetPathInfo FAILED\n");
+    LOG(FATAL) << "LocalFileSystem.GetPathInfo: "
+               << path.name << " error: " << strerror(errsv);
   }
-#endif // __SGX__
+#endif // __ENCLAVE__
 
   ret.size = sb.st_size;
 
-  fprintf(stdout, "LocalFileSystem::GetPathInfo 2\n");
   if ((sb.st_mode & S_IFMT) == S_IFDIR) {
     ret.type = kDirectory;
   } else {
     ret.type = kFile;
   }
-  fprintf(stdout, "LocalFileSystem::GetPathInfo 3\n");
   return ret;
 }
 
 void LocalFileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_list) {
-  fprintf(stdout, "LocalFileSystem::ListDirectory 0\n");
 #ifndef _WIN32
-  fprintf(stdout, "LocalFileSystem::ListDirectory 1\n");
-  fprintf(stdout, path.name.c_str());
-  fprintf(stdout, "\n");
-
 #ifdef __ENCLAVE__
   char *out_string;
-  fprintf(stdout, "out_string: ");
   out_string = oe_host_strndup(path.name.c_str(), path.name.length());
-  fprintf(stdout, out_string);
-  fprintf(stdout, "\n");
   //TODO ocall error handling
   out_list->clear();
 
   std::vector<char*> *name_list;
   oe_result_t res = host_opendir_and_readdir((void**)&name_list, out_string);
-  fprintf(stdout, "LocalFileSystem::ListDirectory 2\n");
-  fprintf(stdout, "Size %d\n",name_list->size());
 
   for (std::vector<char*>::iterator it = name_list->begin(); it != name_list->end(); ++it) {
     //if (!strcmp(it->c_str(), ".")) continue;
@@ -173,15 +152,10 @@ void LocalFileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_
       pp.name += '/';
     }
     pp.name += *it;
-    fprintf(stdout, "LocalFileSystem::ListDirectory 2-1\n");
     out_list->push_back(GetPathInfo(pp));
-    fprintf(stdout, "LocalFileSystem::ListDirectory 2-2\n");
   }
-  fprintf(stdout, "LocalFileSystem::ListDirectory 3\n");
-
-#else
-
-  DIR *dir = host_opendir(path.name.c_str());
+#else // __ENCLAVE__
+  DIR *dir = opendir(path.name.c_str());
   if (dir == NULL) {
     int errsv = errno;
     LOG(FATAL) << "LocalFileSystem.ListDirectory " << path.str()
@@ -203,7 +177,6 @@ void LocalFileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_
   closedir(dir);
 #endif // __ENCLAVE__
 #else  // _WIN32
-  fprintf(stdout, "LocalFileSystem::ListDirectory 6\n");
   WIN32_FIND_DATA fd;
   std::string pattern = path.name + "/*";
   HANDLE handle = FindFirstFile(pattern.c_str(), &fd);

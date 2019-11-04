@@ -121,8 +121,8 @@ BuildCache(Parser<IndexType, DType> *parser) {
     if (data.MemCostBytes() >= kPageSize) {
       size_t bytes_read = parser->BytesRead();
       bytes_read = bytes_read >> 20UL;
-      //LOG(INFO) << bytes_read << "MB read,"
-      //          << bytes_read / tdiff << " MB/sec";
+      LOG(INFO) << bytes_read << "MB read,"
+                << bytes_read / tdiff << " MB/sec";
       num_col_ = std::max(num_col_,
                           static_cast<size_t>(data.max_index) + 1);
       data.Save(fo);
@@ -136,8 +136,8 @@ BuildCache(Parser<IndexType, DType> *parser) {
   }
   delete fo;
   double tdiff = GetTime() - tstart;
-  //LOG(INFO) << "finish reading at %g MB/sec"
-  //          << (parser->BytesRead() >> 20UL) / tdiff;
+  LOG(INFO) << "finish reading at %g MB/sec"
+            << (parser->BytesRead() >> 20UL) / tdiff;
 }
 }  // namespace data
 }  // namespace dmlc

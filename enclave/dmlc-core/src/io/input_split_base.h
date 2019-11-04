@@ -50,20 +50,16 @@ class InputSplitBase : public InputSplit {
   }
   // implement next record
   virtual bool NextRecord(Blob *out_rec) {
-    fprintf(stdout, "InputSplitBase::NextRecord 0\n");
     while (!ExtractNextRecord(out_rec, &tmp_chunk_)) {
       if (!NextChunkEx(&tmp_chunk_)) return false;
     }
-    fprintf(stdout, "InputSplitBase::NextRecord 1\n");
     return true;
   }
   // implement next chunk
   virtual bool NextChunk(Blob *out_chunk) {
-    fprintf(stdout, "InputSplitBase::NextChunk 0\n");
     while (!ExtractNextChunk(out_chunk, &tmp_chunk_)) {
       if (!NextChunkEx(&tmp_chunk_)) return false;
     }
-    fprintf(stdout, "InputSplitBase::NextChunk 1\n");
     return true;
   }
   // implement ResetPartition.

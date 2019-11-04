@@ -38,18 +38,8 @@ class Booster {
 
   //Booster() {}
 
-  //void Init(const std::vector<std::shared_ptr<DMatrix> >& cache_mats) {
-  //  fprintf(stdout, "Booster::Init 0\n");
-  //  configured_ = false;
-  //  initialized_ = false;
-  //  learner_ = std::unique_ptr<Learner>(Learner::Create(cache_mats));
-  //  fprintf(stdout, "Booster::Init 1\n");
-  //}
-
   inline Learner* learner() {  // NOLINT
-    fprintf(stdout, "Booster::learner 0\n");
     Learner* l = learner_.get();
-    fprintf(stdout, "Booster::learner 1\n");
     return l;
   }
 
@@ -72,33 +62,22 @@ class Booster {
   }
 
   inline void LazyInit() {
-    fprintf(stdout, "Booster::LazyInit 0\n");
     if (!configured_) {
       LoadSavedParamFromAttr();
-      fprintf(stdout, "Booster::LazyInit 0-1\n");
       learner_->Configure(cfg_);
-      fprintf(stdout, "Booster::LazyInit 0-2\n");
       configured_ = true;
     }
-    fprintf(stdout, "Booster::LazyInit 1\n");
     if (!initialized_) {
-      fprintf(stdout, "Booster::LazyInit 1-1\n");
       learner_->InitModel();
       initialized_ = true;
-      fprintf(stdout, "Booster::LazyInit 1-2\n");
     }
-    fprintf(stdout, "Booster::LazyInit 2\n");
   }
 
   inline void LoadSavedParamFromAttr() {
-    fprintf(stdout, "LoadSavedParamFromAttr 0\n");
     // Locate saved parameters from learner attributes
     const std::string prefix = "SAVED_PARAM_";
-    fprintf(stdout, "LoadSavedParamFromAttr 0-1\n");
     //learner_->print();
-    fprintf(stdout, "LoadSavedParamFromAttr 0-2\n");
     for (const std::string& attr_name : learner_->GetAttrNames()) {
-      fprintf(stdout, "LoadSavedParamFromAttr 1\n");
       if (attr_name.find(prefix) == 0) {
         const std::string saved_param = attr_name.substr(prefix.length());
         if (std::none_of(cfg_.begin(), cfg_.end(),
@@ -112,7 +91,6 @@ class Booster {
         }
       }
     }
-    fprintf(stdout, "LoadSavedParamFromAttr 2\n");
   }
 
   inline void LoadModel(dmlc::Stream* fi) {
@@ -280,15 +258,12 @@ int XGDMatrixCreateFromFile(const char *fname,
   oe_result_t res = host_rabit__IsDistributed(&ret);
   // TODO ocall error handling
   if (ret) {
-    //LOG(CONSOLE) << "XGBoost distributed mode detected, "
-                 //<< "will split data among workers";
+    LOG(CONSOLE) << "XGBoost distributed mode detected, "
+                 << "will split data among workers";
     load_row_split = true;
   }
-  fprintf(stdout, "Checked rabit distribution\n");
   DMatrix* d = DMatrix::Load(fname, silent != 0, load_row_split);
-  fprintf(stdout, "Loaded\n");
   *out = new std::shared_ptr<DMatrix>(d);
-  fprintf(stdout, "Created ptr\n");
   API_END();
 }
 
@@ -889,17 +864,11 @@ XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                     xgboost::bst_ulong len,
                     BoosterHandle *out) {
   API_BEGIN();
-  fprintf(stdout, "XGBoosterCreate 1\n");
   std::vector<std::shared_ptr<DMatrix> > mats;
   for (xgboost::bst_ulong i = 0; i < len; ++i) {
     mats.push_back(*static_cast<std::shared_ptr<DMatrix>*>(dmats[i]));
   }
-  fprintf(stdout, "XGBoosterCreate 2\n");
-  //Booster* _out = new Booster();
-  //_out->Init(mats);
-  //*out = _out;
   *out = new Booster(mats);
-  fprintf(stdout, "XGBoosterCreate 3\n");
   API_END();
 }
 
@@ -924,21 +893,14 @@ XGB_DLL int XGBoosterSetParam(BoosterHandle handle,
 XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
                                    int iter,
                                    DMatrixHandle dtrain) {
-  fprintf(stdout, "XGBoosterUpdateOneIter 0\n");
   API_BEGIN();
-  //CHECK_HANDLE();
-  if (handle == nullptr) 
-      fprintf(stdout, "DMatrix/Booster has not been intialized or has already been disposed.\n");
-  fprintf(stdout, "XGBoosterUpdateOneIter 1\n");
+  CHECK_HANDLE();
   auto* bst = static_cast<Booster*>(handle);
   auto *dtr =
       static_cast<std::shared_ptr<DMatrix>*>(dtrain);
-  fprintf(stdout, "XGBoosterUpdateOneIter 2\n");
 
   bst->LazyInit();
-  fprintf(stdout, "XGBoosterUpdateOneIter 3\n");
   bst->learner()->UpdateOneIter(iter, dtr->get());
-  fprintf(stdout, "XGBoosterUpdateOneIter 4\n");
   API_END();
 }
 
@@ -972,34 +934,25 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  const char* evnames[],
                                  xgboost::bst_ulong len,
                                  const char** out_str) {
-  fprintf(stdout, "XGBoosterEvalOneIter 0\n");
   std::string eval_str; // = XGBAPIThreadLocalStore::Get()->ret_str;
   API_BEGIN();
-  fprintf(stdout, "XGBoosterEvalOneIter 0-1\n");
-  //CHECK_HANDLE();
-  if (handle == nullptr) 
-      fprintf(stdout, "DMatrix/Booster has not been intialized or has already been disposed.\n");
-  fprintf(stdout, "XGBoosterEvalOneIter 1\n");
+  CHECK_HANDLE();
   auto* bst = static_cast<Booster*>(handle);
   std::vector<DMatrix*> data_sets;
   std::vector<std::string> data_names;
 
-  fprintf(stdout, "XGBoosterEvalOneIter 2\n");
   for (xgboost::bst_ulong i = 0; i < len; ++i) {
     data_sets.push_back(static_cast<std::shared_ptr<DMatrix>*>(dmats[i])->get());
     data_names.emplace_back(evnames[i]);
   }
 
-  fprintf(stdout, "XGBoosterEvalOneIter 3\n");
   bst->LazyInit();
-  fprintf(stdout, "XGBoosterEvalOneIter 4\n");
-  //eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
-  Learner* l = bst->learner();
-  fprintf(stdout, "XGBoosterEvalOneIter 5\n");
-  eval_str = l->EvalOneIter(iter, data_sets, data_names);
-  fprintf(stdout, "XGBoosterEvalOneIter 6\n");
+  eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
+#ifdef __ENCLAVE__
   *out_str = oe_host_strndup(eval_str.c_str(), eval_str.length());
-  //*out_str = eval_str.c_str();
+#else
+  *out_str = eval_str.c_str();
+#endif // __ENCLAVE__
   API_END();
 }
 

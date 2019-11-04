@@ -109,26 +109,20 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
 template <typename IndexType, typename DType>
 inline bool TextParserBase<IndexType, DType>::FillData(
     std::vector<RowBlockContainer<IndexType, DType> > *data) {
-  fprintf(stdout, "TextParserBase::FillData 0\n");
   InputSplit::Blob chunk;
   if (!source_->NextChunk(&chunk)) {
-    fprintf(stdout, "TextParserBase::FillData 1\n");
     return false;
   }
-  fprintf(stdout, "TextParserBase::FillData 2\n");
   const int nthread = omp_get_max_threads();
-  fprintf(stdout, "Threads: %d\n", nthread);
   // reserve space for data
   data->resize(nthread);
   bytes_read_ += chunk.size;
   CHECK_NE(chunk.size, 0U);
   const char *head = reinterpret_cast<char *>(chunk.dptr);
 
-  fprintf(stdout, "TextParserBase::FillData 3\n");
 #ifdef __ENCLAVE__
   // FIXME support multi-threading
   // TODO clean this up
-  fprintf(stdout, "TextParserBase::FillData 3-1\n");
   size_t nstep = chunk.size;
   size_t sbegin = std::min((size_t)0, chunk.size);
   size_t send = std::min(nstep, chunk.size);
@@ -141,7 +135,6 @@ inline bool TextParserBase<IndexType, DType>::FillData(
   for (int tid = 0; tid < nthread; ++tid) {
     threads.push_back(std::thread([&chunk, head, data, nthread, tid, this] {
       this->omp_exc_.Run([&] {
-          fprintf(stdout, "TextParserBase::FillData 3-1\n");
         size_t nstep = (chunk.size + nthread - 1) / nthread;
         size_t sbegin = std::min(tid * nstep, chunk.size);
         size_t send = std::min((tid + 1) * nstep, chunk.size);
@@ -163,7 +156,6 @@ inline bool TextParserBase<IndexType, DType>::FillData(
   omp_exc_.Rethrow();
 
   this->data_ptr_ = 0;
-  fprintf(stdout, "TextParserBase::FillData 4\n");
   return true;
 }
 

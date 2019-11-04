@@ -61,7 +61,7 @@ class SingleFileSplit : public InputSplit {
   virtual size_t GetTotalSize(void) {
     struct stat_struct buf;
 #ifdef __ENCLAVE__
-    fprintf(stdout, "fstat UNIMPLEMENTED\n");
+    LOG(FATAL) << "fstat not implemented";
 #else
     fstat(fileno(fp_), &buf);
 #endif
@@ -75,8 +75,7 @@ class SingleFileSplit : public InputSplit {
     this->BeforeFirst();
   }
   virtual void Write(const void *ptr, size_t size) {
-    //LOG(FATAL) << "InputSplit do not support write";
-    fprintf(stdout, "Write FAILED\n");
+    LOG(FATAL) << "InputSplit do not support write";
   }
   virtual bool NextRecord(Blob *out_rec) {
     if (chunk_begin_ == chunk_end_) {

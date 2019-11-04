@@ -107,8 +107,7 @@ ParseBlock(const char *begin,
         v = static_cast<int64_t>(strtoll(p, &endptr, 0));
       // If DType is all other types
       } else {
-        //LOG(FATAL) << "Only float32, int32, and int64 are supported for the time being";
-        fprintf(stdout, "ParseBlock FAILED\n");
+        LOG(FATAL) << "Only float32, int32, and int64 are supported for the time being";
       }
       p = (endptr >= lend) ? lend : endptr;
 
@@ -124,10 +123,9 @@ ParseBlock(const char *begin,
       ++column_index;
       while (*p != param_.delimiter[0] && p != lend) ++p;
       if (p == lend && idx == 0) {
-        //LOG(FATAL) << "Delimiter \'" << param_.delimiter << "\' is not found in the line. "
-        //           << "Expected \'" << param_.delimiter
-        //           << "\' as the delimiter to separate fields.";
-        fprintf(stdout, "ParseBlock FAILED\n");
+        LOG(FATAL) << "Delimiter \'" << param_.delimiter << "\' is not found in the line. "
+                   << "Expected \'" << param_.delimiter
+                   << "\' as the delimiter to separate fields.";
       }
       if (p != lend) ++p;
     }

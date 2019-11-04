@@ -28,27 +28,20 @@ void SimpleCSRSource::CopyFrom(DMatrix* src) {
 
 void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
   // use qid to get group info
-  fprintf(stdout, "SimpleCSRSource::CopyFrom 0\n");
   const uint64_t default_max = std::numeric_limits<uint64_t>::max();
   uint64_t last_group_id = default_max;
   bst_uint group_size = 0;
   this->Clear(); 
-  fprintf(stdout, "SimpleCSRSource::CopyFrom 1\n");
-  if (parser == nullptr)
-    fprintf(stdout, "Parser is NULL\n");
   while (parser->Next()) {
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2\n");
     const dmlc::RowBlock<uint32_t>& batch = parser->Value();
     if (batch.label != nullptr) {
       auto& labels = info.labels_.HostVector();
       labels.insert(labels.end(), batch.label, batch.label + batch.size);
     }
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2-1\n");
     if (batch.weight != nullptr) {
       auto& weights = info.weights_.HostVector();
       weights.insert(weights.end(), batch.weight, batch.weight + batch.size);
     }
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2-2\n");
     if (batch.qid != nullptr) {
       info.qids_.insert(info.qids_.end(), batch.qid, batch.qid + batch.size);
       // get group
@@ -61,7 +54,6 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
         ++group_size;
       }
     }
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2-3\n");
 
     // Remove the assertion on batch.index, which can be null in the case that the data in this
     // batch is entirely sparse. Although it's true that this indicates a likely issue with the
@@ -74,7 +66,6 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
     // copy the data over
     auto& data_vec = page_.data.HostVector();
     auto& offset_vec = page_.offset.HostVector();
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2-4\n");
     for (size_t i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
       uint32_t index = batch.index[i];
       bst_float fvalue = batch.value == nullptr ? 1.0f : batch.value[i];
@@ -82,7 +73,6 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
       this->info.num_col_ = std::max(this->info.num_col_,
                                     static_cast<uint64_t>(index + 1));
     }
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2-5\n");
     size_t top = page_.offset.Size();
     for (size_t i = 0; i < batch.size; ++i) {
       //auto n1 = offset_vec[top-1];
@@ -91,15 +81,12 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
       //offset_vec.push_back(n1 + n2 - n3);
       offset_vec.push_back(offset_vec[top - 1] + batch.offset[i + 1] - batch.offset[0]);
     }
-    fprintf(stdout, "SimpleCSRSource::CopyFrom 2-6\n");
   }
-  fprintf(stdout, "SimpleCSRSource::CopyFrom 2-7\n");
   if (last_group_id != default_max) {
     if (group_size > info.group_ptr_.back()) {
       info.group_ptr_.push_back(group_size);
     }
   }
-  fprintf(stdout, "SimpleCSRSource::CopyFrom 3\n");
   this->info.num_nonzero_ = static_cast<uint64_t>(page_.data.Size());
   // Either every row has query ID or none at all
   CHECK(info.qids_.empty() || info.qids_.size() == info.num_row_);

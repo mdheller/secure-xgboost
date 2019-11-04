@@ -35,6 +35,7 @@ int host_rabit__IsDistributed() {
 }
 
 DIR* host_opendir(char* path) {
+    fprintf(stdout, "Ocall: opendir\n");
     return opendir(path);
 }
 
@@ -42,10 +43,6 @@ struct stat host_stat(char* path) {
     fprintf(stdout, "Ocall: stat\n");
     struct stat sb;
     stat(path, &sb);
-    if (&sb == NULL)
-      fprintf(stdout, "NULL ptr \n");
-    else
-      fprintf(stdout, "%d \n", sb.st_size);
     return sb;
 }
 
@@ -88,10 +85,9 @@ void* host_opendir_and_readdir(char* path) {
     fprintf(stdout, "Ocall: opendir_and_readdir\n");
     DIR *dir = opendir(path);
     if (dir == NULL) {
-      //int errsv = errno;
-      //LOG(FATAL) << "LocalFileSystem.ListDirectory " << path.str()
-      //           <<" error: " << strerror(errsv);
-      fprintf(stdout, "Ocall opendir FAILED\n");
+      int errsv = errno;
+      LOG(FATAL) << "LocalFileSystem.ListDirectory " << path
+                 <<" error: " << strerror(errsv);
     }
     struct dirent *ent;
     std::vector<char*>* out_list = new std::vector<char*>;
@@ -121,9 +117,6 @@ void* host_dmlc__Parser__Create(char* fname, int partid, int npart, char* file_f
 
 void* host_ObjFunction__Create(char* name) {
     fprintf(stdout, "Ocall: ObjFunction::Create\n");
-    //fprintf(stdout, "Name: ");
-    //fprintf(stdout, name);
-    //fprintf(stdout, "\n");
     return ocall_ObjFunction__Create(name);
 }
 

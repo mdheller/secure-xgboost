@@ -69,16 +69,16 @@ inline void BasicRowIter<IndexType, DType>::Init(Parser<IndexType, DType> *parse
     size_t bytes_read  = parser->BytesRead();
     if (bytes_read >= bytes_expect) {
       bytes_read = bytes_read >> 20UL;
-      //LOG(INFO) << bytes_read << "MB read,"
-      //          << bytes_read / tdiff << " MB/sec";
+      LOG(INFO) << bytes_read << "MB read,"
+                << bytes_read / tdiff << " MB/sec";
       bytes_expect += 10UL << 20UL;
     }
   }
   row_ = data_.GetBlock();
   double tdiff = GetTime() - tstart;
-  //LOG(INFO) << "finish reading at "
-  //          << (parser->BytesRead() >> 20UL) / tdiff
-  //          << " MB/sec";
+  LOG(INFO) << "finish reading at "
+            << (parser->BytesRead() >> 20UL) / tdiff
+            << " MB/sec";
 }
 }  // namespace data
 }  // namespace dmlc

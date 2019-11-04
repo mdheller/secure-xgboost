@@ -23,11 +23,8 @@ class LineSplitter : public InputSplitBase {
                const char *uri,
                unsigned rank,
                unsigned nsplit) {
-    fprintf(stdout, "LineSplitter 0\n");
     this->Init(fs, uri, 1);
-    fprintf(stdout, "LineSplitter 1\n");
     this->ResetPartition(rank, nsplit);
-    fprintf(stdout, "LineSplitter 2\n");
   }
 
   bool IsTextParser(void) {

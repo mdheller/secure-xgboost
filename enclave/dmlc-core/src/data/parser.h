@@ -33,9 +33,7 @@ class ParserImpl : public Parser<IndexType, DType> {
       while (data_ptr_ < data_end_) {
         data_ptr_ += 1;
         if (data_[data_ptr_ - 1].Size() != 0) {
-          fprintf(stdout, "ParserImpl::Next 0-1\n");
           block_ = data_[data_ptr_ - 1].GetBlock();
-          fprintf(stdout, "ParserImpl::Next 0-2\n");
           return true;
         }
       }

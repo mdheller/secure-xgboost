@@ -143,11 +143,8 @@ int main(int argc, char** argv) {
   const char* eval_result = NULL;
   for (int i = 0; i < n_trees; ++i) {
 #ifdef __SGX__
-      std::cout << "Starting one iter" << std::endl;
     safe_xgboost(enclave_XGBoosterUpdateOneIter(enclave, &ret, booster, i, dtrain));
-    std::cout << "Updated one iter" << std::endl;
     safe_xgboost(enclave_XGBoosterEvalOneIter(enclave, &ret, booster, i, eval_dmats, eval_names, 2, &eval_result));
-    std::cout << "Evaluated one iter" << std::endl;
 #else
     safe_xgboost(XGBoosterUpdateOneIter(booster, i, dtrain));
     safe_xgboost(XGBoosterEvalOneIter(booster, i, eval_dmats, eval_names, 2, &eval_result));

@@ -24,18 +24,12 @@ CreateLibSVMParser(const std::string& path,
                    const std::map<std::string, std::string>& args,
                    unsigned part_index,
                    unsigned num_parts) {
-  fprintf(stdout, "CreateLibSVMParser 0\n");
-  fprintf(stdout, "Path: ");
-  fprintf(stdout, path.c_str());
-  fprintf(stdout, "\n");
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
-  fprintf(stdout, "CreateLibSVMParser 1\n");
   ParserImpl<IndexType> *parser = new LibSVMParser<IndexType>(source, args, 2);
 #if DMLC_ENABLE_STD_THREAD
   parser = new ThreadedParser<IndexType>(parser);
 #endif
-  fprintf(stdout, "CreateLibSVMParser 2\n");
   return parser;
 }
 
@@ -45,14 +39,12 @@ CreateLibFMParser(const std::string& path,
                   const std::map<std::string, std::string>& args,
                   unsigned part_index,
                   unsigned num_parts) {
-  fprintf(stdout, "CreateLibFMParser 0\n");
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
   ParserImpl<IndexType> *parser = new LibFMParser<IndexType>(source, args, 2);
 #if DMLC_ENABLE_STD_THREAD
   parser = new ThreadedParser<IndexType>(parser);
 #endif
-  fprintf(stdout, "CreateLibFMParser 1\n");
   return parser;
 }
 
@@ -62,10 +54,8 @@ CreateCSVParser(const std::string& path,
                 const std::map<std::string, std::string>& args,
                 unsigned part_index,
                 unsigned num_parts) {
-  fprintf(stdout, "CreateCSVParser 0\n");
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
-  fprintf(stdout, "CreateCSVParser 1\n");
   return new CSVParser<IndexType, DType>(source, args, 2);
 }
 
@@ -88,8 +78,7 @@ CreateParser_(const char *uri_,
   const ParserFactoryReg<IndexType, DType>* e =
       Registry<ParserFactoryReg<IndexType, DType> >::Get()->Find(ptype);
   if (e == NULL) {
-    //LOG(FATAL) << "Unknown data type " << ptype;
-    fprintf(stdout, "Find FAILED\n");
+    LOG(FATAL) << "Unknown data type " << ptype;
   }
   // create parser
   return (*e->body)(spec.uri, spec.args, part_index, num_parts);
@@ -109,8 +98,7 @@ CreateIter_(const char *uri_,
 #if DMLC_ENABLE_STD_THREAD
     return new DiskRowIter<IndexType, DType>(parser, spec.cache_file.c_str(), true);
 #else
-    //LOG(FATAL) << "compile with c++0x or c++11 to enable cache file";
-    fprintf(stdout, "CreateIter_ FAILED\n");
+    LOG(FATAL) << "compile with c++0x or c++11 to enable cache file";
     return NULL;
 #endif
   } else {
