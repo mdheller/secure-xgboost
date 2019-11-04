@@ -34,16 +34,22 @@ class ColMaker: public TreeUpdater {
               DMatrix* dmat,
               const std::vector<RegTree*> &trees) override {
     // rescale learning rate according to size of trees
+    fprintf(stdout, "ColMaker::Update 0\n");
     float lr = param_.learning_rate;
     param_.learning_rate = lr / trees.size();
     // build tree
+    fprintf(stdout, "ColMaker::Update 1\n");
     for (auto tree : trees) {
+      fprintf(stdout, "ColMaker::Update 1-1\n");
       Builder builder(
         param_,
         std::unique_ptr<SplitEvaluator>(spliteval_->GetHostClone()));
+      fprintf(stdout, "ColMaker::Update 1-2\n");
       builder.Update(gpair->ConstHostVector(), dmat, tree);
+      fprintf(stdout, "ColMaker::Update 1-3\n");
     }
     param_.learning_rate = lr;
+    fprintf(stdout, "ColMaker::Update 2\n");
   }
 
  protected:
@@ -91,9 +97,12 @@ class ColMaker: public TreeUpdater {
     virtual void Update(const std::vector<GradientPair>& gpair,
                         DMatrix* p_fmat,
                         RegTree* p_tree) {
+      fprintf(stdout, "Builder::Update 0\n");
       std::vector<int> newnodes;
       this->InitData(gpair, *p_fmat, *p_tree);
+      fprintf(stdout, "Builder::Update 1\n");
       this->InitNewNode(qexpand_, gpair, *p_fmat, *p_tree);
+      fprintf(stdout, "Builder::Update 2\n");
       for (int depth = 0; depth < param_.max_depth; ++depth) {
         this->FindSplit(depth, qexpand_, gpair, p_fmat, p_tree);
         this->ResetPosition(qexpand_, p_fmat, *p_tree);
@@ -116,16 +125,19 @@ class ColMaker: public TreeUpdater {
         // if nothing left to be expand, break
         if (qexpand_.size() == 0) break;
       }
+      fprintf(stdout, "Builder::Update 3\n");
       // set all the rest expanding nodes to leaf
       for (const int nid : qexpand_) {
         (*p_tree)[nid].SetLeaf(snode_[nid].weight * param_.learning_rate);
       }
+      fprintf(stdout, "Builder::Update 4\n");
       // remember auxiliary statistics in the tree node
       for (int nid = 0; nid < p_tree->param.num_nodes; ++nid) {
         p_tree->Stat(nid).loss_chg = snode_[nid].best.loss_chg;
         p_tree->Stat(nid).base_weight = snode_[nid].weight;
         p_tree->Stat(nid).sum_hess = static_cast<float>(snode_[nid].stats.sum_hess);
       }
+      fprintf(stdout, "Builder::Update 5\n");
     }
 
    protected:
@@ -153,6 +165,8 @@ class ColMaker: public TreeUpdater {
           if (gpair[ridx].GetHess() < 0.0f) position_[ridx] = ~position_[ridx];
         }
         // mark subsample
+#ifndef __SGX__
+        // FIXME
         if (param_.subsample < 1.0f) {
           std::bernoulli_distribution coin_flip(param_.subsample);
           auto& rnd = common::GlobalRandom();
@@ -161,6 +175,7 @@ class ColMaker: public TreeUpdater {
             if (!coin_flip(rnd)) position_[ridx] = ~position_[ridx];
           }
         }
+#endif
       }
       {
         column_sampler_.Init(fmat.Info().num_col_, param_.colsample_bynode,
@@ -858,7 +873,10 @@ class DistColMaker : public ColMaker {
 
       bitmap_.InitFromBool(boolmap_);
       // communicate bitmap
+#ifndef __SGX__
+      //FIXME
       rabit::Allreduce<rabit::op::BitOR>(dmlc::BeginPtr(bitmap_.data), bitmap_.data.size());
+#endif
       // get the new position
       const auto ndata = static_cast<bst_omp_uint>(p_fmat->Info().num_row_);
       #pragma omp parallel for schedule(static)
@@ -876,6 +894,7 @@ class DistColMaker : public ColMaker {
     }
     // synchronize the best solution of each node
     void SyncBestSolution(const std::vector<int> &qexpand) override {
+#ifndef __SGX__
       std::vector<SplitEntry> vec;
       for (int nid : qexpand) {
         for (int tid = 0; tid < this->nthread_; ++tid) {
@@ -891,12 +910,15 @@ class DistColMaker : public ColMaker {
         const int nid = qexpand[i];
         this->snode_[nid].best = vec[i];
       }
+#endif // __SGX__
     }
 
    private:
     common::BitMap bitmap_;
     std::vector<int> boolmap_;
+#ifndef __SGX__
     rabit::Reducer<SplitEntry, SplitEntry::Reduce> reducer_;
+#endif // __SGX__
   };
   // we directly introduce pruner here
   std::unique_ptr<TreeUpdater> pruner_;
@@ -906,13 +928,13 @@ class DistColMaker : public ColMaker {
   std::unique_ptr<SplitEvaluator> spliteval_;
 };
 
-#ifndef __SGX__
 XGBOOST_REGISTER_TREE_UPDATER(ColMaker, "grow_colmaker")
 .describe("Grow tree with parallelization over columns.")
 .set_body([]() {
     return new ColMaker();
   });
 
+#ifndef __SGX__
 XGBOOST_REGISTER_TREE_UPDATER(DistColMaker, "distcol")
 .describe("Distributed column split version of tree maker.")
 .set_body([]() {

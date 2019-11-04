@@ -68,15 +68,25 @@ int host_rabit__GetWorldSize(void);
 
 int host_rabit__IsDistributed(void);
 
-void* host_data__SimpleCSRSource(void);
+DIR* host_opendir(char* path);
 
-void* host_dmlc__Parser__Create(
+void* host_opendir_and_readdir(char* path);
+
+struct stat host_stat(char* path);
+
+FILE* host_fopen(
     char* fname,
-    int partid,
-    int npart,
-    char* file_format);
+    char* flag);
 
-void* host_ObjFunction__Create(char* name);
+void host_fclose(FILE* fp);
+
+FILE* host_fseek(
+    FILE* fp,
+    long int pos);
+
+void* host_fread_one(
+    FILE* fp,
+    size_t size);
 
 OE_EXTERNC_END
 

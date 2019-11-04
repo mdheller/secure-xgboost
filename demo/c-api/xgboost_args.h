@@ -13,6 +13,8 @@
 
 /**** User includes. ****/
 #include "xgboost/c_api.h"
+#include "dirent.h"
+#include "sys/stat.h"
 
 /**** User defined types in EDL. ****/
 /* There were no user defined types. */
@@ -95,28 +97,56 @@ typedef struct _host_rabit__IsDistributed_args_t
     int _retval;
 } host_rabit__IsDistributed_args_t;
 
-typedef struct _host_data__SimpleCSRSource_args_t
+typedef struct _host_opendir_args_t
 {
     oe_result_t _result;
-    void* _retval;
-} host_data__SimpleCSRSource_args_t;
+    DIR* _retval;
+    char* path;
+} host_opendir_args_t;
 
-typedef struct _host_dmlc__Parser__Create_args_t
+typedef struct _host_opendir_and_readdir_args_t
 {
     oe_result_t _result;
     void* _retval;
+    char* path;
+} host_opendir_and_readdir_args_t;
+
+typedef struct _host_stat_args_t
+{
+    oe_result_t _result;
+    struct stat _retval;
+    char* path;
+} host_stat_args_t;
+
+typedef struct _host_fopen_args_t
+{
+    oe_result_t _result;
+    FILE* _retval;
     char* fname;
-    int partid;
-    int npart;
-    char* file_format;
-} host_dmlc__Parser__Create_args_t;
+    char* flag;
+} host_fopen_args_t;
 
-typedef struct _host_ObjFunction__Create_args_t
+typedef struct _host_fclose_args_t
+{
+    oe_result_t _result;
+    FILE* fp;
+} host_fclose_args_t;
+
+typedef struct _host_fseek_args_t
+{
+    oe_result_t _result;
+    FILE* _retval;
+    FILE* fp;
+    long int pos;
+} host_fseek_args_t;
+
+typedef struct _host_fread_one_args_t
 {
     oe_result_t _result;
     void* _retval;
-    char* name;
-} host_ObjFunction__Create_args_t;
+    FILE* fp;
+    size_t size;
+} host_fread_one_args_t;
 
 /**** Trusted function IDs ****/
 enum
@@ -137,9 +167,13 @@ enum
     xgboost_fcn_id_host_rabit__GetRank = 1,
     xgboost_fcn_id_host_rabit__GetWorldSize = 2,
     xgboost_fcn_id_host_rabit__IsDistributed = 3,
-    xgboost_fcn_id_host_data__SimpleCSRSource = 4,
-    xgboost_fcn_id_host_dmlc__Parser__Create = 5,
-    xgboost_fcn_id_host_ObjFunction__Create = 6,
+    xgboost_fcn_id_host_opendir = 4,
+    xgboost_fcn_id_host_opendir_and_readdir = 5,
+    xgboost_fcn_id_host_stat = 6,
+    xgboost_fcn_id_host_fopen = 7,
+    xgboost_fcn_id_host_fclose = 8,
+    xgboost_fcn_id_host_fseek = 9,
+    xgboost_fcn_id_host_fread_one = 10,
     xgboost_fcn_id_untrusted_call_max = OE_ENUM_MAX
 };
 

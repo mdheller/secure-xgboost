@@ -70,6 +70,7 @@ BatchSet SimpleDMatrix::GetColumnBatches() {
 
 BatchSet SimpleDMatrix::GetSortedColumnBatches() {
   // Sorted column page doesn't exist, generate it
+  fprintf(stdout, "SimpleDMatrix::GetSortedColumnBatches 0\n");
   if (!sorted_column_page_) {
     auto page = dynamic_cast<SimpleCSRSource*>(source_.get())->page_;
     sorted_column_page_.reset(
@@ -79,6 +80,7 @@ BatchSet SimpleDMatrix::GetSortedColumnBatches() {
   auto begin_iter =
       BatchIterator(new SimpleBatchIteratorImpl(sorted_column_page_.get()));
   return BatchSet(begin_iter);
+  fprintf(stdout, "SimpleDMatrix::GetSortedColumnBatches 1\n");
 }
 
 bool SimpleDMatrix::SingleColBlock() const { return true; }

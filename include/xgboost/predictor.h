@@ -15,8 +15,13 @@
 #include <utility>
 #include <vector>
 
+#ifdef __ENCLAVE__
+#include "../../enclave/src/gbm/gbtree_model.h"
+#include "../../enclave/src/common/host_device_vector.h"
+#else
 #include "../../src/gbm/gbtree_model.h"
 #include "../../src/common/host_device_vector.h"
+#endif // __ENCLAVE__
 
 // Forward declarations
 namespace xgboost {

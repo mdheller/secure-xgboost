@@ -24,7 +24,9 @@ namespace data {
 class SimpleDMatrix : public DMatrix {
  public:
   explicit SimpleDMatrix(std::unique_ptr<DataSource>&& source)
-      : source_(std::move(source)) {}
+      : source_(std::move(source)) {
+        fprintf(stdout, "SimpleDMatrix\n");
+      }
 
   MetaInfo& Info() override;
 

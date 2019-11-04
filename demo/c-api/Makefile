@@ -1,4 +1,4 @@
-SRC=c-api-demo.cc xgboost_u.c ocalls.cc
+SRC=c-api-demo.cc ocalls.cc
 TGT=c-api-demo
 
 cc=g++
@@ -15,14 +15,18 @@ build: $(TGT)
 
 $(TGT): $(SRC) Makefile
 	oeedger8r ../../enclave/xgboost.edl --untrusted
-	$(cc) $(CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT) $(SRC) -lxgboost $(LDFLAGS)
+	$(cc) $(CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT) $(SRC) xgboost_u.c -lxgboost $(LDFLAGS)
 
 run: $(TGT)
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT)
+
+sgx: $(TGT)
 	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT) ../../enclave/build/xgboost_enclave.signed
 
+debug: $(TGT)
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib /opt/openenclave/bin/oegdb -arg ./$(TGT) ../../enclave/build/xgboost_enclave.signed --simulate
 
 simulate: $(TGT)
-	#LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib /opt/openenclave/bin/oegdb -arg ./$(TGT) ../../enclave/build/xgboost_enclave.signed --simulate
 	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT) ../../enclave/build/xgboost_enclave.signed --simulate
 
 clean:

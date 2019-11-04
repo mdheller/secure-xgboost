@@ -39,6 +39,7 @@ bool check_simulate_opt(int* argc, char* argv[])
 
 int main(int argc, char** argv) {
 
+#ifdef __SGX__
   oe_result_t result;
   int ret = 1;
   oe_enclave_t* enclave = NULL;
@@ -69,6 +70,7 @@ int main(int argc, char** argv) {
     oe_terminate_enclave(enclave);
     return ret;
   }
+#endif
 
   // TODO ecall error handling
 
@@ -77,25 +79,34 @@ int main(int argc, char** argv) {
   
   // load the data
   DMatrixHandle dtrain, dtest;
+#ifdef __SGX__
   enclave_helloworld(enclave);
+  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.train", silent, &dtrain));
+  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.test", silent, &dtest));
+#else
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.train", silent, &dtrain));
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.test", silent, &dtest));
-  //safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.train", silent, &dtrain));
-  //safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.test", silent, &dtest));
+#endif
   std::cout << "Data loaded" << std::endl;
   
   // create the booster
   BoosterHandle booster;
   DMatrixHandle eval_dmats[2] = {dtrain, dtest};
+#ifdef __SGX__
   safe_xgboost(enclave_XGBoosterCreate(enclave, &ret, eval_dmats, 2, &booster));
-  //safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
+#else
+  safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
+#endif
   std::cout << "Booster created" << std::endl;
 
   // configure the training
   // available parameters are described here:
   //   https://xgboost.readthedocs.io/en/latest/parameter.html
+#ifdef __SGX__
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "tree_method", use_gpu ? "gpu_hist" : "exact"));
-  //safe_xgboost(XGBoosterSetParam(booster, "tree_method", use_gpu ? "gpu_hist" : "exact"));
+#else
+  safe_xgboost(XGBoosterSetParam(booster, "tree_method", use_gpu ? "gpu_hist" : "exact"));
+#endif
   std::cout << "First parameter set" << std::endl;
   if (use_gpu) {
     // set the number of GPUs and the first GPU to use;
@@ -104,21 +115,26 @@ int main(int argc, char** argv) {
     safe_xgboost(XGBoosterSetParam(booster, "gpu_id", "0"));
   } else {
     // avoid evaluating objective and metric on a GPU
+#ifdef __SGX__
     safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "n_gpus", "0"));
-    //safe_xgboost(XGBoosterSetParam(booster, "n_gpus", "0"));
+#else
+    safe_xgboost(XGBoosterSetParam(booster, "n_gpus", "0"));
+#endif
   }
 
+#ifdef __SGX__
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "objective", "binary:logistic"));
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "min_child_weight", "1"));
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "gamma", "0.1"));
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "max_depth", "3"));
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "verbosity", silent ? "0" : "1"));
-
-  //safe_xgboost(XGBoosterSetParam(booster, "objective", "binary:logistic"));
-  //safe_xgboost(XGBoosterSetParam(booster, "min_child_weight", "1"));
-  //safe_xgboost(XGBoosterSetParam(booster, "gamma", "0.1"));
-  //safe_xgboost(XGBoosterSetParam(booster, "max_depth", "3"));
-  //safe_xgboost(XGBoosterSetParam(booster, "verbosity", silent ? "0" : "1"));
+#else
+  safe_xgboost(XGBoosterSetParam(booster, "objective", "binary:logistic"));
+  safe_xgboost(XGBoosterSetParam(booster, "min_child_weight", "1"));
+  safe_xgboost(XGBoosterSetParam(booster, "gamma", "0.1"));
+  safe_xgboost(XGBoosterSetParam(booster, "max_depth", "3"));
+  safe_xgboost(XGBoosterSetParam(booster, "verbosity", silent ? "0" : "1"));
+#endif
   std::cout << "All parameters set" << std::endl;
   
   // train and evaluate for 10 iterations
@@ -126,25 +142,32 @@ int main(int argc, char** argv) {
   const char* eval_names[2] = {"train", "test"};
   const char* eval_result = NULL;
   for (int i = 0; i < n_trees; ++i) {
+#ifdef __SGX__
+      std::cout << "Starting one iter" << std::endl;
     safe_xgboost(enclave_XGBoosterUpdateOneIter(enclave, &ret, booster, i, dtrain));
-    //safe_xgboost(XGBoosterUpdateOneIter(booster, i, dtrain));
     std::cout << "Updated one iter" << std::endl;
     safe_xgboost(enclave_XGBoosterEvalOneIter(enclave, &ret, booster, i, eval_dmats, eval_names, 2, &eval_result));
+    std::cout << "Evaluated one iter" << std::endl;
+#else
+    safe_xgboost(XGBoosterUpdateOneIter(booster, i, dtrain));
+    safe_xgboost(XGBoosterEvalOneIter(booster, i, eval_dmats, eval_names, 2, &eval_result));
+#endif
     printf("%s\n", eval_result);
   }
 
+#ifndef __SGX__
   // predict
   bst_ulong out_len = 0;
   const float* out_result = NULL;
   int n_print = 10;
-
+  
   safe_xgboost(XGBoosterPredict(booster, dtest, 0, 0, &out_len, &out_result));
   printf("y_pred: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
-
+  
   // print true labels
   safe_xgboost(XGDMatrixGetFloatInfo(dtest, "label", &out_len, &out_result));
   printf("y_test: ");
@@ -152,10 +175,11 @@ int main(int argc, char** argv) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
-
+  
   // free everything
   safe_xgboost(XGBoosterFree(booster));
   safe_xgboost(XGDMatrixFree(dtrain));
   safe_xgboost(XGDMatrixFree(dtest));
+#endif
   return 0;
 }

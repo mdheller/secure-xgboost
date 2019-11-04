@@ -90,7 +90,9 @@ class ColumnSampler {
   float colsample_bylevel_{1.0f};
   float colsample_bytree_{1.0f};
   float colsample_bynode_{1.0f};
+#ifndef __SGX__
   GlobalRandomEngine rng_;
+#endif
 
   std::shared_ptr<HostDeviceVector<int>> ColSample(
       std::shared_ptr<HostDeviceVector<int>> p_features, float colsample) {
@@ -103,8 +105,10 @@ class ColumnSampler {
     new_features.Resize(features.size());
     std::copy(features.begin(), features.end(),
               new_features.HostVector().begin());
+#ifndef __SGX__
     std::shuffle(new_features.HostVector().begin(),
                  new_features.HostVector().end(), rng_);
+#endif
     new_features.Resize(n);
     std::sort(new_features.HostVector().begin(),
               new_features.HostVector().end());
@@ -118,7 +122,9 @@ class ColumnSampler {
    * \note This constructor manually sets the rng seed
    */
   explicit ColumnSampler(uint32_t seed) {
+#ifndef __SGX__
     rng_.seed(seed);
+#endif
   }
 
   /**
@@ -126,9 +132,11 @@ class ColumnSampler {
   * \note This constructor synchronizes the RNG seed across processes.
   */
   ColumnSampler() {
+#ifndef __SGX__
     uint32_t seed = common::GlobalRandom()();
     rabit::Broadcast(&seed, sizeof(seed), 0);
     rng_.seed(seed);
+#endif
   }
 
   /**

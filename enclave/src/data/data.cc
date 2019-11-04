@@ -257,18 +257,35 @@ DMatrix* DMatrix::Load(const std::string& uri,
   }
 #endif // __SGX__
   fprintf(stdout, "Marker 4\n");
+  fprintf(stdout, "Format");
+  fprintf(stdout, file_format.c_str());
+  fprintf(stdout, "\n");
 
-#ifdef __SGX__
-  dmlc::Parser<uint32_t> *_parser;
-  oe_result_t res = host_dmlc__Parser__Create((void**)&_parser, const_cast<char*>(fname.c_str()), partid, npart, const_cast<char*>(file_format.c_str()));
-  std::unique_ptr<dmlc::Parser<uint32_t> > parser(_parser);
-#else
+//#ifdef __SGX__
+//  dmlc::Parser<uint32_t> *_parser;
+//
+//  char *out_string1;
+//  fprintf(stdout, "out_string: ");
+//  out_string1 = oe_host_strndup(fname.c_str(), fname.length());
+//  fprintf(stdout, out_string1);
+//  fprintf(stdout, "\n");
+//  char *out_string2;
+//  fprintf(stdout, "out_string: ");
+//  out_string2 = oe_host_strndup(file_format.c_str(), file_format.length());
+//  fprintf(stdout, out_string2);
+//  fprintf(stdout, "\n");
+//  
+//  oe_result_t res = host_dmlc__Parser__Create((void**)&_parser, out_string1, partid, npart, out_string2);
+//  //oe_result_t res = host_dmlc__Parser__Create((void**)&_parser, const_cast<char*>(fname.c_str()), partid, npart, const_cast<char*>(file_format.c_str()));
+//  fprintf(stdout, "Marker 4-1\n");
+//  std::unique_ptr<dmlc::Parser<uint32_t> > parser(_parser);
+//#else
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));
-#endif // __SGX__
-  fprintf(stdout, "Marker 4-1\n");
-  DMatrix* dmat = DMatrix::Create(parser.get(), cache_file, page_size);
+//#endif // __SGX__
   fprintf(stdout, "Marker 5\n");
+  DMatrix* dmat = DMatrix::Create(parser.get(), cache_file, page_size);
+  fprintf(stdout, "Marker 6\n");
   if (!silent) {
     //LOG(CONSOLE) << dmat->Info().num_row_ << 'x' << dmat->Info().num_col_ << " matrix with "
     //             << dmat->Info().num_nonzero_ << " entries loaded from " << uri;
@@ -298,7 +315,8 @@ DMatrix* DMatrix::Load(const std::string& uri,
     }
   }
 #endif // __SGX__
-  fprintf(stdout, "Marker 6\n");
+  fprintf(stdout, "Marker 7\n");
+
   return dmat;
 }
 
@@ -306,18 +324,18 @@ DMatrix* DMatrix::Create(dmlc::Parser<uint32_t>* parser,
                          const std::string& cache_prefix,
                          const size_t page_size) {
   if (cache_prefix.length() == 0) {
-    fprintf(stdout, "Marker 4-2\n");
-#ifdef __SGX__
-    data::SimpleCSRSource *_source; 
-    // TODO ocall error handling
-    oe_result_t res = host_data__SimpleCSRSource((void**)&_source);
-    std::unique_ptr<data::SimpleCSRSource> source(_source);
-    fprintf(stdout, "Marker 4-3\n");
-#else
+    fprintf(stdout, "DMatrix::Create 0\n");
+//#ifdef __SGX__
+//    data::SimpleCSRSource *_source; 
+//    // TODO ocall error handling
+//    oe_result_t res = host_data__SimpleCSRSource((void**)&_source);
+//    std::unique_ptr<data::SimpleCSRSource> source(_source);
+//    fprintf(stdout, "Marker 4-3\n");
+//#else
     std::unique_ptr<data::SimpleCSRSource> source(new data::SimpleCSRSource());
-#endif // __SGX__
+//#endif // __SGX__
     source->CopyFrom(parser);
-    fprintf(stdout, "Marker 4-4\n");
+    fprintf(stdout, "DMatrix::Create 1\n");
     return DMatrix::Create(std::move(source), cache_prefix);
   } else {
 #if DMLC_ENABLE_STD_THREAD
@@ -346,13 +364,16 @@ void DMatrix::SaveToLocalFile(const std::string& fname) {
 
 DMatrix* DMatrix::Create(std::unique_ptr<DataSource>&& source,
                          const std::string& cache_prefix) {
+  fprintf(stdout, "DMatrix::Create::2 0\n");
   if (cache_prefix.length() == 0) {
+    fprintf(stdout, "DMatrix::Create::2 1\n");
     return new data::SimpleDMatrix(std::move(source));
   } else {
 #if DMLC_ENABLE_STD_THREAD
     return new data::SparsePageDMatrix(std::move(source), cache_prefix);
 #else
     //LOG(FATAL) << "External memory is not enabled in mingw";
+    fprintf(stdout, "DMatrix::Create::2 FAILED\n");
     return nullptr;
 #endif  // DMLC_ENABLE_STD_THREAD
   }

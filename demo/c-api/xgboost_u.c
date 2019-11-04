@@ -772,7 +772,7 @@ done:
         pargs_out->_result = _result;
 }
 
-void ocall_host_data__SimpleCSRSource(
+void ocall_host_opendir(
     uint8_t* input_buffer,
     size_t input_buffer_size,
     uint8_t* output_buffer,
@@ -783,8 +783,8 @@ void ocall_host_data__SimpleCSRSource(
     OE_UNUSED(input_buffer_size);
 
     /* Prepare parameters. */
-    host_data__SimpleCSRSource_args_t* pargs_in = (host_data__SimpleCSRSource_args_t*)input_buffer;
-    host_data__SimpleCSRSource_args_t* pargs_out = (host_data__SimpleCSRSource_args_t*)output_buffer;
+    host_opendir_args_t* pargs_in = (host_opendir_args_t*)input_buffer;
+    host_opendir_args_t* pargs_out = (host_opendir_args_t*)output_buffer;
 
     size_t input_buffer_offset = 0;
     size_t output_buffer_offset = 0;
@@ -805,8 +805,8 @@ void ocall_host_data__SimpleCSRSource(
     /* There were no out nor in-out parameters. */
 
     /* Call user function. */
-    pargs_out->_retval = host_data__SimpleCSRSource(
-    );
+    pargs_out->_retval = host_opendir(
+        pargs_in->path);
 
     /* Propagate errno back to enclave. */
     /* Errno propagation not enabled. */
@@ -820,7 +820,7 @@ done:
         pargs_out->_result = _result;
 }
 
-void ocall_host_dmlc__Parser__Create(
+void ocall_host_opendir_and_readdir(
     uint8_t* input_buffer,
     size_t input_buffer_size,
     uint8_t* output_buffer,
@@ -831,8 +831,8 @@ void ocall_host_dmlc__Parser__Create(
     OE_UNUSED(input_buffer_size);
 
     /* Prepare parameters. */
-    host_dmlc__Parser__Create_args_t* pargs_in = (host_dmlc__Parser__Create_args_t*)input_buffer;
-    host_dmlc__Parser__Create_args_t* pargs_out = (host_dmlc__Parser__Create_args_t*)output_buffer;
+    host_opendir_and_readdir_args_t* pargs_in = (host_opendir_and_readdir_args_t*)input_buffer;
+    host_opendir_and_readdir_args_t* pargs_out = (host_opendir_and_readdir_args_t*)output_buffer;
 
     size_t input_buffer_offset = 0;
     size_t output_buffer_offset = 0;
@@ -850,17 +850,108 @@ void ocall_host_dmlc__Parser__Create(
 
     /* Set out and in-out pointers. */
     /* In-out parameters are copied to output buffer. */
-    if (pargs_in->fname)
-        OE_SET_OUT_POINTER(fname, sizeof(char), char*);
-    if (pargs_in->file_format)
-        OE_SET_OUT_POINTER(file_format, sizeof(char), char*);
+    /* There were no out nor in-out parameters. */
 
     /* Call user function. */
-    pargs_out->_retval = host_dmlc__Parser__Create(
+    pargs_out->_retval = host_opendir_and_readdir(
+        pargs_in->path);
+
+    /* Propagate errno back to enclave. */
+    /* Errno propagation not enabled. */
+
+    /* Success. */
+    _result = OE_OK;
+    *output_bytes_written = output_buffer_offset;
+
+done:
+    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
+        pargs_out->_result = _result;
+}
+
+void ocall_host_stat(
+    uint8_t* input_buffer,
+    size_t input_buffer_size,
+    uint8_t* output_buffer,
+    size_t output_buffer_size,
+    size_t* output_bytes_written)
+{
+    oe_result_t _result = OE_FAILURE;
+    OE_UNUSED(input_buffer_size);
+
+    /* Prepare parameters. */
+    host_stat_args_t* pargs_in = (host_stat_args_t*)input_buffer;
+    host_stat_args_t* pargs_out = (host_stat_args_t*)output_buffer;
+
+    size_t input_buffer_offset = 0;
+    size_t output_buffer_offset = 0;
+    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
+    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
+
+    /* Make sure input and output buffers are valid. */
+    if (!input_buffer || !output_buffer) {
+        _result = OE_INVALID_PARAMETER;
+        goto done;
+    }
+
+    /* Set in and in-out pointers. */
+    /* There were no in nor in-out parameters. */
+
+    /* Set out and in-out pointers. */
+    /* In-out parameters are copied to output buffer. */
+    /* There were no out nor in-out parameters. */
+
+    /* Call user function. */
+    pargs_out->_retval = host_stat(
+        pargs_in->path);
+
+    /* Propagate errno back to enclave. */
+    /* Errno propagation not enabled. */
+
+    /* Success. */
+    _result = OE_OK;
+    *output_bytes_written = output_buffer_offset;
+
+done:
+    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
+        pargs_out->_result = _result;
+}
+
+void ocall_host_fopen(
+    uint8_t* input_buffer,
+    size_t input_buffer_size,
+    uint8_t* output_buffer,
+    size_t output_buffer_size,
+    size_t* output_bytes_written)
+{
+    oe_result_t _result = OE_FAILURE;
+    OE_UNUSED(input_buffer_size);
+
+    /* Prepare parameters. */
+    host_fopen_args_t* pargs_in = (host_fopen_args_t*)input_buffer;
+    host_fopen_args_t* pargs_out = (host_fopen_args_t*)output_buffer;
+
+    size_t input_buffer_offset = 0;
+    size_t output_buffer_offset = 0;
+    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
+    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
+
+    /* Make sure input and output buffers are valid. */
+    if (!input_buffer || !output_buffer) {
+        _result = OE_INVALID_PARAMETER;
+        goto done;
+    }
+
+    /* Set in and in-out pointers. */
+    /* There were no in nor in-out parameters. */
+
+    /* Set out and in-out pointers. */
+    /* In-out parameters are copied to output buffer. */
+    /* There were no out nor in-out parameters. */
+
+    /* Call user function. */
+    pargs_out->_retval = host_fopen(
         pargs_in->fname,
-        pargs_in->partid,
-        pargs_in->npart,
-        pargs_in->file_format);
+        pargs_in->flag);
 
     /* Propagate errno back to enclave. */
     /* Errno propagation not enabled. */
@@ -874,7 +965,7 @@ done:
         pargs_out->_result = _result;
 }
 
-void ocall_host_ObjFunction__Create(
+void ocall_host_fclose(
     uint8_t* input_buffer,
     size_t input_buffer_size,
     uint8_t* output_buffer,
@@ -885,8 +976,8 @@ void ocall_host_ObjFunction__Create(
     OE_UNUSED(input_buffer_size);
 
     /* Prepare parameters. */
-    host_ObjFunction__Create_args_t* pargs_in = (host_ObjFunction__Create_args_t*)input_buffer;
-    host_ObjFunction__Create_args_t* pargs_out = (host_ObjFunction__Create_args_t*)output_buffer;
+    host_fclose_args_t* pargs_in = (host_fclose_args_t*)input_buffer;
+    host_fclose_args_t* pargs_out = (host_fclose_args_t*)output_buffer;
 
     size_t input_buffer_offset = 0;
     size_t output_buffer_offset = 0;
@@ -907,8 +998,106 @@ void ocall_host_ObjFunction__Create(
     /* There were no out nor in-out parameters. */
 
     /* Call user function. */
-    pargs_out->_retval = host_ObjFunction__Create(
-        pargs_in->name);
+    host_fclose(
+        pargs_in->fp);
+
+    /* Propagate errno back to enclave. */
+    /* Errno propagation not enabled. */
+
+    /* Success. */
+    _result = OE_OK;
+    *output_bytes_written = output_buffer_offset;
+
+done:
+    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
+        pargs_out->_result = _result;
+}
+
+void ocall_host_fseek(
+    uint8_t* input_buffer,
+    size_t input_buffer_size,
+    uint8_t* output_buffer,
+    size_t output_buffer_size,
+    size_t* output_bytes_written)
+{
+    oe_result_t _result = OE_FAILURE;
+    OE_UNUSED(input_buffer_size);
+
+    /* Prepare parameters. */
+    host_fseek_args_t* pargs_in = (host_fseek_args_t*)input_buffer;
+    host_fseek_args_t* pargs_out = (host_fseek_args_t*)output_buffer;
+
+    size_t input_buffer_offset = 0;
+    size_t output_buffer_offset = 0;
+    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
+    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
+
+    /* Make sure input and output buffers are valid. */
+    if (!input_buffer || !output_buffer) {
+        _result = OE_INVALID_PARAMETER;
+        goto done;
+    }
+
+    /* Set in and in-out pointers. */
+    /* There were no in nor in-out parameters. */
+
+    /* Set out and in-out pointers. */
+    /* In-out parameters are copied to output buffer. */
+    /* There were no out nor in-out parameters. */
+
+    /* Call user function. */
+    pargs_out->_retval = host_fseek(
+        pargs_in->fp,
+        pargs_in->pos);
+
+    /* Propagate errno back to enclave. */
+    /* Errno propagation not enabled. */
+
+    /* Success. */
+    _result = OE_OK;
+    *output_bytes_written = output_buffer_offset;
+
+done:
+    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
+        pargs_out->_result = _result;
+}
+
+void ocall_host_fread_one(
+    uint8_t* input_buffer,
+    size_t input_buffer_size,
+    uint8_t* output_buffer,
+    size_t output_buffer_size,
+    size_t* output_bytes_written)
+{
+    oe_result_t _result = OE_FAILURE;
+    OE_UNUSED(input_buffer_size);
+
+    /* Prepare parameters. */
+    host_fread_one_args_t* pargs_in = (host_fread_one_args_t*)input_buffer;
+    host_fread_one_args_t* pargs_out = (host_fread_one_args_t*)output_buffer;
+
+    size_t input_buffer_offset = 0;
+    size_t output_buffer_offset = 0;
+    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
+    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
+
+    /* Make sure input and output buffers are valid. */
+    if (!input_buffer || !output_buffer) {
+        _result = OE_INVALID_PARAMETER;
+        goto done;
+    }
+
+    /* Set in and in-out pointers. */
+    /* There were no in nor in-out parameters. */
+
+    /* Set out and in-out pointers. */
+    /* In-out parameters are copied to output buffer. */
+    /* There were no out nor in-out parameters. */
+
+    /* Call user function. */
+    pargs_out->_retval = host_fread_one(
+        pargs_in->fp,
+        pargs_in->size);
 
     /* Propagate errno back to enclave. */
     /* Errno propagation not enabled. */
@@ -929,9 +1118,13 @@ static oe_ocall_func_t __xgboost_ocall_function_table[] = {
     (oe_ocall_func_t) ocall_host_rabit__GetRank,
     (oe_ocall_func_t) ocall_host_rabit__GetWorldSize,
     (oe_ocall_func_t) ocall_host_rabit__IsDistributed,
-    (oe_ocall_func_t) ocall_host_data__SimpleCSRSource,
-    (oe_ocall_func_t) ocall_host_dmlc__Parser__Create,
-    (oe_ocall_func_t) ocall_host_ObjFunction__Create,
+    (oe_ocall_func_t) ocall_host_opendir,
+    (oe_ocall_func_t) ocall_host_opendir_and_readdir,
+    (oe_ocall_func_t) ocall_host_stat,
+    (oe_ocall_func_t) ocall_host_fopen,
+    (oe_ocall_func_t) ocall_host_fclose,
+    (oe_ocall_func_t) ocall_host_fseek,
+    (oe_ocall_func_t) ocall_host_fread_one,
     NULL
 };
 
@@ -950,7 +1143,7 @@ oe_result_t oe_create_xgboost_enclave(
                config,
                config_size,
                __xgboost_ocall_function_table,
-               7,
+               11,
                enclave);
 }
 

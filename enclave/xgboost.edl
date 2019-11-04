@@ -31,23 +31,53 @@ enclave {
                 [user_check] const char** out_str);
     };
 
+    include "dirent.h"
+    include "sys/stat.h"
     untrusted {
         void host_helloworld();
         int host_rabit__GetRank();
         int host_rabit__GetWorldSize();
         int host_rabit__IsDistributed();
+
+        DIR* host_opendir(
+                [user_check] char* path);
+
+        void* host_opendir_and_readdir(
+                [user_check] char* path);
+
+        struct stat host_stat(
+                [user_check] char* path);
+
+        FILE* host_fopen(
+                [user_check] char* fname,
+                [user_check] char* flag);
+
+        void host_fclose(
+                [user_check] FILE* fp);
+
+        FILE* host_fseek(
+                [user_check] FILE* fp,
+                long pos);
+
+        void* host_fread_one(
+                [user_check] FILE* fp,
+                size_t size);
+
+        //struct dirent* host_readdir(
+        //        [user_check] DIR** path);
+
         // FIXME void* -> data::SimpleCSRSource*
-        void* host_data__SimpleCSRSource();
+        //void* host_data__SimpleCSRSource();
         // FIXME void* -> dmlc::Parser<uint32_t>
-        void* host_dmlc__Parser__Create(
-                [out] char* fname, 
-                int partid, 
-                int npart, 
-                [out] char* file_format);
+        //void* host_dmlc__Parser__Create(
+        //        [user_check] char* fname, 
+        //        int partid, 
+        //        int npart, 
+        //        [user_check] char* file_format);
         // FIXME void* -> xgboost::ObjFunction*
         // FIXME this ocall should not exist
-        void* host_ObjFunction__Create(
-                [user_check] char* name); 
+        //void* host_ObjFunction__Create(
+        //        [user_check] char* name); 
     };
 };
 

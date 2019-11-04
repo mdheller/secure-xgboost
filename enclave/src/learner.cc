@@ -512,6 +512,7 @@ class LearnerImpl : public Learner {
     //monitor_.Start("UpdateOneIter");
 
     // TODO(trivialfis): Merge the duplicated code with BoostOneIter
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 0\n");
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
 #ifndef __SGX__
@@ -520,16 +521,22 @@ class LearnerImpl : public Learner {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
 #endif // __SGX__
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 1\n");
     this->ValidateDMatrix(train);
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 2\n");
     this->PerformTreeMethodHeuristic(train);
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 3\n");
 
     //monitor_.Start("PredictRaw");
     this->PredictRaw(train, &preds_[train]);
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 4\n");
     //monitor_.Stop("PredictRaw");
     //monitor_.Start("GetGradient");
     obj_->GetGradient(preds_[train], train->Info(), iter, &gpair_);
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 5\n");
     //monitor_.Stop("GetGradient");
     gbm_->DoBoost(train, &gpair_, obj_.get());
+    fprintf(stdout, "LearnerImpl::UpdateOneIter 6\n");
     //monitor_.Stop("UpdateOneIter");
   }
 
@@ -559,8 +566,11 @@ class LearnerImpl : public Learner {
     fprintf(stdout, "LearnerImpl::EvalOneIter 1\n");
     std::ostringstream os;
     os << '[' << iter << ']' << std::setiosflags(std::ios::fixed);
+    fprintf(stdout, "LearnerImpl::EvalOneIter 1-1\n");
     if (metrics_.size() == 0 && tparam_.disable_default_eval_metric <= 0) {
+      fprintf(stdout, "LearnerImpl::EvalOneIter 1-2\n");
       metrics_.emplace_back(Metric::Create(obj_->DefaultEvalMetric()));
+      fprintf(stdout, "LearnerImpl::EvalOneIter 1-3\n");
       metrics_.back()->Configure(cfg_.begin(), cfg_.end());
     }
     fprintf(stdout, "LearnerImpl::EvalOneIter 2\n");
@@ -791,7 +801,10 @@ class LearnerImpl : public Learner {
     fprintf(stdout, "Learner::LazyInit 4\n");
     // setup
     cfg_["num_feature"] = common::ToString(mparam_.num_feature);
-    CHECK(obj_ == nullptr && gbm_ == nullptr);
+    fprintf(stdout, "Learner::LazyInit 4-1\n");
+    CHECK(gbm_ == nullptr);
+    fprintf(stdout, "Learner::LazyInit 4-2\n");
+    CHECK(obj_ == nullptr);
     fprintf(stdout, "Learner::LazyInit 5\n");
 
     // FIXME do within enclave
@@ -812,7 +825,10 @@ class LearnerImpl : public Learner {
     // reset the base score
     mparam_.base_score = obj_->ProbToMargin(mparam_.base_score);
     fprintf(stdout, "Learner::LazyInit 7\n");
-    gbm_.reset(GradientBooster::Create(name_gbm_, cache_, mparam_.base_score));
+    GradientBooster* g = GradientBooster::Create(name_gbm_, cache_, mparam_.base_score);
+    fprintf(stdout, "Learner::LazyInit 7-1\n");
+    gbm_.reset(g);
+    //gbm_.reset(GradientBooster::Create(name_gbm_, cache_, mparam_.base_score));
     fprintf(stdout, "Learner::LazyInit 8\n");
     gbm_->Configure(cfg_.begin(), cfg_.end());
     fprintf(stdout, "Learner::LazyInit 9\n");

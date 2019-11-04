@@ -82,8 +82,10 @@ class Booster {
     }
     fprintf(stdout, "Booster::LazyInit 1\n");
     if (!initialized_) {
+      fprintf(stdout, "Booster::LazyInit 1-1\n");
       learner_->InitModel();
       initialized_ = true;
+      fprintf(stdout, "Booster::LazyInit 1-2\n");
     }
     fprintf(stdout, "Booster::LazyInit 2\n");
   }
@@ -283,7 +285,10 @@ int XGDMatrixCreateFromFile(const char *fname,
     load_row_split = true;
   }
   fprintf(stdout, "Checked rabit distribution\n");
-  *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
+  DMatrix* d = DMatrix::Load(fname, silent != 0, load_row_split);
+  fprintf(stdout, "Loaded\n");
+  *out = new std::shared_ptr<DMatrix>(d);
+  fprintf(stdout, "Created ptr\n");
   API_END();
 }
 
@@ -993,7 +998,8 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
   fprintf(stdout, "XGBoosterEvalOneIter 5\n");
   eval_str = l->EvalOneIter(iter, data_sets, data_names);
   fprintf(stdout, "XGBoosterEvalOneIter 6\n");
-  *out_str = eval_str.c_str();
+  *out_str = oe_host_strndup(eval_str.c_str(), eval_str.length());
+  //*out_str = eval_str.c_str();
   API_END();
 }
 
