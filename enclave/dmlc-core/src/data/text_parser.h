@@ -122,14 +122,7 @@ inline bool TextParserBase<IndexType, DType>::FillData(
 
 #ifdef __ENCLAVE__
   // FIXME support multi-threading
-  // TODO clean this up
-  size_t nstep = chunk.size;
-  size_t sbegin = std::min((size_t)0, chunk.size);
-  size_t send = std::min(nstep, chunk.size);
-  const char *pbegin = BackFindEndLine(head + sbegin, head);
-  const char *pend;
-  pend = head + send;
-  ParseBlock(pbegin, pend, &(*data)[0]);
+  ParseBlock(head, head + chunk.size, &(*data)[0]);
 #else // __ENCLAVE__
   std::vector<std::thread> threads;
   for (int tid = 0; tid < nthread; ++tid) {

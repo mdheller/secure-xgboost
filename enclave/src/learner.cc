@@ -308,10 +308,7 @@ class LearnerImpl : public Learner {
       name_obj_ = cfg_["objective"];
       name_gbm_ = cfg_["booster"];
       // set seed only before the model is initialized
-#ifndef __SGX__
-      // FIXME
       common::GlobalRandom().seed(tparam_.seed);
-#endif // __SGX__
     }
 
     // set number of features correctly.
@@ -500,8 +497,14 @@ class LearnerImpl : public Learner {
     // TODO(trivialfis): Merge the duplicated code with BoostOneIter
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
-#ifndef __SGX__
-    // FIXME
+#ifdef __SGX__
+    // TODO ocall error handling
+    int ret;
+    oe_result_t res = host_rabit__IsDistributed(&ret);
+    if (tparam_.seed_per_iteration || ret) {
+      common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
+    }
+#else
     if (tparam_.seed_per_iteration || rabit::IsDistributed()) {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
@@ -525,8 +528,14 @@ class LearnerImpl : public Learner {
 
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before boost.";
-#ifndef __SGX__
-    // FIXME
+#ifdef __SGX__
+    // TODO ocall error handling
+    int ret;
+    oe_result_t res = host_rabit__IsDistributed(&ret);
+    if (tparam_.seed_per_iteration || ret) {
+      common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
+    }
+#else
     if (tparam_.seed_per_iteration || rabit::IsDistributed()) {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }

@@ -75,10 +75,6 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
     }
     size_t top = page_.offset.Size();
     for (size_t i = 0; i < batch.size; ++i) {
-      //auto n1 = offset_vec[top-1];
-      //auto n2 = batch.offset[i+1];
-      //auto n3 = batch.offset[0];
-      //offset_vec.push_back(n1 + n2 - n3);
       offset_vec.push_back(offset_vec[top - 1] + batch.offset[i + 1] - batch.offset[0]);
     }
   }

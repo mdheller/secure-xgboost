@@ -231,8 +231,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
                  << " of " << npart << " parts";
   }
 
-#ifndef __SGX__
-  // FIXME
   // legacy handling of binary data loading
   if (file_format == "auto" && npart == 1) {
     int magic;
@@ -252,7 +250,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
       }
     }
   }
-#endif // __SGX__
 
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));
@@ -294,14 +291,7 @@ DMatrix* DMatrix::Create(dmlc::Parser<uint32_t>* parser,
                          const std::string& cache_prefix,
                          const size_t page_size) {
   if (cache_prefix.length() == 0) {
-//#ifdef __SGX__
-//    data::SimpleCSRSource *_source; 
-//    // TODO ocall error handling
-//    oe_result_t res = host_data__SimpleCSRSource((void**)&_source);
-//    std::unique_ptr<data::SimpleCSRSource> source(_source);
-//#else
     std::unique_ptr<data::SimpleCSRSource> source(new data::SimpleCSRSource());
-//#endif // __SGX__
     source->CopyFrom(parser);
     return DMatrix::Create(std::move(source), cache_prefix);
   } else {
@@ -320,13 +310,10 @@ DMatrix* DMatrix::Create(dmlc::Parser<uint32_t>* parser,
 }
 
 void DMatrix::SaveToLocalFile(const std::string& fname) {
-#ifndef __SGX__
-  // FIXME 
   data::SimpleCSRSource source;
   source.CopyFrom(this);
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(fname.c_str(), "w"));
   source.SaveBinary(fo.get());
-#endif // __SGX__
 }
 
 DMatrix* DMatrix::Create(std::unique_ptr<DataSource>&& source,

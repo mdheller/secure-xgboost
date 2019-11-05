@@ -242,13 +242,7 @@ class GBTree : public GradientBooster {
   std::vector<std::string> DumpModel(const FeatureMap& fmap,
                                      bool with_stats,
                                      std::string format) const override {
-#ifdef __SGX__
-    // FIXME temporary
-    std::vector<std::string> s;
-    return s;
-#else
     return model_.DumpModel(fmap, with_stats, format);
-#endif
   }
 
  protected:
@@ -517,9 +511,6 @@ class Dart : public GBTree {
     if (ntree_limit_drop > 0) return;
 
     std::uniform_real_distribution<> runif(0.0, 1.0);
-#ifdef __SGX__
-    // FIXME temporary
-#else
     auto& rnd = common::GlobalRandom();
     bool skip = false;
     if (dparam_.skip_drop > 0.0) skip = (runif(rnd) < dparam_.skip_drop);
@@ -558,7 +549,6 @@ class Dart : public GBTree {
         }
       }
     }
-#endif // __SGX__
   }
 
   // set normalization factors

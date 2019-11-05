@@ -101,10 +101,7 @@ FileInfo LocalFileSystem::GetPathInfo(const URI &path) {
   //TODO ocall error handling
   std::vector<char*> *name_list;
   oe_result_t res = host_stat(&sb, out_string);
-  if (&sb == NULL)
-    LOG(FATAL) << "NULL ptr";
 #else
-  //FIXME
   if (stat(path.name.c_str(), &sb) == -1) {
     int errsv = errno;
 #ifndef _WIN32

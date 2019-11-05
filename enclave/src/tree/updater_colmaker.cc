@@ -153,8 +153,6 @@ class ColMaker: public TreeUpdater {
           if (gpair[ridx].GetHess() < 0.0f) position_[ridx] = ~position_[ridx];
         }
         // mark subsample
-#ifndef __SGX__
-        // FIXME
         if (param_.subsample < 1.0f) {
           std::bernoulli_distribution coin_flip(param_.subsample);
           auto& rnd = common::GlobalRandom();
@@ -163,7 +161,6 @@ class ColMaker: public TreeUpdater {
             if (!coin_flip(rnd)) position_[ridx] = ~position_[ridx];
           }
         }
-#endif
       }
       {
         column_sampler_.Init(fmat.Info().num_col_, param_.colsample_bynode,
@@ -883,6 +880,7 @@ class DistColMaker : public ColMaker {
     // synchronize the best solution of each node
     void SyncBestSolution(const std::vector<int> &qexpand) override {
 #ifndef __SGX__
+      //FIXME
       std::vector<SplitEntry> vec;
       for (int nid : qexpand) {
         for (int tid = 0; tid < this->nthread_; ++tid) {

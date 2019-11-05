@@ -42,7 +42,11 @@ DIR* host_opendir(char* path) {
 struct stat host_stat(char* path) {
     fprintf(stdout, "Ocall: stat\n");
     struct stat sb;
-    stat(path, &sb);
+    if (stat(path, &sb) == -1) {
+      int errsv = errno;
+      LOG(FATAL) << "LocalFileSystem.GetPathInfo: "
+        << path << " error: " << strerror(errsv);
+    }
     return sb;
 }
 
