@@ -1161,7 +1161,7 @@ QueryBoosterConfigurationArguments(BoosterHandle handle) {
 static DMLC_ATTRIBUTE_UNUSED int XGBOOST_LINK_RABIT_C_API_ = RabitLinkTag();
 
 
-#ifdef __SGX__
+#if defined(__SGX__) && defined(__HOST__)
 int ocall_rabit__GetRank() {
     return rabit::GetRank();
 }
@@ -1172,20 +1172,5 @@ int ocall_rabit__GetWorldSize() {
 
 int ocall_rabit__IsDistributed() {
     return rabit::IsDistributed();
-}
-
-void* ocall_data__SimpleCSRSource() {
-    return new data::SimpleCSRSource();
-}
-
-void* ocall_dmlc__Parser__Create(char* fname, int partid, int npart, char* file_format) {
-    return dmlc::Parser<uint32_t>::Create(fname, partid, npart, file_format);
-}
-
-void* ocall_ObjFunction__Create(const std::string& name) {
-    fprintf(stdout, "Creating objective function\n");
-    ObjFunction* f = ObjFunction::Create(name);
-    fprintf(stdout, "Created objective function\n");
-    return f;
 }
 #endif // __SGX__

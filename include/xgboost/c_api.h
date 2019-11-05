@@ -575,13 +575,6 @@ int ocall_rabit__GetRank();
 int ocall_rabit__GetWorldSize();
 
 int ocall_rabit__IsDistributed();
-
-void* ocall_data__SimpleCSRSource();
-
-void* ocall_dmlc__Parser__Create(char* fname, int partid, int npart, char* file_format);
-
-void* ocall_ObjFunction__Create(const std::string& name);
 #endif // __SGX__ && __HOST__
-
 
 #endif  // XGBOOST_C_API_H_

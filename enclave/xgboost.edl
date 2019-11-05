@@ -62,22 +62,6 @@ enclave {
         void* host_fread_one(
                 [user_check] FILE* fp,
                 size_t size);
-
-        //struct dirent* host_readdir(
-        //        [user_check] DIR** path);
-
-        // FIXME void* -> data::SimpleCSRSource*
-        //void* host_data__SimpleCSRSource();
-        // FIXME void* -> dmlc::Parser<uint32_t>
-        //void* host_dmlc__Parser__Create(
-        //        [user_check] char* fname, 
-        //        int partid, 
-        //        int npart, 
-        //        [user_check] char* file_format);
-        // FIXME void* -> xgboost::ObjFunction*
-        // FIXME this ocall should not exist
-        //void* host_ObjFunction__Create(
-        //        [user_check] char* name); 
     };
 };
 

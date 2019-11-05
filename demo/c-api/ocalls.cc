@@ -21,12 +21,12 @@ void host_helloworld() {
 
 int host_rabit__GetRank() {
     fprintf(stdout, "Ocall: rabit::GetRank\n");
-	return ocall_rabit__GetRank();
+	  return ocall_rabit__GetRank();
 }
 
 int host_rabit__GetWorldSize() {
     fprintf(stdout, "Ocall: rabit::GetWorldSize\n");
-	return ocall_rabit__GetWorldSize();
+	  return ocall_rabit__GetWorldSize();
 }
 
 int host_rabit__IsDistributed() {
@@ -99,24 +99,3 @@ void* host_opendir_and_readdir(char* path) {
     closedir(dir);
     return (void*)out_list;
 }
-
-struct dirent* host_readdir(DIR** path) {
-    return readdir(*path);
-}
-
-void* host_data__SimpleCSRSource() {
-    fprintf(stdout, "Ocall: data::SimpleCSRSource\n");
-    return ocall_data__SimpleCSRSource();
-}
-
-
-void* host_dmlc__Parser__Create(char* fname, int partid, int npart, char* file_format) {
-    fprintf(stdout, "Ocall: dmlc::Parser::Create\n");
-    return ocall_dmlc__Parser__Create(fname, partid, npart, file_format);
-}
-
-void* host_ObjFunction__Create(char* name) {
-    fprintf(stdout, "Ocall: ObjFunction::Create\n");
-    return ocall_ObjFunction__Create(name);
-}
-
