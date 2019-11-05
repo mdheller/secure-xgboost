@@ -172,10 +172,8 @@ DMatrix* DMatrix::Load(const std::string& uri,
         size_t pos = cache_shards[i].rfind('.');
 #ifdef __SGX__
         int rank, worldsize;
-        // TODO ocall error handling
-        oe_result_t res = host_rabit__GetRank(&rank);
-        // TODO ocall error handling
-        res = host_rabit__GetWorldSize(&worldsize);
+        safe_ocall(host_rabit__GetRank(&rank));
+        safe_ocall(host_rabit__GetWorldSize(&worldsize));
         if (pos == std::string::npos) {
           os << cache_shards[i]
             << ".r" << rank
@@ -211,10 +209,8 @@ DMatrix* DMatrix::Load(const std::string& uri,
   if (load_row_split) {
 #ifdef __SGX__
     int rank, worldsize;
-    // TODO ocall error handling
-    oe_result_t res = host_rabit__GetRank(&rank);
-    // TODO ocall error handling
-    res = host_rabit__GetWorldSize(&worldsize);
+    safe_ocall(host_rabit__GetRank(&rank));
+    safe_ocall(host_rabit__GetWorldSize(&worldsize));
     partid = rank;
     npart = worldsize;
 #else // __SGX__

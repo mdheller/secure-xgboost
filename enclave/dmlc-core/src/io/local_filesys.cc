@@ -21,7 +21,11 @@ extern "C" {
 #include "./local_filesys.h"
 
 #include <cstring>
+
+#ifdef __ENCLAVE__
 #include "xgboost_t.h"
+#include "../../../src/common/common.h"
+#endif
 
 
 namespace dmlc {
@@ -36,11 +40,10 @@ class FileStream : public SeekStream {
   }
   virtual size_t Read(void *ptr, size_t size) {
 #ifdef __ENCLAVE__
-    // TODO ocall error handling
-    // TODO CHECK
     char* buffer;
-    oe_result_t res = host_fread_one((void**)&buffer, fp_, size);
+    safe_ocall(host_fread_one((void**)&buffer, fp_, size));
     std::memcpy(ptr, buffer, size);
+    oe_host_free(buffer);
     return size;
 #else // __ENCLAVE__
     return std::fread(ptr, 1, size, fp_);
@@ -52,9 +55,7 @@ class FileStream : public SeekStream {
   }
   virtual void Seek(size_t pos) {
 #ifdef __ENCLAVE__
-    // TODO ocall error handling
-    // TODO CHECK
-    oe_result_t res = host_fseek(&fp_, fp_, static_cast<long>(pos));
+    safe_ocall(host_fseek(&fp_, fp_, static_cast<long>(pos)));
 #else // __ENCLAVE__
 #ifndef _MSC_VER
     CHECK(!std::fseek(fp_, static_cast<long>(pos), SEEK_SET));  // NOLINT(*)
@@ -76,8 +77,7 @@ class FileStream : public SeekStream {
   inline void Close(void) {
     if (fp_ != NULL && !use_stdio_) {
 #ifdef __ENCLAVE__
-      // TODO ocall error handling
-      oe_result_t res = host_fclose(fp_);
+      safe_ocall(host_fclose(fp_));
 #else
       std::fclose(fp_); 
 #endif
@@ -98,9 +98,8 @@ FileInfo LocalFileSystem::GetPathInfo(const URI &path) {
 #ifdef __ENCLAVE__
   char *out_string;
   out_string = oe_host_strndup(path.name.c_str(), path.name.length());
-  //TODO ocall error handling
   std::vector<char*> *name_list;
-  oe_result_t res = host_stat(&sb, out_string);
+  safe_ocall(host_stat(&sb, out_string));
 #else
   if (stat(path.name.c_str(), &sb) == -1) {
     int errsv = errno;
@@ -133,13 +132,10 @@ FileInfo LocalFileSystem::GetPathInfo(const URI &path) {
 void LocalFileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_list) {
 #ifndef _WIN32
 #ifdef __ENCLAVE__
-  char *out_string;
-  out_string = oe_host_strndup(path.name.c_str(), path.name.length());
-  //TODO ocall error handling
+  char *out_string = oe_host_strndup(path.name.c_str(), path.name.length());
   out_list->clear();
-
   std::vector<char*> *name_list;
-  oe_result_t res = host_opendir_and_readdir((void**)&name_list, out_string);
+  safe_ocall(host_opendir_and_readdir((void**)&name_list, out_string));
 
   for (std::vector<char*>::iterator it = name_list->begin(); it != name_list->end(); ++it) {
     //if (!strcmp(it->c_str(), ".")) continue;
@@ -252,13 +248,9 @@ SeekStream *LocalFileSystem::Open(const URI &path,
     if (flag == "w") flag = "wb";
     if (flag == "r") flag = "rb";
 #ifdef __SGX__
-    char *out_string1;
-    char *out_string2;
-    out_string1 = oe_host_strndup(fname, path.name.length());
-    out_string2 = oe_host_strndup(flag.c_str(), flag.length());
-
-    // TODO ocall error handling
-    oe_result_t res = host_fopen(&fp, out_string1, out_string2);
+    char *out_path_string = oe_host_strndup(fname, path.name.length());
+    char *out_flag_string = oe_host_strndup(flag.c_str(), flag.length());
+    safe_ocall(host_fopen(&fp, out_path_string, out_flag_string));
 #else // __SGX__
 #if DMLC_USE_FOPEN64
     fp = fopen64(fname.c_str(), flag.c_str());

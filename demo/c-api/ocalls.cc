@@ -76,8 +76,8 @@ FILE* host_fseek(FILE* fp, long pos) {
   return fp;
 }
 
+// Buffer should be freed by caller
 void* host_fread_one(FILE* fp, size_t size) {
-  // TODO free buffer
   fprintf(stdout, "Ocall: fread\n");
   char* buffer = (char*) malloc (sizeof(char)*size);
   int n = std::fread(buffer, 1, size, fp);

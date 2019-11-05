@@ -272,8 +272,7 @@ class LearnerImpl : public Learner {
     // These are cosntraints that need to be satisfied.
 #ifdef __SGX__
     int ret;
-    oe_result_t res = host_rabit__IsDistributed(&ret);
-    // TODO ocall error handling
+    safe_ocall(host_rabit__IsDistributed(&ret));
     if (tparam_.dsplit == DataSplitMode::kAuto && ret) {
       tparam_.dsplit = DataSplitMode::kRow;
     }
@@ -498,9 +497,8 @@ class LearnerImpl : public Learner {
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
 #ifdef __SGX__
-    // TODO ocall error handling
     int ret;
-    oe_result_t res = host_rabit__IsDistributed(&ret);
+    safe_ocall(host_rabit__IsDistributed(&ret));
     if (tparam_.seed_per_iteration || ret) {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
@@ -529,9 +527,8 @@ class LearnerImpl : public Learner {
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before boost.";
 #ifdef __SGX__
-    // TODO ocall error handling
     int ret;
-    oe_result_t res = host_rabit__IsDistributed(&ret);
+    safe_ocall(host_rabit__IsDistributed(&ret));
     if (tparam_.seed_per_iteration || ret) {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
@@ -648,8 +645,7 @@ class LearnerImpl : public Learner {
 
     int ret;
 #ifdef __SGX__
-    // TODO ocall error handling
-    oe_result_t res = host_rabit__IsDistributed(&ret);
+    safe_ocall(host_rabit__IsDistributed(&ret));
 #else
     ret = rabit::IsDistributed();
 #endif // __SGX__

@@ -24,6 +24,7 @@
 #include "../common/group_data.h"
 
 #ifdef __SGX__
+#include "../common/common.h"
 #include "xgboost_t.h"
 #endif
 
@@ -35,8 +36,6 @@ class Booster {
       : configured_(false),
         initialized_(false),
         learner_(Learner::Create(cache_mats)) {}
-
-  //Booster() {}
 
   inline Learner* learner() {  // NOLINT
     Learner* l = learner_.get();
@@ -255,8 +254,7 @@ int XGDMatrixCreateFromFile(const char *fname,
   API_BEGIN();
   bool load_row_split = false;
   int ret;
-  oe_result_t res = host_rabit__IsDistributed(&ret);
-  // TODO ocall error handling
+  safe_ocall(host_rabit__IsDistributed(&ret));
   if (ret) {
     LOG(CONSOLE) << "XGBoost distributed mode detected, "
                  << "will split data among workers";
