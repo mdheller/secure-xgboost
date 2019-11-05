@@ -18,7 +18,11 @@
 #include "./data.h"
 #include "./objective.h"
 #include "./feature_map.h"
+#if defined(__SGX__) && defined(__ENCLAVE__)
+#include "../../enclave/src/common/host_device_vector.h"
+#else
 #include "../../src/common/host_device_vector.h"
+#endif // __SGX__ && __ENCLAVE__
 
 namespace xgboost {
 /*!
