@@ -28,12 +28,10 @@ ConsoleLogger::~ConsoleLogger() {
   }
 }
 
-#ifndef __ENCLAVE__
 TrackerLogger::~TrackerLogger() {
   log_stream_ << '\n';
   rabit::TrackerPrint(log_stream_.str());
 }
-#endif // __ENCLAVE__
 
 }  // namespace xgboost
 
