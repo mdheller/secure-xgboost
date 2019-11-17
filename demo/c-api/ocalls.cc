@@ -84,6 +84,11 @@ void* host_fread_one(FILE* fp, size_t size) {
   return buffer;
 }
 
+void host_fwrite_one(void* buffer, size_t count, FILE* fp) {
+  fprintf(stdout, "Ocall: fwrite\n");
+  CHECK(std::fwrite(const_cast<const void*> (buffer), 1, count, fp) == count) << "FileStream.Write incomplete";
+}
+
 //std::vector<dmlc::io::FileInfo>* host_opendir_and_readdir(char* path) {
 void* host_opendir_and_readdir(char* path) {
     fprintf(stdout, "Ocall: opendir_and_readdir\n");

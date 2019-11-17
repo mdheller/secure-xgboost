@@ -222,7 +222,6 @@ int XGBoostNativeDataIterSetData(
 
 using namespace xgboost; // NOLINT(*);
 
-#ifndef __SGX__
 /*! \brief entry to to easily hold returning information */
 struct XGBAPIThreadLocalEntry {
   /*! \brief result holder for returning string */
@@ -240,6 +239,7 @@ struct XGBAPIThreadLocalEntry {
 // define the threadlocal store.
 using XGBAPIThreadLocalStore = dmlc::ThreadLocalStore<XGBAPIThreadLocalEntry>;
 
+#ifndef __SGX__
 int XGBRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
@@ -744,6 +744,7 @@ XGB_DLL int XGDMatrixSliceDMatrix(DMatrixHandle handle,
   *out = new std::shared_ptr<DMatrix>(DMatrix::Create(std::move(source)));
   API_END();
 }
+#endif // __SGX__
 
 XGB_DLL int XGDMatrixFree(DMatrixHandle handle) {
   API_BEGIN();
@@ -752,6 +753,7 @@ XGB_DLL int XGDMatrixFree(DMatrixHandle handle) {
   API_END();
 }
 
+#ifndef __SGX__
 XGB_DLL int XGDMatrixSaveBinary(DMatrixHandle handle,
                                 const char* fname,
                                 int silent) {
@@ -797,6 +799,7 @@ XGB_DLL int XGDMatrixSetGroup(DMatrixHandle handle,
   }
   API_END();
 }
+#endif //__SGX__
 
 XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
                                   const char* field,
@@ -816,10 +819,17 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
     LOG(FATAL) << "Unknown float field name " << field;
   }
   *out_len = static_cast<xgboost::bst_ulong>(vec->size());  // NOLINT
+#ifdef __ENCLAVE__
+  bst_float* result = (bst_float*) oe_host_malloc(vec->size() * sizeof(bst_float*));
+  memcpy(result, dmlc::BeginPtr(*vec), *out_len);
+  *out_dptr = result;
+#else
   *out_dptr = dmlc::BeginPtr(*vec);
+#endif
   API_END();
 }
 
+#ifndef __SGX__
 XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
                                  const char *field,
                                  xgboost::bst_ulong *out_len,
@@ -870,14 +880,12 @@ XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
   API_END();
 }
 
-#ifndef __SGX__
 XGB_DLL int XGBoosterFree(BoosterHandle handle) {
   API_BEGIN();
   CHECK_HANDLE();
   delete static_cast<Booster*>(handle);
   API_END();
 }
-#endif // __SGX__
 
 XGB_DLL int XGBoosterSetParam(BoosterHandle handle,
                               const char *name,
@@ -954,15 +962,18 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
   API_END();
 }
 
-#ifndef __SGX__
+// FIXME out_result should be bst_float
 XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              DMatrixHandle dmat,
                              int option_mask,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
                              const bst_float **out_result) {
+#ifndef __ENCLAVE__
+  //FIXME
   std::vector<bst_float>&preds =
     XGBAPIThreadLocalStore::Get()->ret_vec_float;
+#endif
   API_BEGIN();
   CHECK_HANDLE();
   auto *bst = static_cast<Booster*>(handle);
@@ -976,9 +987,19 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
       (option_mask & 4) != 0,
       (option_mask & 8) != 0,
       (option_mask & 16) != 0);
+#ifdef __ENCLAVE__
+  std::vector<bst_float>&preds = tmp_preds.HostVector();
+  bst_float* result = (bst_float*) oe_host_malloc(preds.size()*sizeof(float));
+  for (int i = 0; i < preds.size(); ++i) {
+    result[i] = preds[i];
+  }
+  *len = static_cast<xgboost::bst_ulong>(preds.size());
+  *out_result = result;
+#else
   preds = tmp_preds.HostVector();
   *out_result = dmlc::BeginPtr(preds);
   *len = static_cast<xgboost::bst_ulong>(preds.size());
+#endif
   API_END();
 }
 
@@ -1000,6 +1021,7 @@ XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
   API_END();
 }
 
+#ifndef __SGX__
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  const void* buf,
                                  xgboost::bst_ulong len) {

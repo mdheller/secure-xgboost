@@ -29,6 +29,34 @@ enclave {
                 [user_check]const char** evnames,
                 bst_ulong len,
                 [user_check] const char** out_str);
+
+        public int enclave_XGBoosterPredict(
+                [user_check, isptr] BoosterHandle handle,
+                [user_check, isptr] DMatrixHandle dmat,
+                int option_mask,
+                unsigned ntree_limit,
+                [user_check] bst_ulong *out_len,
+                [user_check] const bst_float **out_result);
+        
+        public int enclave_XGDMatrixGetFloatInfo(
+                [user_check, isptr] DMatrixHandle handle,
+                [user_check] const char* field,
+                [user_check] bst_ulong *out_len,
+                [user_check] const bst_float **out_dptr);
+
+        public int enclave_XGBoosterLoadModel(
+                [user_check, isptr] BoosterHandle handle,
+                [user_check] const char* fname);
+        
+        public int enclave_XGBoosterSaveModel(
+                [user_check, isptr] BoosterHandle handle,
+                [user_check] const char* fname);
+
+        public int enclave_XGDMatrixFree(
+                [user_check, isptr] DMatrixHandle handle);
+
+        public int enclave_XGBoosterFree(
+                [user_check, isptr] BoosterHandle handle);
     };
 
     include "dirent.h"
@@ -62,6 +90,11 @@ enclave {
         void* host_fread_one(
                 [user_check] FILE* fp,
                 size_t size);
+
+        void host_fwrite_one(
+                [user_check] void* ptr,
+                size_t count,
+                [user_check] FILE* fp);
     };
 };
 

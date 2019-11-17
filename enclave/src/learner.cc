@@ -332,7 +332,7 @@ class LearnerImpl : public Learner {
 #ifndef __SGX__
     // FIXME 
     LOG(FATAL) << "LearnerImpl::Load not implemented";
-
+#endif
     // TODO(tqchen) mark deprecation of old format.
     common::PeekableInStream fp(fi);
     // backward compatible header check.
@@ -429,7 +429,6 @@ class LearnerImpl : public Learner {
     for (auto& p_metric : metrics_) {
       p_metric->Configure(cfg_.begin(), cfg_.end());
     }
-#endif // __SGX__
   }
 
   // rabit save model to rabit checkpoint

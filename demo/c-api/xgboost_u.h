@@ -59,6 +59,46 @@ oe_result_t enclave_XGBoosterEvalOneIter(
     bst_ulong len,
     const char** out_str);
 
+oe_result_t enclave_XGBoosterPredict(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle,
+    DMatrixHandle dmat,
+    int option_mask,
+    unsigned int ntree_limit,
+    bst_ulong* out_len,
+    const float** out_result);
+
+oe_result_t enclave_XGDMatrixGetFloatInfo(
+    oe_enclave_t* enclave,
+    int* _retval,
+    DMatrixHandle handle,
+    const char* field,
+    bst_ulong* out_len,
+    const bst_float** out_dptr);
+
+oe_result_t enclave_XGBoosterLoadModel(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle,
+    const char* fname);
+
+oe_result_t enclave_XGBoosterSaveModel(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle,
+    const char* fname);
+
+oe_result_t enclave_XGDMatrixFree(
+    oe_enclave_t* enclave,
+    int* _retval,
+    DMatrixHandle handle);
+
+oe_result_t enclave_XGBoosterFree(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle);
+
 /**** OCALL prototypes. ****/
 void host_helloworld(void);
 
@@ -87,6 +127,11 @@ FILE* host_fseek(
 void* host_fread_one(
     FILE* fp,
     size_t size);
+
+void host_fwrite_one(
+    void* ptr,
+    size_t count,
+    FILE* fp);
 
 OE_EXTERNC_END
 

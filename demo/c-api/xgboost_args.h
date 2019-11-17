@@ -73,6 +73,58 @@ typedef struct _enclave_XGBoosterEvalOneIter_args_t
     char** out_str;
 } enclave_XGBoosterEvalOneIter_args_t;
 
+typedef struct _enclave_XGBoosterPredict_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    BoosterHandle handle;
+    DMatrixHandle dmat;
+    int option_mask;
+    unsigned int ntree_limit;
+    bst_ulong* out_len;
+    float** out_result;
+} enclave_XGBoosterPredict_args_t;
+
+typedef struct _enclave_XGDMatrixGetFloatInfo_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    DMatrixHandle handle;
+    char* field;
+    bst_ulong* out_len;
+    bst_float** out_dptr;
+} enclave_XGDMatrixGetFloatInfo_args_t;
+
+typedef struct _enclave_XGBoosterLoadModel_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    BoosterHandle handle;
+    char* fname;
+} enclave_XGBoosterLoadModel_args_t;
+
+typedef struct _enclave_XGBoosterSaveModel_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    BoosterHandle handle;
+    char* fname;
+} enclave_XGBoosterSaveModel_args_t;
+
+typedef struct _enclave_XGDMatrixFree_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    DMatrixHandle handle;
+} enclave_XGDMatrixFree_args_t;
+
+typedef struct _enclave_XGBoosterFree_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    BoosterHandle handle;
+} enclave_XGBoosterFree_args_t;
+
 /**** OCALL marshalling structs. ****/
 typedef struct _host_helloworld_args_t
 {
@@ -148,6 +200,14 @@ typedef struct _host_fread_one_args_t
     size_t size;
 } host_fread_one_args_t;
 
+typedef struct _host_fwrite_one_args_t
+{
+    oe_result_t _result;
+    void* ptr;
+    size_t count;
+    FILE* fp;
+} host_fwrite_one_args_t;
+
 /**** Trusted function IDs ****/
 enum
 {
@@ -157,6 +217,12 @@ enum
     xgboost_fcn_id_enclave_XGBoosterSetParam = 3,
     xgboost_fcn_id_enclave_XGBoosterUpdateOneIter = 4,
     xgboost_fcn_id_enclave_XGBoosterEvalOneIter = 5,
+    xgboost_fcn_id_enclave_XGBoosterPredict = 6,
+    xgboost_fcn_id_enclave_XGDMatrixGetFloatInfo = 7,
+    xgboost_fcn_id_enclave_XGBoosterLoadModel = 8,
+    xgboost_fcn_id_enclave_XGBoosterSaveModel = 9,
+    xgboost_fcn_id_enclave_XGDMatrixFree = 10,
+    xgboost_fcn_id_enclave_XGBoosterFree = 11,
     xgboost_fcn_id_trusted_call_id_max = OE_ENUM_MAX
 };
 
@@ -174,6 +240,7 @@ enum
     xgboost_fcn_id_host_fclose = 8,
     xgboost_fcn_id_host_fseek = 9,
     xgboost_fcn_id_host_fread_one = 10,
+    xgboost_fcn_id_host_fwrite_one = 11,
     xgboost_fcn_id_untrusted_call_max = OE_ENUM_MAX
 };
 

@@ -28,6 +28,11 @@
 // manually define unsigned long
 typedef uint64_t bst_ulong;  // NOLINT(*)
 
+//#ifdef __ENCLAVE__
+// FIXME added this here, but perhaps not necessary
+typedef float bst_float;  // NOLINT(*)
+//#endif
+
 
 /*! \brief handle to DMatrix */
 typedef void *DMatrixHandle;  // NOLINT(*)

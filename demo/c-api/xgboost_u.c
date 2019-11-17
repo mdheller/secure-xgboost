@@ -578,6 +578,566 @@ done:
     return _result;
 }
 
+oe_result_t enclave_XGBoosterPredict(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle,
+    DMatrixHandle dmat,
+    int option_mask,
+    unsigned int ntree_limit,
+    bst_ulong* out_len,
+    const float** out_result)
+{
+    oe_result_t _result = OE_FAILURE;
+
+    /* Marshalling struct. */
+    enclave_XGBoosterPredict_args_t _args, *_pargs_in = NULL, *_pargs_out = NULL;
+
+    /* Marshalling buffer and sizes. */
+    size_t _input_buffer_size = 0;
+    size_t _output_buffer_size = 0;
+    size_t _total_buffer_size = 0;
+    uint8_t* _buffer = NULL;
+    uint8_t* _input_buffer = NULL;
+    uint8_t* _output_buffer = NULL;
+    size_t _input_buffer_offset = 0;
+    size_t _output_buffer_offset = 0;
+    size_t _output_bytes_written = 0;
+
+    /* Fill marshalling struct. */
+    memset(&_args, 0, sizeof(_args));
+    _args.handle = (BoosterHandle)handle;
+    _args.dmat = (DMatrixHandle)dmat;
+    _args.option_mask = option_mask;
+    _args.ntree_limit = ntree_limit;
+    _args.out_len = (bst_ulong*)out_len;
+    _args.out_result = (float**)out_result;
+
+    /* Compute input buffer size. Include in and in-out parameters. */
+    OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGBoosterPredict_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Compute output buffer size. Include out and in-out parameters. */
+    OE_ADD_SIZE(_output_buffer_size, sizeof(enclave_XGBoosterPredict_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Allocate marshalling buffer. */
+    _total_buffer_size = _input_buffer_size;
+    OE_ADD_SIZE(_total_buffer_size, _output_buffer_size);
+    _buffer = (uint8_t*)malloc(_total_buffer_size);
+    _input_buffer = _buffer;
+    _output_buffer = _buffer + _input_buffer_size;
+    if (_buffer == NULL)
+    {
+        _result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    
+    /* Serialize buffer inputs (in and in-out parameters). */
+    _pargs_in = (enclave_XGBoosterPredict_args_t*)_input_buffer;
+    OE_ADD_SIZE(_input_buffer_offset, sizeof(*_pargs_in));
+    /* There were no in nor in-out parameters. */
+    
+    /* Copy args structure (now filled) to input buffer. */
+    memcpy(_pargs_in, &_args, sizeof(*_pargs_in));
+
+    /* Call enclave function. */
+    if ((_result = oe_call_enclave_function(
+             enclave,
+             xgboost_fcn_id_enclave_XGBoosterPredict,
+             _input_buffer,
+             _input_buffer_size,
+             _output_buffer,
+             _output_buffer_size,
+             &_output_bytes_written)) != OE_OK)
+        goto done;
+
+    /* Setup output arg struct pointer. */
+    _pargs_out = (enclave_XGBoosterPredict_args_t*)_output_buffer;
+    OE_ADD_SIZE(_output_buffer_offset, sizeof(*_pargs_out));
+    
+    /* Check if the call succeeded. */
+    if ((_result = _pargs_out->_result) != OE_OK)
+        goto done;
+    
+    /* Currently exactly _output_buffer_size bytes must be written. */
+    if (_output_bytes_written != _output_buffer_size)
+    {
+        _result = OE_FAILURE;
+        goto done;
+    }
+    
+    /* Unmarshal return value and out, in-out parameters. */
+    *_retval = _pargs_out->_retval;
+
+    _result = OE_OK;
+
+done:
+    if (_buffer)
+        free(_buffer);
+    return _result;
+}
+
+oe_result_t enclave_XGDMatrixGetFloatInfo(
+    oe_enclave_t* enclave,
+    int* _retval,
+    DMatrixHandle handle,
+    const char* field,
+    bst_ulong* out_len,
+    const bst_float** out_dptr)
+{
+    oe_result_t _result = OE_FAILURE;
+
+    /* Marshalling struct. */
+    enclave_XGDMatrixGetFloatInfo_args_t _args, *_pargs_in = NULL, *_pargs_out = NULL;
+
+    /* Marshalling buffer and sizes. */
+    size_t _input_buffer_size = 0;
+    size_t _output_buffer_size = 0;
+    size_t _total_buffer_size = 0;
+    uint8_t* _buffer = NULL;
+    uint8_t* _input_buffer = NULL;
+    uint8_t* _output_buffer = NULL;
+    size_t _input_buffer_offset = 0;
+    size_t _output_buffer_offset = 0;
+    size_t _output_bytes_written = 0;
+
+    /* Fill marshalling struct. */
+    memset(&_args, 0, sizeof(_args));
+    _args.handle = (DMatrixHandle)handle;
+    _args.field = (char*)field;
+    _args.out_len = (bst_ulong*)out_len;
+    _args.out_dptr = (bst_float**)out_dptr;
+
+    /* Compute input buffer size. Include in and in-out parameters. */
+    OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGDMatrixGetFloatInfo_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Compute output buffer size. Include out and in-out parameters. */
+    OE_ADD_SIZE(_output_buffer_size, sizeof(enclave_XGDMatrixGetFloatInfo_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Allocate marshalling buffer. */
+    _total_buffer_size = _input_buffer_size;
+    OE_ADD_SIZE(_total_buffer_size, _output_buffer_size);
+    _buffer = (uint8_t*)malloc(_total_buffer_size);
+    _input_buffer = _buffer;
+    _output_buffer = _buffer + _input_buffer_size;
+    if (_buffer == NULL)
+    {
+        _result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    
+    /* Serialize buffer inputs (in and in-out parameters). */
+    _pargs_in = (enclave_XGDMatrixGetFloatInfo_args_t*)_input_buffer;
+    OE_ADD_SIZE(_input_buffer_offset, sizeof(*_pargs_in));
+    /* There were no in nor in-out parameters. */
+    
+    /* Copy args structure (now filled) to input buffer. */
+    memcpy(_pargs_in, &_args, sizeof(*_pargs_in));
+
+    /* Call enclave function. */
+    if ((_result = oe_call_enclave_function(
+             enclave,
+             xgboost_fcn_id_enclave_XGDMatrixGetFloatInfo,
+             _input_buffer,
+             _input_buffer_size,
+             _output_buffer,
+             _output_buffer_size,
+             &_output_bytes_written)) != OE_OK)
+        goto done;
+
+    /* Setup output arg struct pointer. */
+    _pargs_out = (enclave_XGDMatrixGetFloatInfo_args_t*)_output_buffer;
+    OE_ADD_SIZE(_output_buffer_offset, sizeof(*_pargs_out));
+    
+    /* Check if the call succeeded. */
+    if ((_result = _pargs_out->_result) != OE_OK)
+        goto done;
+    
+    /* Currently exactly _output_buffer_size bytes must be written. */
+    if (_output_bytes_written != _output_buffer_size)
+    {
+        _result = OE_FAILURE;
+        goto done;
+    }
+    
+    /* Unmarshal return value and out, in-out parameters. */
+    *_retval = _pargs_out->_retval;
+
+    _result = OE_OK;
+
+done:
+    if (_buffer)
+        free(_buffer);
+    return _result;
+}
+
+oe_result_t enclave_XGBoosterLoadModel(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle,
+    const char* fname)
+{
+    oe_result_t _result = OE_FAILURE;
+
+    /* Marshalling struct. */
+    enclave_XGBoosterLoadModel_args_t _args, *_pargs_in = NULL, *_pargs_out = NULL;
+
+    /* Marshalling buffer and sizes. */
+    size_t _input_buffer_size = 0;
+    size_t _output_buffer_size = 0;
+    size_t _total_buffer_size = 0;
+    uint8_t* _buffer = NULL;
+    uint8_t* _input_buffer = NULL;
+    uint8_t* _output_buffer = NULL;
+    size_t _input_buffer_offset = 0;
+    size_t _output_buffer_offset = 0;
+    size_t _output_bytes_written = 0;
+
+    /* Fill marshalling struct. */
+    memset(&_args, 0, sizeof(_args));
+    _args.handle = (BoosterHandle)handle;
+    _args.fname = (char*)fname;
+
+    /* Compute input buffer size. Include in and in-out parameters. */
+    OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGBoosterLoadModel_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Compute output buffer size. Include out and in-out parameters. */
+    OE_ADD_SIZE(_output_buffer_size, sizeof(enclave_XGBoosterLoadModel_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Allocate marshalling buffer. */
+    _total_buffer_size = _input_buffer_size;
+    OE_ADD_SIZE(_total_buffer_size, _output_buffer_size);
+    _buffer = (uint8_t*)malloc(_total_buffer_size);
+    _input_buffer = _buffer;
+    _output_buffer = _buffer + _input_buffer_size;
+    if (_buffer == NULL)
+    {
+        _result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    
+    /* Serialize buffer inputs (in and in-out parameters). */
+    _pargs_in = (enclave_XGBoosterLoadModel_args_t*)_input_buffer;
+    OE_ADD_SIZE(_input_buffer_offset, sizeof(*_pargs_in));
+    /* There were no in nor in-out parameters. */
+    
+    /* Copy args structure (now filled) to input buffer. */
+    memcpy(_pargs_in, &_args, sizeof(*_pargs_in));
+
+    /* Call enclave function. */
+    if ((_result = oe_call_enclave_function(
+             enclave,
+             xgboost_fcn_id_enclave_XGBoosterLoadModel,
+             _input_buffer,
+             _input_buffer_size,
+             _output_buffer,
+             _output_buffer_size,
+             &_output_bytes_written)) != OE_OK)
+        goto done;
+
+    /* Setup output arg struct pointer. */
+    _pargs_out = (enclave_XGBoosterLoadModel_args_t*)_output_buffer;
+    OE_ADD_SIZE(_output_buffer_offset, sizeof(*_pargs_out));
+    
+    /* Check if the call succeeded. */
+    if ((_result = _pargs_out->_result) != OE_OK)
+        goto done;
+    
+    /* Currently exactly _output_buffer_size bytes must be written. */
+    if (_output_bytes_written != _output_buffer_size)
+    {
+        _result = OE_FAILURE;
+        goto done;
+    }
+    
+    /* Unmarshal return value and out, in-out parameters. */
+    *_retval = _pargs_out->_retval;
+
+    _result = OE_OK;
+
+done:
+    if (_buffer)
+        free(_buffer);
+    return _result;
+}
+
+oe_result_t enclave_XGBoosterSaveModel(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle,
+    const char* fname)
+{
+    oe_result_t _result = OE_FAILURE;
+
+    /* Marshalling struct. */
+    enclave_XGBoosterSaveModel_args_t _args, *_pargs_in = NULL, *_pargs_out = NULL;
+
+    /* Marshalling buffer and sizes. */
+    size_t _input_buffer_size = 0;
+    size_t _output_buffer_size = 0;
+    size_t _total_buffer_size = 0;
+    uint8_t* _buffer = NULL;
+    uint8_t* _input_buffer = NULL;
+    uint8_t* _output_buffer = NULL;
+    size_t _input_buffer_offset = 0;
+    size_t _output_buffer_offset = 0;
+    size_t _output_bytes_written = 0;
+
+    /* Fill marshalling struct. */
+    memset(&_args, 0, sizeof(_args));
+    _args.handle = (BoosterHandle)handle;
+    _args.fname = (char*)fname;
+
+    /* Compute input buffer size. Include in and in-out parameters. */
+    OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGBoosterSaveModel_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Compute output buffer size. Include out and in-out parameters. */
+    OE_ADD_SIZE(_output_buffer_size, sizeof(enclave_XGBoosterSaveModel_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Allocate marshalling buffer. */
+    _total_buffer_size = _input_buffer_size;
+    OE_ADD_SIZE(_total_buffer_size, _output_buffer_size);
+    _buffer = (uint8_t*)malloc(_total_buffer_size);
+    _input_buffer = _buffer;
+    _output_buffer = _buffer + _input_buffer_size;
+    if (_buffer == NULL)
+    {
+        _result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    
+    /* Serialize buffer inputs (in and in-out parameters). */
+    _pargs_in = (enclave_XGBoosterSaveModel_args_t*)_input_buffer;
+    OE_ADD_SIZE(_input_buffer_offset, sizeof(*_pargs_in));
+    /* There were no in nor in-out parameters. */
+    
+    /* Copy args structure (now filled) to input buffer. */
+    memcpy(_pargs_in, &_args, sizeof(*_pargs_in));
+
+    /* Call enclave function. */
+    if ((_result = oe_call_enclave_function(
+             enclave,
+             xgboost_fcn_id_enclave_XGBoosterSaveModel,
+             _input_buffer,
+             _input_buffer_size,
+             _output_buffer,
+             _output_buffer_size,
+             &_output_bytes_written)) != OE_OK)
+        goto done;
+
+    /* Setup output arg struct pointer. */
+    _pargs_out = (enclave_XGBoosterSaveModel_args_t*)_output_buffer;
+    OE_ADD_SIZE(_output_buffer_offset, sizeof(*_pargs_out));
+    
+    /* Check if the call succeeded. */
+    if ((_result = _pargs_out->_result) != OE_OK)
+        goto done;
+    
+    /* Currently exactly _output_buffer_size bytes must be written. */
+    if (_output_bytes_written != _output_buffer_size)
+    {
+        _result = OE_FAILURE;
+        goto done;
+    }
+    
+    /* Unmarshal return value and out, in-out parameters. */
+    *_retval = _pargs_out->_retval;
+
+    _result = OE_OK;
+
+done:
+    if (_buffer)
+        free(_buffer);
+    return _result;
+}
+
+oe_result_t enclave_XGDMatrixFree(
+    oe_enclave_t* enclave,
+    int* _retval,
+    DMatrixHandle handle)
+{
+    oe_result_t _result = OE_FAILURE;
+
+    /* Marshalling struct. */
+    enclave_XGDMatrixFree_args_t _args, *_pargs_in = NULL, *_pargs_out = NULL;
+
+    /* Marshalling buffer and sizes. */
+    size_t _input_buffer_size = 0;
+    size_t _output_buffer_size = 0;
+    size_t _total_buffer_size = 0;
+    uint8_t* _buffer = NULL;
+    uint8_t* _input_buffer = NULL;
+    uint8_t* _output_buffer = NULL;
+    size_t _input_buffer_offset = 0;
+    size_t _output_buffer_offset = 0;
+    size_t _output_bytes_written = 0;
+
+    /* Fill marshalling struct. */
+    memset(&_args, 0, sizeof(_args));
+    _args.handle = (DMatrixHandle)handle;
+
+    /* Compute input buffer size. Include in and in-out parameters. */
+    OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGDMatrixFree_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Compute output buffer size. Include out and in-out parameters. */
+    OE_ADD_SIZE(_output_buffer_size, sizeof(enclave_XGDMatrixFree_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Allocate marshalling buffer. */
+    _total_buffer_size = _input_buffer_size;
+    OE_ADD_SIZE(_total_buffer_size, _output_buffer_size);
+    _buffer = (uint8_t*)malloc(_total_buffer_size);
+    _input_buffer = _buffer;
+    _output_buffer = _buffer + _input_buffer_size;
+    if (_buffer == NULL)
+    {
+        _result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    
+    /* Serialize buffer inputs (in and in-out parameters). */
+    _pargs_in = (enclave_XGDMatrixFree_args_t*)_input_buffer;
+    OE_ADD_SIZE(_input_buffer_offset, sizeof(*_pargs_in));
+    /* There were no in nor in-out parameters. */
+    
+    /* Copy args structure (now filled) to input buffer. */
+    memcpy(_pargs_in, &_args, sizeof(*_pargs_in));
+
+    /* Call enclave function. */
+    if ((_result = oe_call_enclave_function(
+             enclave,
+             xgboost_fcn_id_enclave_XGDMatrixFree,
+             _input_buffer,
+             _input_buffer_size,
+             _output_buffer,
+             _output_buffer_size,
+             &_output_bytes_written)) != OE_OK)
+        goto done;
+
+    /* Setup output arg struct pointer. */
+    _pargs_out = (enclave_XGDMatrixFree_args_t*)_output_buffer;
+    OE_ADD_SIZE(_output_buffer_offset, sizeof(*_pargs_out));
+    
+    /* Check if the call succeeded. */
+    if ((_result = _pargs_out->_result) != OE_OK)
+        goto done;
+    
+    /* Currently exactly _output_buffer_size bytes must be written. */
+    if (_output_bytes_written != _output_buffer_size)
+    {
+        _result = OE_FAILURE;
+        goto done;
+    }
+    
+    /* Unmarshal return value and out, in-out parameters. */
+    *_retval = _pargs_out->_retval;
+
+    _result = OE_OK;
+
+done:
+    if (_buffer)
+        free(_buffer);
+    return _result;
+}
+
+oe_result_t enclave_XGBoosterFree(
+    oe_enclave_t* enclave,
+    int* _retval,
+    BoosterHandle handle)
+{
+    oe_result_t _result = OE_FAILURE;
+
+    /* Marshalling struct. */
+    enclave_XGBoosterFree_args_t _args, *_pargs_in = NULL, *_pargs_out = NULL;
+
+    /* Marshalling buffer and sizes. */
+    size_t _input_buffer_size = 0;
+    size_t _output_buffer_size = 0;
+    size_t _total_buffer_size = 0;
+    uint8_t* _buffer = NULL;
+    uint8_t* _input_buffer = NULL;
+    uint8_t* _output_buffer = NULL;
+    size_t _input_buffer_offset = 0;
+    size_t _output_buffer_offset = 0;
+    size_t _output_bytes_written = 0;
+
+    /* Fill marshalling struct. */
+    memset(&_args, 0, sizeof(_args));
+    _args.handle = (BoosterHandle)handle;
+
+    /* Compute input buffer size. Include in and in-out parameters. */
+    OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGBoosterFree_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Compute output buffer size. Include out and in-out parameters. */
+    OE_ADD_SIZE(_output_buffer_size, sizeof(enclave_XGBoosterFree_args_t));
+    /* There were no corresponding parameters. */
+    
+    /* Allocate marshalling buffer. */
+    _total_buffer_size = _input_buffer_size;
+    OE_ADD_SIZE(_total_buffer_size, _output_buffer_size);
+    _buffer = (uint8_t*)malloc(_total_buffer_size);
+    _input_buffer = _buffer;
+    _output_buffer = _buffer + _input_buffer_size;
+    if (_buffer == NULL)
+    {
+        _result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    
+    /* Serialize buffer inputs (in and in-out parameters). */
+    _pargs_in = (enclave_XGBoosterFree_args_t*)_input_buffer;
+    OE_ADD_SIZE(_input_buffer_offset, sizeof(*_pargs_in));
+    /* There were no in nor in-out parameters. */
+    
+    /* Copy args structure (now filled) to input buffer. */
+    memcpy(_pargs_in, &_args, sizeof(*_pargs_in));
+
+    /* Call enclave function. */
+    if ((_result = oe_call_enclave_function(
+             enclave,
+             xgboost_fcn_id_enclave_XGBoosterFree,
+             _input_buffer,
+             _input_buffer_size,
+             _output_buffer,
+             _output_buffer_size,
+             &_output_bytes_written)) != OE_OK)
+        goto done;
+
+    /* Setup output arg struct pointer. */
+    _pargs_out = (enclave_XGBoosterFree_args_t*)_output_buffer;
+    OE_ADD_SIZE(_output_buffer_offset, sizeof(*_pargs_out));
+    
+    /* Check if the call succeeded. */
+    if ((_result = _pargs_out->_result) != OE_OK)
+        goto done;
+    
+    /* Currently exactly _output_buffer_size bytes must be written. */
+    if (_output_bytes_written != _output_buffer_size)
+    {
+        _result = OE_FAILURE;
+        goto done;
+    }
+    
+    /* Unmarshal return value and out, in-out parameters. */
+    *_retval = _pargs_out->_retval;
+
+    _result = OE_OK;
+
+done:
+    if (_buffer)
+        free(_buffer);
+    return _result;
+}
+
 /**** OCALL functions. ****/
 
 void ocall_host_helloworld(
@@ -1111,6 +1671,56 @@ done:
         pargs_out->_result = _result;
 }
 
+void ocall_host_fwrite_one(
+    uint8_t* input_buffer,
+    size_t input_buffer_size,
+    uint8_t* output_buffer,
+    size_t output_buffer_size,
+    size_t* output_bytes_written)
+{
+    oe_result_t _result = OE_FAILURE;
+    OE_UNUSED(input_buffer_size);
+
+    /* Prepare parameters. */
+    host_fwrite_one_args_t* pargs_in = (host_fwrite_one_args_t*)input_buffer;
+    host_fwrite_one_args_t* pargs_out = (host_fwrite_one_args_t*)output_buffer;
+
+    size_t input_buffer_offset = 0;
+    size_t output_buffer_offset = 0;
+    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
+    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
+
+    /* Make sure input and output buffers are valid. */
+    if (!input_buffer || !output_buffer) {
+        _result = OE_INVALID_PARAMETER;
+        goto done;
+    }
+
+    /* Set in and in-out pointers. */
+    /* There were no in nor in-out parameters. */
+
+    /* Set out and in-out pointers. */
+    /* In-out parameters are copied to output buffer. */
+    /* There were no out nor in-out parameters. */
+
+    /* Call user function. */
+    host_fwrite_one(
+        pargs_in->ptr,
+        pargs_in->count,
+        pargs_in->fp);
+
+    /* Propagate errno back to enclave. */
+    /* Errno propagation not enabled. */
+
+    /* Success. */
+    _result = OE_OK;
+    *output_bytes_written = output_buffer_offset;
+
+done:
+    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
+        pargs_out->_result = _result;
+}
+
 /**** OCALL function table. ****/
 
 static oe_ocall_func_t __xgboost_ocall_function_table[] = {
@@ -1125,6 +1735,7 @@ static oe_ocall_func_t __xgboost_ocall_function_table[] = {
     (oe_ocall_func_t) ocall_host_fclose,
     (oe_ocall_func_t) ocall_host_fseek,
     (oe_ocall_func_t) ocall_host_fread_one,
+    (oe_ocall_func_t) ocall_host_fwrite_one,
     NULL
 };
 
@@ -1143,7 +1754,7 @@ oe_result_t oe_create_xgboost_enclave(
                config,
                config_size,
                __xgboost_ocall_function_table,
-               11,
+               12,
                enclave);
 }
 

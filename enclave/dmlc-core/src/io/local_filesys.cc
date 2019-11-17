@@ -50,8 +50,15 @@ class FileStream : public SeekStream {
 #endif
   }
   virtual void Write(const void *ptr, size_t size) {
+#ifdef __ENCLAVE__
+    void *out_ptr = static_cast<void*> (oe_host_malloc(size));
+    memcpy(out_ptr, ptr, size);
+    safe_ocall(host_fwrite_one(out_ptr, size, fp_));
+    oe_host_free(out_ptr);
+#else
     CHECK(std::fwrite(ptr, 1, size, fp_) == size)
-        << "FileStream.Write incomplete";
+      << "FileStream.Write incomplete";
+#endif
   }
   virtual void Seek(size_t pos) {
 #ifdef __ENCLAVE__
