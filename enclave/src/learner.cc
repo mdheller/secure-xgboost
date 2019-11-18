@@ -269,17 +269,9 @@ class LearnerImpl : public Learner {
 
     // add additional parameters
     // These are cosntraints that need to be satisfied.
-#ifdef __SGX__
-    int ret;
-    safe_ocall(host_rabit__IsDistributed(&ret));
-    if (tparam_.dsplit == DataSplitMode::kAuto && ret) {
-      tparam_.dsplit = DataSplitMode::kRow;
-    }
-#else // __SGX__
     if (tparam_.dsplit == DataSplitMode::kAuto && rabit::IsDistributed()) {
       tparam_.dsplit = DataSplitMode::kRow;
     }
-#endif
     if (cfg_.count("num_class") != 0) {
       cfg_["num_output_group"] = cfg_["num_class"];
       if (atoi(cfg_["num_class"].c_str()) > 1 && cfg_.count("objective") == 0) {
@@ -490,17 +482,9 @@ class LearnerImpl : public Learner {
     // TODO(trivialfis): Merge the duplicated code with BoostOneIter
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before update";
-#ifdef __SGX__
-    int ret;
-    safe_ocall(host_rabit__IsDistributed(&ret));
-    if (tparam_.seed_per_iteration || ret) {
-      common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
-    }
-#else
     if (tparam_.seed_per_iteration || rabit::IsDistributed()) {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
-#endif // __SGX__
     this->ValidateDMatrix(train);
     this->PerformTreeMethodHeuristic(train);
 
@@ -520,17 +504,9 @@ class LearnerImpl : public Learner {
 
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before boost.";
-#ifdef __SGX__
-    int ret;
-    safe_ocall(host_rabit__IsDistributed(&ret));
-    if (tparam_.seed_per_iteration || ret) {
-      common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
-    }
-#else
     if (tparam_.seed_per_iteration || rabit::IsDistributed()) {
       common::GlobalRandom().seed(tparam_.seed * kRandSeedMagic + iter);
     }
-#endif // __SGX__
     this->ValidateDMatrix(train);
     this->PerformTreeMethodHeuristic(train);
 
@@ -638,11 +614,7 @@ class LearnerImpl : public Learner {
     const TreeMethod current_tree_method = tparam_.tree_method;
 
     int ret;
-#ifdef __SGX__
-    safe_ocall(host_rabit__IsDistributed(&ret));
-#else
     ret = rabit::IsDistributed();
-#endif // __SGX__
     if (ret) { 
       CHECK(tparam_.dsplit != DataSplitMode::kAuto)
         << "Precondition violated; dsplit cannot be 'auto' in distributed mode";
@@ -750,10 +722,7 @@ class LearnerImpl : public Learner {
       num_feature = std::max(num_feature, static_cast<unsigned>(num_col));
     }
     // run allreduce on num_feature to find the maximum value
-#ifndef __SGX__
-    // FIXME allreduce
     rabit::Allreduce<rabit::op::Max>(&num_feature, 1);
-#endif // __SGX__
     if (num_feature > mparam_.num_feature) {
       mparam_.num_feature = num_feature;
     }

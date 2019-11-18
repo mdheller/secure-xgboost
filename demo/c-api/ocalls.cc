@@ -19,21 +19,6 @@ void host_helloworld() {
 	  fprintf(stdout, "Enclave called into host to print: Hello World!\n");
 }
 
-int host_rabit__GetRank() {
-    fprintf(stdout, "Ocall: rabit::GetRank\n");
-	  return ocall_rabit__GetRank();
-}
-
-int host_rabit__GetWorldSize() {
-    fprintf(stdout, "Ocall: rabit::GetWorldSize\n");
-	  return ocall_rabit__GetWorldSize();
-}
-
-int host_rabit__IsDistributed() {
-    fprintf(stdout, "Ocall: rabit::IsDistributed\n");
-    return ocall_rabit__IsDistributed();
-}
-
 DIR* host_opendir(char* path) {
     fprintf(stdout, "Ocall: opendir\n");
     return opendir(path);

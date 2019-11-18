@@ -48,7 +48,7 @@ inline cudaError_t ThrowOnCudaError(cudaError_t code, const char *file,
 }  // namespace dh
 
 
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // macro for ocalls with error handling
 #define safe_ocall(call) {                                \
 oe_result_t result = (call);                              \
 if (result != OE_OK) {                                    \

@@ -40,8 +40,8 @@ DMLC_REGISTER_PARAMETER(MetricParam);
 
 // List of files that will be force linked in static links.
 DMLC_REGISTRY_LINK_TAG(elementwise_metric);
-#ifndef __SGX__
 DMLC_REGISTRY_LINK_TAG(multiclass_metric);
+#ifndef __ENCLAVE__ // FIXME enable rank_metric
 DMLC_REGISTRY_LINK_TAG(rank_metric);
 #endif
 }  // namespace metric

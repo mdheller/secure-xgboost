@@ -120,8 +120,7 @@ inline bool TextParserBase<IndexType, DType>::FillData(
   CHECK_NE(chunk.size, 0U);
   const char *head = reinterpret_cast<char *>(chunk.dptr);
 
-#ifdef __ENCLAVE__
-  // FIXME support multi-threading
+#ifdef __ENCLAVE__ // FIXME support multi-threading
   ParseBlock(head, head + chunk.size, &(*data)[0]);
 #else // __ENCLAVE__
   std::vector<std::thread> threads;

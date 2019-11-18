@@ -23,7 +23,7 @@
 #include "../common/io.h"
 #include "../common/group_data.h"
 
-#ifdef __SGX__
+#ifdef __ENCLAVE__ // includes
 #include "../common/common.h"
 #include "xgboost_t.h"
 #endif
@@ -107,7 +107,7 @@ class Booster {
   std::vector<std::pair<std::string, std::string> > cfg_;
 };
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable functions
 
 // declare the data callback.
 XGB_EXTERN_C int XGBoostNativeDataIterSetData(
@@ -217,7 +217,7 @@ int XGBoostNativeDataIterSetData(
   static_cast<xgboost::NativeDataIter*>(handle)->SetData(batch);
   API_END();
 }
-#endif // __SGX__
+#endif // __ENCLAVE__
 }  // namespace xgboost
 
 using namespace xgboost; // NOLINT(*);
@@ -239,33 +239,28 @@ struct XGBAPIThreadLocalEntry {
 // define the threadlocal store.
 using XGBAPIThreadLocalStore = dmlc::ThreadLocalStore<XGBAPIThreadLocalEntry>;
 
-#ifndef __SGX__
 int XGBRegisterLogCallback(void (*callback)(const char*)) {
   API_BEGIN();
   LogCallbackRegistry* registry = LogCallbackRegistryStore::Get();
   registry->Register(callback);
   API_END();
 }
-#endif // __SGX__
 
 int XGDMatrixCreateFromFile(const char *fname,
-                            int silent,
-                            DMatrixHandle *out) {
-  API_BEGIN();
-  bool load_row_split = false;
-  int ret;
-  safe_ocall(host_rabit__IsDistributed(&ret));
-  if (ret) {
-    LOG(CONSOLE) << "XGBoost distributed mode detected, "
-                 << "will split data among workers";
-    load_row_split = true;
-  }
-  DMatrix* d = DMatrix::Load(fname, silent != 0, load_row_split);
-  *out = new std::shared_ptr<DMatrix>(d);
-  API_END();
+        int silent,
+        DMatrixHandle *out) {
+    API_BEGIN();
+    bool load_row_split = false;
+    if (rabit::IsDistributed()) {
+        LOG(CONSOLE) << "XGBoost distributed mode detected, "
+            << "will split data among workers";
+        load_row_split = true;
+    }
+    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
+    API_END();
 }
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable functions
 int XGDMatrixCreateFromDataIter(
     void* data_handle,
     XGBCallbackDataIterNext* callback,
@@ -744,7 +739,7 @@ XGB_DLL int XGDMatrixSliceDMatrix(DMatrixHandle handle,
   *out = new std::shared_ptr<DMatrix>(DMatrix::Create(std::move(source)));
   API_END();
 }
-#endif // __SGX__
+#endif // __ENCLAVE__
 
 XGB_DLL int XGDMatrixFree(DMatrixHandle handle) {
   API_BEGIN();
@@ -753,7 +748,7 @@ XGB_DLL int XGDMatrixFree(DMatrixHandle handle) {
   API_END();
 }
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixSaveBinary(DMatrixHandle handle,
                                 const char* fname,
                                 int silent) {
@@ -799,7 +794,7 @@ XGB_DLL int XGDMatrixSetGroup(DMatrixHandle handle,
   }
   API_END();
 }
-#endif //__SGX__
+#endif //__ENCLAVE__
 
 XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
                                   const char* field,
@@ -819,7 +814,7 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
     LOG(FATAL) << "Unknown float field name " << field;
   }
   *out_len = static_cast<xgboost::bst_ulong>(vec->size());  // NOLINT
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // write results to host memory
   bst_float* result = (bst_float*) oe_host_malloc(vec->size() * sizeof(bst_float*));
   memcpy(result, dmlc::BeginPtr(*vec), *out_len);
   *out_dptr = result;
@@ -829,7 +824,7 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
   API_END();
 }
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
                                  const char *field,
                                  xgboost::bst_ulong *out_len,
@@ -865,7 +860,7 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
       static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info().num_col_);
   API_END();
 }
-#endif // __SGX__
+#endif // __ENCLAVE__
 
 // xgboost implementation
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
@@ -910,7 +905,7 @@ XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
   API_END();
 }
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
                                   DMatrixHandle dtrain,
                                   bst_float *grad,
@@ -932,7 +927,7 @@ XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
   bst->learner()->BoostOneIter(0, dtr->get(), &tmp_gpair);
   API_END();
 }
-#endif // __SGX__
+#endif // __ENCLAVE__
 
 XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  int iter,
@@ -954,7 +949,7 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
 
   bst->LazyInit();
   eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // write results to host memory
   *out_str = oe_host_strndup(eval_str.c_str(), eval_str.length());
 #else
   *out_str = eval_str.c_str();
@@ -985,7 +980,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
       (option_mask & 8) != 0,
       (option_mask & 16) != 0);
   preds = tmp_preds.HostVector();
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // write results to host memory
   bst_float* result = (bst_float*) oe_host_malloc(preds.size()*sizeof(float));
   for (int i = 0; i < preds.size(); ++i) {
     result[i] = preds[i];
@@ -1017,7 +1012,7 @@ XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
   API_END();
 }
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  const void* buf,
                                  xgboost::bst_ulong len) {
@@ -1203,4 +1198,4 @@ QueryBoosterConfigurationArguments(BoosterHandle handle) {
 
 // force link rabit
 static DMLC_ATTRIBUTE_UNUSED int XGBOOST_LINK_RABIT_C_API_ = RabitLinkTag();
-#endif // __SGX__
+#endif // __ENCLAVE__

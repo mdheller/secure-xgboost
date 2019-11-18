@@ -98,7 +98,6 @@ inline bool MetaTryLoadFloatInfo(const std::string& fname,
   return true;
 }
 
-#ifndef __SGX__
 // macro to dispatch according to specified pointer types
 #define DISPATCH_CONST_PTR(dtype, old_ptr, cast_ptr, proc)              \
   switch (dtype) {                                                      \
@@ -148,7 +147,6 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
     }
   }
 }
-#endif // __SGX__
 
 
 DMatrix* DMatrix::Load(const std::string& uri,
@@ -168,21 +166,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
       std::vector<std::string> cache_shards = common::Split(cache_file, ':');
       for (size_t i = 0; i < cache_shards.size(); ++i) {
         size_t pos = cache_shards[i].rfind('.');
-#ifdef __SGX__
-        int rank, worldsize;
-        safe_ocall(host_rabit__GetRank(&rank));
-        safe_ocall(host_rabit__GetWorldSize(&worldsize));
-        if (pos == std::string::npos) {
-          os << cache_shards[i]
-            << ".r" << rank
-            << "-" << worldsize; 
-        } else {
-          os << cache_shards[i].substr(0, pos)
-            << ".r" << rank
-            << "-" << worldsize
-            << cache_shards[i].substr(pos, cache_shards[i].length());
-        }
-#else // __SGX__
         if (pos == std::string::npos) {
           os << cache_shards[i]
             << ".r" << rabit::GetRank()
@@ -193,7 +176,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
             << "-" <<  rabit::GetWorldSize()
             << cache_shards[i].substr(pos, cache_shards[i].length());
         }
-#endif // __SGX__
         if (i + 1 != cache_shards.size()) {
           os << ':';
         }
@@ -205,16 +187,8 @@ DMatrix* DMatrix::Load(const std::string& uri,
   }
   int partid = 0, npart = 1;
   if (load_row_split) {
-#ifdef __SGX__
-    int rank, worldsize;
-    safe_ocall(host_rabit__GetRank(&rank));
-    safe_ocall(host_rabit__GetWorldSize(&worldsize));
-    partid = rank;
-    npart = worldsize;
-#else // __SGX__
     partid = rabit::GetRank();
     npart = rabit::GetWorldSize();
-#endif // __SGX__
   } else {
     // test option to load in part
     npart = dmlc::GetEnv("XGBOOST_TEST_NPART", 1);
@@ -255,8 +229,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
   /* sync up number of features after matrix loaded.
    * partitioned data will fail the train/val validation check
    * since partitioned data not knowing the real number of features. */
-#ifndef __SGX__
-  // FIXME Allreduce
   rabit::Allreduce<rabit::op::Max>(&dmat->Info().num_col_, 1);
   // backward compatiblity code.
   if (!load_row_split) {
@@ -276,7 +248,6 @@ DMatrix* DMatrix::Load(const std::string& uri,
                    << " weights are loaded from " << fname << ".weight";
     }
   }
-#endif // __SGX__
 
   return dmat;
 }

@@ -63,9 +63,6 @@ enclave {
     include "sys/stat.h"
     untrusted {
         void host_helloworld();
-        int host_rabit__GetRank();
-        int host_rabit__GetWorldSize();
-        int host_rabit__IsDistributed();
 
         DIR* host_opendir(
                 [user_check] char* path);

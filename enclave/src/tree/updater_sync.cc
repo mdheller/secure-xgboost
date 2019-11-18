@@ -25,7 +25,6 @@ class TreeSyncher: public TreeUpdater {
   void Update(HostDeviceVector<GradientPair> *gpair,
               DMatrix* dmat,
               const std::vector<RegTree*> &trees) override {
-#ifndef __SGX__
     if (rabit::GetWorldSize() == 1) return;
     std::string s_model;
     common::MemoryBufferStream fs(&s_model);
@@ -40,7 +39,6 @@ class TreeSyncher: public TreeUpdater {
     for (auto tree : trees) {
       tree->Load(&fs);
     }
-#endif // __SGX__
   }
 };
 

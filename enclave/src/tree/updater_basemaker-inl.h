@@ -60,10 +60,7 @@ class BaseMaker: public TreeUpdater {
     }
     /*! \brief synchronize the information */
     inline void SyncInfo() {
-#ifndef __SGX__
-      //FIXME Allreduce
       rabit::Allreduce<rabit::op::Max>(dmlc::BeginPtr(fminmax_), fminmax_.size());
-#endif
     }
     // get feature type, 0:empty 1:binary 2:real
     inline int Type(bst_uint fid) const {

@@ -1283,150 +1283,6 @@ done:
         pargs_out->_result = _result;
 }
 
-void ocall_host_rabit__GetRank(
-    uint8_t* input_buffer,
-    size_t input_buffer_size,
-    uint8_t* output_buffer,
-    size_t output_buffer_size,
-    size_t* output_bytes_written)
-{
-    oe_result_t _result = OE_FAILURE;
-    OE_UNUSED(input_buffer_size);
-
-    /* Prepare parameters. */
-    host_rabit__GetRank_args_t* pargs_in = (host_rabit__GetRank_args_t*)input_buffer;
-    host_rabit__GetRank_args_t* pargs_out = (host_rabit__GetRank_args_t*)output_buffer;
-
-    size_t input_buffer_offset = 0;
-    size_t output_buffer_offset = 0;
-    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
-    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
-
-    /* Make sure input and output buffers are valid. */
-    if (!input_buffer || !output_buffer) {
-        _result = OE_INVALID_PARAMETER;
-        goto done;
-    }
-
-    /* Set in and in-out pointers. */
-    /* There were no in nor in-out parameters. */
-
-    /* Set out and in-out pointers. */
-    /* In-out parameters are copied to output buffer. */
-    /* There were no out nor in-out parameters. */
-
-    /* Call user function. */
-    pargs_out->_retval = host_rabit__GetRank(
-    );
-
-    /* Propagate errno back to enclave. */
-    /* Errno propagation not enabled. */
-
-    /* Success. */
-    _result = OE_OK;
-    *output_bytes_written = output_buffer_offset;
-
-done:
-    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
-        pargs_out->_result = _result;
-}
-
-void ocall_host_rabit__GetWorldSize(
-    uint8_t* input_buffer,
-    size_t input_buffer_size,
-    uint8_t* output_buffer,
-    size_t output_buffer_size,
-    size_t* output_bytes_written)
-{
-    oe_result_t _result = OE_FAILURE;
-    OE_UNUSED(input_buffer_size);
-
-    /* Prepare parameters. */
-    host_rabit__GetWorldSize_args_t* pargs_in = (host_rabit__GetWorldSize_args_t*)input_buffer;
-    host_rabit__GetWorldSize_args_t* pargs_out = (host_rabit__GetWorldSize_args_t*)output_buffer;
-
-    size_t input_buffer_offset = 0;
-    size_t output_buffer_offset = 0;
-    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
-    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
-
-    /* Make sure input and output buffers are valid. */
-    if (!input_buffer || !output_buffer) {
-        _result = OE_INVALID_PARAMETER;
-        goto done;
-    }
-
-    /* Set in and in-out pointers. */
-    /* There were no in nor in-out parameters. */
-
-    /* Set out and in-out pointers. */
-    /* In-out parameters are copied to output buffer. */
-    /* There were no out nor in-out parameters. */
-
-    /* Call user function. */
-    pargs_out->_retval = host_rabit__GetWorldSize(
-    );
-
-    /* Propagate errno back to enclave. */
-    /* Errno propagation not enabled. */
-
-    /* Success. */
-    _result = OE_OK;
-    *output_bytes_written = output_buffer_offset;
-
-done:
-    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
-        pargs_out->_result = _result;
-}
-
-void ocall_host_rabit__IsDistributed(
-    uint8_t* input_buffer,
-    size_t input_buffer_size,
-    uint8_t* output_buffer,
-    size_t output_buffer_size,
-    size_t* output_bytes_written)
-{
-    oe_result_t _result = OE_FAILURE;
-    OE_UNUSED(input_buffer_size);
-
-    /* Prepare parameters. */
-    host_rabit__IsDistributed_args_t* pargs_in = (host_rabit__IsDistributed_args_t*)input_buffer;
-    host_rabit__IsDistributed_args_t* pargs_out = (host_rabit__IsDistributed_args_t*)output_buffer;
-
-    size_t input_buffer_offset = 0;
-    size_t output_buffer_offset = 0;
-    OE_ADD_SIZE(input_buffer_offset, sizeof(*pargs_in));
-    OE_ADD_SIZE(output_buffer_offset, sizeof(*pargs_out));
-
-    /* Make sure input and output buffers are valid. */
-    if (!input_buffer || !output_buffer) {
-        _result = OE_INVALID_PARAMETER;
-        goto done;
-    }
-
-    /* Set in and in-out pointers. */
-    /* There were no in nor in-out parameters. */
-
-    /* Set out and in-out pointers. */
-    /* In-out parameters are copied to output buffer. */
-    /* There were no out nor in-out parameters. */
-
-    /* Call user function. */
-    pargs_out->_retval = host_rabit__IsDistributed(
-    );
-
-    /* Propagate errno back to enclave. */
-    /* Errno propagation not enabled. */
-
-    /* Success. */
-    _result = OE_OK;
-    *output_bytes_written = output_buffer_offset;
-
-done:
-    if (pargs_out && output_buffer_size >= sizeof(*pargs_out))
-        pargs_out->_result = _result;
-}
-
 void ocall_host_opendir(
     uint8_t* input_buffer,
     size_t input_buffer_size,
@@ -1820,9 +1676,6 @@ done:
 
 static oe_ocall_func_t __xgboost_ocall_function_table[] = {
     (oe_ocall_func_t) ocall_host_helloworld,
-    (oe_ocall_func_t) ocall_host_rabit__GetRank,
-    (oe_ocall_func_t) ocall_host_rabit__GetWorldSize,
-    (oe_ocall_func_t) ocall_host_rabit__IsDistributed,
     (oe_ocall_func_t) ocall_host_opendir,
     (oe_ocall_func_t) ocall_host_opendir_and_readdir,
     (oe_ocall_func_t) ocall_host_stat,
@@ -1849,7 +1702,7 @@ oe_result_t oe_create_xgboost_enclave(
                settings,
                setting_count,
                __xgboost_ocall_function_table,
-               12,
+               9,
                enclave);
 }
 

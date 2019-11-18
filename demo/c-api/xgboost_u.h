@@ -102,12 +102,6 @@ oe_result_t enclave_XGBoosterFree(
 /**** OCALL prototypes. ****/
 void host_helloworld(void);
 
-int host_rabit__GetRank(void);
-
-int host_rabit__GetWorldSize(void);
-
-int host_rabit__IsDistributed(void);
-
 DIR* host_opendir(char* path);
 
 void* host_opendir_and_readdir(char* path);

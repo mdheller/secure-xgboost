@@ -370,11 +370,8 @@ class CQHistMaker: public HistMaker {
     };
     // sync the histogram
     // if it is C++11, use lazy evaluation for Allreduce
-#ifndef __SGX__
-    // FIXME Allreduce
     this->histred_.Allreduce(dmlc::BeginPtr(this->wspace_.hset[0].data),
                              this->wspace_.hset[0].data.size(), lazy_get_hist);
-#endif
   }
 
   void ResetPositionAfterSplit(DMatrix *p_fmat,
@@ -448,10 +445,7 @@ class CQHistMaker: public HistMaker {
     }
     if (summary_array_.size() != 0) {
       size_t nbytes = WXQSketch::SummaryContainer::CalcMemCost(max_size);
-#ifndef __SGX__
-      //FIXME Allreduce
       sreducer_.Allreduce(dmlc::BeginPtr(summary_array_), nbytes, summary_array_.size());
-#endif
     }
     // now we get the final result of sketch, setup the cut
     this->wspace_.cut.clear();
@@ -729,11 +723,8 @@ class GlobalProposalHistMaker: public CQHistMaker {
             .data[0] = this->node_stats_[nid];
       }
     }
-#ifndef __SGX__
-    //FIXME Allreduce
     this->histred_.Allreduce(dmlc::BeginPtr(this->wspace_.hset[0].data),
                             this->wspace_.hset[0].data.size());
-#endif
   }
 
   // cached unit pointer

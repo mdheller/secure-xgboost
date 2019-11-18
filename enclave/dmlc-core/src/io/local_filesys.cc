@@ -22,7 +22,7 @@ extern "C" {
 
 #include <cstring>
 
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // includes
 #include "xgboost_t.h"
 #include "../../../src/common/common.h"
 #endif
@@ -39,7 +39,7 @@ class FileStream : public SeekStream {
     this->Close();
   }
   virtual size_t Read(void *ptr, size_t size) {
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // ocall
     char* buffer;
     safe_ocall(host_fread_one((void**)&buffer, fp_, size));
     std::memcpy(ptr, buffer, size);
@@ -50,7 +50,7 @@ class FileStream : public SeekStream {
 #endif
   }
   virtual void Write(const void *ptr, size_t size) {
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // ocall
     void *out_ptr = static_cast<void*> (oe_host_malloc(size));
     memcpy(out_ptr, ptr, size);
     safe_ocall(host_fwrite_one(out_ptr, size, fp_));
@@ -61,7 +61,7 @@ class FileStream : public SeekStream {
 #endif
   }
   virtual void Seek(size_t pos) {
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // ocall
     safe_ocall(host_fseek(&fp_, fp_, static_cast<long>(pos)));
 #else // __ENCLAVE__
 #ifndef _MSC_VER
@@ -83,7 +83,7 @@ class FileStream : public SeekStream {
   }
   inline void Close(void) {
     if (fp_ != NULL && !use_stdio_) {
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // ocall
       safe_ocall(host_fclose(fp_));
 #else
       std::fclose(fp_); 
@@ -102,7 +102,7 @@ FileInfo LocalFileSystem::GetPathInfo(const URI &path) {
   FileInfo ret;
   ret.path = path;
 
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // ocall
   char *out_string;
   out_string = oe_host_strndup(path.name.c_str(), path.name.length());
   std::vector<char*> *name_list;
@@ -138,7 +138,7 @@ FileInfo LocalFileSystem::GetPathInfo(const URI &path) {
 
 void LocalFileSystem::ListDirectory(const URI &path, std::vector<FileInfo> *out_list) {
 #ifndef _WIN32
-#ifdef __ENCLAVE__
+#ifdef __ENCLAVE__ // ocall
   char *out_string = oe_host_strndup(path.name.c_str(), path.name.length());
   out_list->clear();
   std::vector<char*> *name_list;
@@ -254,17 +254,17 @@ SeekStream *LocalFileSystem::Open(const URI &path,
     std::string flag = mode;
     if (flag == "w") flag = "wb";
     if (flag == "r") flag = "rb";
-#ifdef __SGX__
+#ifdef __ENCLAVE__ // ocall
     char *out_path_string = oe_host_strndup(fname, path.name.length());
     char *out_flag_string = oe_host_strndup(flag.c_str(), flag.length());
     safe_ocall(host_fopen(&fp, out_path_string, out_flag_string));
-#else // __SGX__
+#else // __ENCLAVE__
 #if DMLC_USE_FOPEN64
     fp = fopen64(fname.c_str(), flag.c_str());
 #else  // DMLC_USE_FOPEN64
     fp = fopen(fname, flag.c_str());
 #endif  // DMLC_USE_FOPEN64
-#endif // __SGX__
+#endif // __ENCLAVE__
   }
 #endif  // _WIN32
   if (fp != NULL) {

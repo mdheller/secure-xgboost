@@ -127,10 +127,7 @@ class ColumnSampler {
   */
   ColumnSampler() {
     uint32_t seed = common::GlobalRandom()();
-#ifndef __SGX__
-    //FIXME broadcast
     rabit::Broadcast(&seed, sizeof(seed), 0);
-#endif
     rng_.seed(seed);
   }
 

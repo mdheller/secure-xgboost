@@ -131,24 +131,6 @@ typedef struct _host_helloworld_args_t
     oe_result_t _result;
 } host_helloworld_args_t;
 
-typedef struct _host_rabit__GetRank_args_t
-{
-    oe_result_t _result;
-    int _retval;
-} host_rabit__GetRank_args_t;
-
-typedef struct _host_rabit__GetWorldSize_args_t
-{
-    oe_result_t _result;
-    int _retval;
-} host_rabit__GetWorldSize_args_t;
-
-typedef struct _host_rabit__IsDistributed_args_t
-{
-    oe_result_t _result;
-    int _retval;
-} host_rabit__IsDistributed_args_t;
-
 typedef struct _host_opendir_args_t
 {
     oe_result_t _result;
@@ -230,17 +212,14 @@ enum
 enum
 {
     xgboost_fcn_id_host_helloworld = 0,
-    xgboost_fcn_id_host_rabit__GetRank = 1,
-    xgboost_fcn_id_host_rabit__GetWorldSize = 2,
-    xgboost_fcn_id_host_rabit__IsDistributed = 3,
-    xgboost_fcn_id_host_opendir = 4,
-    xgboost_fcn_id_host_opendir_and_readdir = 5,
-    xgboost_fcn_id_host_stat = 6,
-    xgboost_fcn_id_host_fopen = 7,
-    xgboost_fcn_id_host_fclose = 8,
-    xgboost_fcn_id_host_fseek = 9,
-    xgboost_fcn_id_host_fread_one = 10,
-    xgboost_fcn_id_host_fwrite_one = 11,
+    xgboost_fcn_id_host_opendir = 1,
+    xgboost_fcn_id_host_opendir_and_readdir = 2,
+    xgboost_fcn_id_host_stat = 3,
+    xgboost_fcn_id_host_fopen = 4,
+    xgboost_fcn_id_host_fclose = 5,
+    xgboost_fcn_id_host_fseek = 6,
+    xgboost_fcn_id_host_fread_one = 7,
+    xgboost_fcn_id_host_fwrite_one = 8,
     xgboost_fcn_id_untrusted_call_max = OE_ENUM_MAX
 };
 

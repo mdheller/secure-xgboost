@@ -15,15 +15,15 @@
 namespace xgboost {
 namespace common {
 struct Timer {
-#ifndef __SGX__
-  using ClockT = std::chrono::high_resolution_clock;
-  using TimePointT = std::chrono::high_resolution_clock::time_point;
-  using DurationT = std::chrono::high_resolution_clock::duration;
-#else
+#ifdef __ENCLAVE__ // replace high_resolution_clock with system_clock for OE
   using ClockT = std::chrono::system_clock;
   using TimePointT = std::chrono::system_clock::time_point;
   using DurationT = std::chrono::system_clock::duration;
-#endif // __SGX__
+#else
+  using ClockT = std::chrono::high_resolution_clock;
+  using TimePointT = std::chrono::high_resolution_clock::time_point;
+  using DurationT = std::chrono::high_resolution_clock::duration;
+#endif // __ENCLAVE__
   using SecondsT = std::chrono::duration<double>;
 
   TimePointT start;

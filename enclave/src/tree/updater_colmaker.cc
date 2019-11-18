@@ -858,10 +858,7 @@ class DistColMaker : public ColMaker {
 
       bitmap_.InitFromBool(boolmap_);
       // communicate bitmap
-#ifndef __SGX__
-      //FIXME Allreduce
       rabit::Allreduce<rabit::op::BitOR>(dmlc::BeginPtr(bitmap_.data), bitmap_.data.size());
-#endif
       // get the new position
       const auto ndata = static_cast<bst_omp_uint>(p_fmat->Info().num_row_);
       #pragma omp parallel for schedule(static)

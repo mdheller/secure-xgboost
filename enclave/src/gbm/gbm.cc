@@ -27,9 +27,7 @@ GradientBooster* GradientBooster::Create(
 namespace xgboost {
 namespace gbm {
 // List of files that will be force linked in static links.
-#ifndef __SGX__
 DMLC_REGISTRY_LINK_TAG(gblinear);
-#endif
 DMLC_REGISTRY_LINK_TAG(gbtree);
 }  // namespace gbm
 }  // namespace xgboost

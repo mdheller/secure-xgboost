@@ -276,7 +276,7 @@ XGBOOST_REGISTER_OBJECTIVE(PoissonRegression, "count:poisson")
 .set_body([]() { return new PoissonRegression(); });
 
 
-#ifndef __SGX__
+#ifndef __ENCLAVE__ // FIXME enable CoxRegression
 // cox regression for survival data (negative values mean they are censored)
 class CoxRegression : public ObjFunction {
  public:
@@ -363,7 +363,7 @@ class CoxRegression : public ObjFunction {
 XGBOOST_REGISTER_OBJECTIVE(CoxRegression, "survival:cox")
 .describe("Cox regression for censored survival data (negative labels are considered censored).")
 .set_body([]() { return new CoxRegression(); });
-#endif // __SGX__
+#endif // __ENCLAVE__
 
 struct GammaRegressionParam : public dmlc::Parameter<GammaRegressionParam> {
   int n_gpus;
