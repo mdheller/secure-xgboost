@@ -108,6 +108,7 @@ target_compile_options(xgboost_enclave
   -fno-stack-protector
   -D_GLIBCXX_USE_CXX11_ABI=0 
   -g
+  -ftls-model=local-exec
   #$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CXX>>:/MP>
   #$<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<COMPILE_LANGUAGE:CXX>>:-funroll-loops>)
   )

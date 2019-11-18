@@ -940,7 +940,7 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  const char* evnames[],
                                  xgboost::bst_ulong len,
                                  const char** out_str) {
-  std::string eval_str; // = XGBAPIThreadLocalStore::Get()->ret_str;
+  std::string& eval_str = XGBAPIThreadLocalStore::Get()->ret_str;
   API_BEGIN();
   CHECK_HANDLE();
   auto* bst = static_cast<Booster*>(handle);
@@ -969,11 +969,8 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
                              const bst_float **out_result) {
-#ifndef __ENCLAVE__
-  //FIXME ThreadLocalStore
   std::vector<bst_float>&preds =
     XGBAPIThreadLocalStore::Get()->ret_vec_float;
-#endif
   API_BEGIN();
   CHECK_HANDLE();
   auto *bst = static_cast<Booster*>(handle);
@@ -987,8 +984,8 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
       (option_mask & 4) != 0,
       (option_mask & 8) != 0,
       (option_mask & 16) != 0);
+  preds = tmp_preds.HostVector();
 #ifdef __ENCLAVE__
-  std::vector<bst_float>&preds = tmp_preds.HostVector();
   bst_float* result = (bst_float*) oe_host_malloc(preds.size()*sizeof(float));
   for (int i = 0; i < preds.size(); ++i) {
     result[i] = preds[i];
@@ -996,7 +993,6 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
   *len = static_cast<xgboost::bst_ulong>(preds.size());
   *out_result = result;
 #else
-  preds = tmp_preds.HostVector();
   *out_result = dmlc::BeginPtr(preds);
   *len = static_cast<xgboost::bst_ulong>(preds.size());
 #endif
