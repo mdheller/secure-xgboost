@@ -149,7 +149,7 @@ class GBTree : public GradientBooster {
     // configure predictor
     predictor_ = std::unique_ptr<Predictor>(Predictor::Create(tparam_.predictor));
     predictor_->Init(cfg, cache_);
-    //monitor_.Init("GBTree");
+    monitor_.Init("GBTree");
   }
 
   void Load(dmlc::Stream* fi) override {
@@ -174,7 +174,7 @@ class GBTree : public GradientBooster {
                ObjFunction* obj) override {
     std::vector<std::vector<std::unique_ptr<RegTree> > > new_trees;
     const int ngroup = model_.param.num_output_group;
-    //monitor_.Start("BoostNewTrees");
+    monitor_.Start("BoostNewTrees");
     if (ngroup == 1) {
       std::vector<std::unique_ptr<RegTree> > ret;
       BoostNewTrees(in_gpair, p_fmat, 0, &ret);
@@ -199,10 +199,10 @@ class GBTree : public GradientBooster {
         new_trees.push_back(std::move(ret));
       }
     }
-    //monitor_.Stop("BoostNewTrees");
-    //monitor_.Start("CommitModel");
+    monitor_.Stop("BoostNewTrees");
+    monitor_.Start("CommitModel");
     this->CommitModel(std::move(new_trees));
-    //monitor_.Stop("CommitModel");
+    monitor_.Stop("CommitModel");
   }
 
   void PredictBatch(DMatrix* p_fmat,
@@ -312,10 +312,7 @@ class GBTree : public GradientBooster {
   // Cached matrices
   std::vector<std::shared_ptr<DMatrix>> cache_;
   std::unique_ptr<Predictor> predictor_;
-#ifndef __SGX__
-  // FIXME results in runtime errors
   common::Monitor monitor_;
-#endif
 };
 
 // dart

@@ -112,8 +112,7 @@ struct HistCutMatrix {
   virtual size_t SearchGroupIndFromBaseRow(
       std::vector<bst_uint> const& group_ptr, size_t const base_rowid) const;
 
-  // FIXME
-  //Monitor monitor_;
+  Monitor monitor_;
 };
 
 /*! \brief Builds the cut matrix on the GPU */

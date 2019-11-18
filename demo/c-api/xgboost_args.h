@@ -82,7 +82,7 @@ typedef struct _enclave_XGBoosterPredict_args_t
     int option_mask;
     unsigned int ntree_limit;
     bst_ulong* out_len;
-    float** out_result;
+    bst_float** out_result;
 } enclave_XGBoosterPredict_args_t;
 
 typedef struct _enclave_XGDMatrixGetFloatInfo_args_t

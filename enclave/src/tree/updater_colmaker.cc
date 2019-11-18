@@ -859,7 +859,7 @@ class DistColMaker : public ColMaker {
       bitmap_.InitFromBool(boolmap_);
       // communicate bitmap
 #ifndef __SGX__
-      //FIXME
+      //FIXME Allreduce
       rabit::Allreduce<rabit::op::BitOR>(dmlc::BeginPtr(bitmap_.data), bitmap_.data.size());
 #endif
       // get the new position
@@ -879,8 +879,6 @@ class DistColMaker : public ColMaker {
     }
     // synchronize the best solution of each node
     void SyncBestSolution(const std::vector<int> &qexpand) override {
-#ifndef __SGX__
-      //FIXME
       std::vector<SplitEntry> vec;
       for (int nid : qexpand) {
         for (int tid = 0; tid < this->nthread_; ++tid) {
@@ -896,15 +894,12 @@ class DistColMaker : public ColMaker {
         const int nid = qexpand[i];
         this->snode_[nid].best = vec[i];
       }
-#endif // __SGX__
     }
 
    private:
     common::BitMap bitmap_;
     std::vector<int> boolmap_;
-#ifndef __SGX__
     rabit::Reducer<SplitEntry, SplitEntry::Reduce> reducer_;
-#endif // __SGX__
   };
   // we directly introduce pruner here
   std::unique_ptr<TreeUpdater> pruner_;
@@ -920,12 +915,10 @@ XGBOOST_REGISTER_TREE_UPDATER(ColMaker, "grow_colmaker")
     return new ColMaker();
   });
 
-#ifndef __SGX__
 XGBOOST_REGISTER_TREE_UPDATER(DistColMaker, "distcol")
 .describe("Distributed column split version of tree maker.")
 .set_body([]() {
     return new DistColMaker();
   });
-#endif
 }  // namespace tree
 }  // namespace xgboost

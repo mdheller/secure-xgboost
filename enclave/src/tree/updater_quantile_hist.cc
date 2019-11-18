@@ -53,20 +53,14 @@ void QuantileHistMaker::Update(HostDeviceVector<GradientPair> *gpair,
                                DMatrix *dmat,
                                const std::vector<RegTree *> &trees) {
   if (is_gmat_initialized_ == false) {
-#ifndef __SGX__
-    // FIXME
     double tstart = dmlc::GetTime();
-#endif
     gmat_.Init(dmat, static_cast<uint32_t>(param_.max_bin));
     column_matrix_.Init(gmat_, param_.sparse_threshold);
     if (param_.enable_feature_grouping > 0) {
       gmatb_.Init(gmat_, column_matrix_, param_);
     }
     is_gmat_initialized_ = true;
-#ifndef __SGX__
-    // FIXME timer
     LOG(INFO) << "Generating gmat: " << dmlc::GetTime() - tstart << " sec";
-#endif
   }
   // rescale learning rate according to size of trees
   float lr = param_.learning_rate;
@@ -98,15 +92,15 @@ void QuantileHistMaker::Builder::SyncHistograms(
     int starting_index,
     int sync_count,
     RegTree *p_tree) {
-  //builder_monitor_.Start("SyncHistograms");
+  builder_monitor_.Start("SyncHistograms");
   this->histred_.Allreduce(hist_[starting_index].data(), hist_builder_.GetNumBins() * sync_count);
   // use Subtraction Trick
   for (auto const& node_pair : nodes_for_subtraction_trick_) {
     hist_.AddHistRow(node_pair.first);
     SubtractionTrick(hist_[node_pair.first], hist_[node_pair.second],
                      hist_[(*p_tree)[node_pair.first].Parent()]);
-  }
-  //builder_monitor_.Stop("SyncHistograms");
+  } 
+  builder_monitor_.Stop("SyncHistograms");
 }
 
 void QuantileHistMaker::Builder::BuildLocalHistograms(
@@ -116,7 +110,7 @@ void QuantileHistMaker::Builder::BuildLocalHistograms(
     const GHistIndexBlockMatrix &gmatb,
     RegTree *p_tree,
     const std::vector<GradientPair> &gpair_h) {
-  //builder_monitor_.Start("BuildLocalHistograms");
+  builder_monitor_.Start("BuildLocalHistograms");
   for (auto const& entry : qexpand_depth_wise_) {
     int nid = entry.nid;
     RegTree::Node &node = (*p_tree)[nid];
@@ -156,7 +150,7 @@ void QuantileHistMaker::Builder::BuildLocalHistograms(
       }
     }
   }
-  //builder_monitor_.Stop("BuildLocalHistograms");
+  builder_monitor_.Stop("BuildLocalHistograms");
 }
 
 void QuantileHistMaker::Builder::BuildNodeStats(
@@ -164,7 +158,7 @@ void QuantileHistMaker::Builder::BuildNodeStats(
     DMatrix *p_fmat,
     RegTree *p_tree,
     const std::vector<GradientPair> &gpair_h) {
-  //builder_monitor_.Start("BuildNodeStats");
+  builder_monitor_.Start("BuildNodeStats");
   for (auto const& entry : qexpand_depth_wise_) {
     int nid = entry.nid;
     this->InitNewNode(nid, gmat, gpair_h, *p_fmat, *p_tree);
@@ -178,7 +172,7 @@ void QuantileHistMaker::Builder::BuildNodeStats(
                            snode_[left_sibling_id].weight, snode_[nid].weight);
     }
   }
-  //builder_monitor_.Stop("BuildNodeStats");
+  builder_monitor_.Stop("BuildNodeStats");
 }
 
 void QuantileHistMaker::Builder::EvaluateSplits(
@@ -326,7 +320,7 @@ void QuantileHistMaker::Builder::Update(const GHistIndexMatrix& gmat,
                                         HostDeviceVector<GradientPair>* gpair,
                                         DMatrix* p_fmat,
                                         RegTree* p_tree) {
-  //builder_monitor_.Start("Update");
+  builder_monitor_.Start("Update");
 
   const std::vector<GradientPair>& gpair_h = gpair->ConstHostVector();
 
@@ -348,7 +342,7 @@ void QuantileHistMaker::Builder::Update(const GHistIndexMatrix& gmat,
 
   pruner_->Update(gpair, p_fmat, std::vector<RegTree*>{p_tree});
 
-  //builder_monitor_.Stop("Update");
+  builder_monitor_.Stop("Update");
 }
 
 bool QuantileHistMaker::Builder::UpdatePredictionCache(
@@ -405,7 +399,7 @@ void QuantileHistMaker::Builder::InitData(const GHistIndexMatrix& gmat,
     CHECK(param_.max_depth > 0) << "max_depth cannot be 0 (unlimited) "
                                 << "when grow_policy is depthwise.";
   }
-  //builder_monitor_.Start("InitData");
+  builder_monitor_.Start("InitData");
   const auto& info = fmat.Info();
 
   {
@@ -555,7 +549,7 @@ void QuantileHistMaker::Builder::InitData(const GHistIndexMatrix& gmat,
       qexpand_depth_wise_.clear();
     }
   }
-  //builder_monitor_.Stop("InitData");
+  builder_monitor_.Stop("InitData");
 }
 
 void QuantileHistMaker::Builder::EvaluateSplit(const int nid,
@@ -563,7 +557,7 @@ void QuantileHistMaker::Builder::EvaluateSplit(const int nid,
                                                const HistCollection& hist,
                                                const DMatrix& fmat,
                                                const RegTree& tree) {
-  //builder_monitor_.Start("EvaluateSplit");
+  builder_monitor_.Start("EvaluateSplit");
   // start enumeration
   const MetaInfo& info = fmat.Info();
   auto p_feature_set = column_sampler_.GetFeatureSet(tree.GetDepth(nid));
@@ -594,7 +588,7 @@ void QuantileHistMaker::Builder::EvaluateSplit(const int nid,
   for (unsigned tid = 0; tid < nthread; ++tid) {
     snode_[nid].best.Update(best_split_tloc_[tid]);
   }
-  //builder_monitor_.Stop("EvaluateSplit");
+  builder_monitor_.Stop("EvaluateSplit");
 }
 
 void QuantileHistMaker::Builder::ApplySplit(int nid,
@@ -603,7 +597,7 @@ void QuantileHistMaker::Builder::ApplySplit(int nid,
                                             const HistCollection& hist,
                                             const DMatrix& fmat,
                                             RegTree* p_tree) {
-  //builder_monitor_.Start("ApplySplit");
+  builder_monitor_.Start("ApplySplit");
   // TODO(hcho3): support feature sampling by levels
 
   /* 1. Create child nodes */
@@ -652,7 +646,7 @@ void QuantileHistMaker::Builder::ApplySplit(int nid,
 
   row_set_collection_.AddSplit(
       nid, row_split_tloc_, (*p_tree)[nid].LeftChild(), (*p_tree)[nid].RightChild());
-  //builder_monitor_.Stop("ApplySplit");
+  builder_monitor_.Stop("ApplySplit");
 }
 
 void QuantileHistMaker::Builder::ApplySplitDenseData(
@@ -791,7 +785,7 @@ void QuantileHistMaker::Builder::InitNewNode(int nid,
                                              const std::vector<GradientPair>& gpair,
                                              const DMatrix& fmat,
                                              const RegTree& tree) {
-  //builder_monitor_.Start("InitNewNode");
+  builder_monitor_.Start("InitNewNode");
   {
     snode_.resize(tree.param.num_nodes, NodeEntry(param_));
   }
@@ -834,7 +828,7 @@ void QuantileHistMaker::Builder::InitNewNode(int nid,
     snode_[nid].root_gain = static_cast<float>(
             spliteval_->ComputeScore(parentid, snode_[nid].stats, snode_[nid].weight));
   }
-  //builder_monitor_.Stop("InitNewNode");
+  builder_monitor_.Stop("InitNewNode");
 }
 
 // enumerate the split values of specific feature

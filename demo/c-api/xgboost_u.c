@@ -31,6 +31,9 @@ oe_result_t enclave_helloworld(oe_enclave_t* enclave)
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
 
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
+
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
     
@@ -91,12 +94,17 @@ oe_result_t enclave_helloworld(oe_enclave_t* enclave)
     
     /* Unmarshal return value and out, in-out parameters. */
     /* No return value. */
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -122,6 +130,9 @@ oe_result_t enclave_XGDMatrixCreateFromFile(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -186,6 +197,7 @@ oe_result_t enclave_XGDMatrixCreateFromFile(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
     OE_READ_OUT_PARAM(out, (size_t)(sizeof(DMatrixHandle)));
 
     _result = OE_OK;
@@ -193,6 +205,9 @@ oe_result_t enclave_XGDMatrixCreateFromFile(
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -218,6 +233,9 @@ oe_result_t enclave_XGBoosterCreate(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -281,12 +299,17 @@ oe_result_t enclave_XGBoosterCreate(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -312,6 +335,9 @@ oe_result_t enclave_XGBoosterSetParam(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -375,12 +401,17 @@ oe_result_t enclave_XGBoosterSetParam(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -406,6 +437,9 @@ oe_result_t enclave_XGBoosterUpdateOneIter(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -469,12 +503,17 @@ oe_result_t enclave_XGBoosterUpdateOneIter(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -503,6 +542,9 @@ oe_result_t enclave_XGBoosterEvalOneIter(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -569,12 +611,17 @@ oe_result_t enclave_XGBoosterEvalOneIter(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -586,7 +633,7 @@ oe_result_t enclave_XGBoosterPredict(
     int option_mask,
     unsigned int ntree_limit,
     bst_ulong* out_len,
-    const float** out_result)
+    const bst_float** out_result)
 {
     oe_result_t _result = OE_FAILURE;
 
@@ -604,6 +651,9 @@ oe_result_t enclave_XGBoosterPredict(
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
 
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
+
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
     _args.handle = (BoosterHandle)handle;
@@ -611,7 +661,7 @@ oe_result_t enclave_XGBoosterPredict(
     _args.option_mask = option_mask;
     _args.ntree_limit = ntree_limit;
     _args.out_len = (bst_ulong*)out_len;
-    _args.out_result = (float**)out_result;
+    _args.out_result = (bst_float**)out_result;
 
     /* Compute input buffer size. Include in and in-out parameters. */
     OE_ADD_SIZE(_input_buffer_size, sizeof(enclave_XGBoosterPredict_args_t));
@@ -669,12 +719,17 @@ oe_result_t enclave_XGBoosterPredict(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -701,6 +756,9 @@ oe_result_t enclave_XGDMatrixGetFloatInfo(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -765,12 +823,17 @@ oe_result_t enclave_XGDMatrixGetFloatInfo(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -795,6 +858,9 @@ oe_result_t enclave_XGBoosterLoadModel(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -857,12 +923,17 @@ oe_result_t enclave_XGBoosterLoadModel(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -887,6 +958,9 @@ oe_result_t enclave_XGBoosterSaveModel(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -949,12 +1023,17 @@ oe_result_t enclave_XGBoosterSaveModel(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -978,6 +1057,9 @@ oe_result_t enclave_XGDMatrixFree(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -1039,12 +1121,17 @@ oe_result_t enclave_XGDMatrixFree(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -1068,6 +1155,9 @@ oe_result_t enclave_XGBoosterFree(
     size_t _input_buffer_offset = 0;
     size_t _output_buffer_offset = 0;
     size_t _output_bytes_written = 0;
+
+    /* Deep copy buffer. */
+    /* No pointers to save for deep copy. */
 
     /* Fill marshalling struct. */
     memset(&_args, 0, sizeof(_args));
@@ -1129,12 +1219,17 @@ oe_result_t enclave_XGBoosterFree(
     
     /* Unmarshal return value and out, in-out parameters. */
     *_retval = _pargs_out->_retval;
+    /* No pointers to restore for deep copy. */
+    /* There were no out nor in-out parameters. */
 
     _result = OE_OK;
 
 done:
     if (_buffer)
         free(_buffer);
+
+    /* No `_ptrs` to free for deep copy. */
+
     return _result;
 }
 
@@ -1743,16 +1838,16 @@ oe_result_t oe_create_xgboost_enclave(
     const char* path,
     oe_enclave_type_t type,
     uint32_t flags,
-    const void* config,
-    uint32_t config_size,
+    const oe_enclave_setting_t* settings,
+    uint32_t setting_count,
     oe_enclave_t** enclave)
 {
     return oe_create_enclave(
                path,
                type,
                flags,
-               config,
-               config_size,
+               settings,
+               setting_count,
                __xgboost_ocall_function_table,
                12,
                enclave);

@@ -35,7 +35,6 @@ void MetaInfo::Clear() {
   base_margin_.HostVector().clear();
 }
 
-#ifndef __SGX__
 void MetaInfo::SaveBinary(dmlc::Stream *fo) const {
   int32_t version = kVersion;
   fo->Write(&version, sizeof(version));
@@ -69,7 +68,6 @@ void MetaInfo::LoadBinary(dmlc::Stream *fi) {
   CHECK(fi->Read(&root_index_)) << "MetaInfo: invalid format";
   CHECK(fi->Read(&base_margin_.HostVector())) << "MetaInfo: invalid format";
 }
-#endif // __SGX__
 
 // try to load group information from file, if exists
 inline bool MetaTryLoadGroup(const std::string& fname,
@@ -258,7 +256,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
    * partitioned data will fail the train/val validation check
    * since partitioned data not knowing the real number of features. */
 #ifndef __SGX__
-  // FIXME
+  // FIXME Allreduce
   rabit::Allreduce<rabit::op::Max>(&dmat->Info().num_col_, 1);
   // backward compatiblity code.
   if (!load_row_split) {
@@ -328,7 +326,6 @@ DMatrix* DMatrix::Create(std::unique_ptr<DataSource>&& source,
 }  // namespace xgboost
 
 namespace xgboost {
-#ifndef __SGX__
 data::SparsePageFormat* 
 data::SparsePageFormat::Create(const std::string& name) {
     auto *e = ::dmlc::Registry< ::xgboost::data::SparsePageFormatReg>::Get()->Find(name);
@@ -449,5 +446,4 @@ namespace data {
 // List of files that will be force linked in static links.
 DMLC_REGISTRY_LINK_TAG(sparse_page_raw_format);
 }  // namespace data
-#endif // __SGX__
 }  // namespace xgboost

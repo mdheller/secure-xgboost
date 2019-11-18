@@ -371,7 +371,7 @@ class CQHistMaker: public HistMaker {
     // sync the histogram
     // if it is C++11, use lazy evaluation for Allreduce
 #ifndef __SGX__
-    // FIXME
+    // FIXME Allreduce
     this->histred_.Allreduce(dmlc::BeginPtr(this->wspace_.hset[0].data),
                              this->wspace_.hset[0].data.size(), lazy_get_hist);
 #endif
@@ -449,7 +449,7 @@ class CQHistMaker: public HistMaker {
     if (summary_array_.size() != 0) {
       size_t nbytes = WXQSketch::SummaryContainer::CalcMemCost(max_size);
 #ifndef __SGX__
-      //FIXME
+      //FIXME Allreduce
       sreducer_.Allreduce(dmlc::BeginPtr(summary_array_), nbytes, summary_array_.size());
 #endif
     }
@@ -730,7 +730,7 @@ class GlobalProposalHistMaker: public CQHistMaker {
       }
     }
 #ifndef __SGX__
-    //FIXME
+    //FIXME Allreduce
     this->histred_.Allreduce(dmlc::BeginPtr(this->wspace_.hset[0].data),
                             this->wspace_.hset[0].data.size());
 #endif

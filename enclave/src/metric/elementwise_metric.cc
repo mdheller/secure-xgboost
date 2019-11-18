@@ -335,7 +335,7 @@ struct EvalEWiseBase : public Metric {
 
     double dat[2] { result.Residue(), result.Weights() };
 #ifndef __ENCLAVE__
-    // FIXME
+    // FIXME Allreduce
     if (distributed) {
       rabit::Allreduce<rabit::op::Sum>(dat, 2);
     }

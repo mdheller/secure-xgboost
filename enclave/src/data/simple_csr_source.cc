@@ -16,14 +16,11 @@ void SimpleCSRSource::Clear() {
 }
 
 void SimpleCSRSource::CopyFrom(DMatrix* src) {
-#ifndef __SGX__
-  // FIXME
   this->Clear();
   this->info = src->Info();
   for (const auto &batch : src->GetRowBatches()) {
     page_.Push(batch);
   }
-#endif // __SGX__
 }
 
 void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
@@ -89,26 +86,20 @@ void SimpleCSRSource::CopyFrom(dmlc::Parser<uint32_t>* parser) {
 }
 
 void SimpleCSRSource::LoadBinary(dmlc::Stream* fi) {
-#ifndef __SGX__
-  // FIXME
   int tmagic;
   CHECK(fi->Read(&tmagic, sizeof(tmagic)) == sizeof(tmagic)) << "invalid input file format";
   CHECK_EQ(tmagic, kMagic) << "invalid format, magic number mismatch";
   info.LoadBinary(fi);
   fi->Read(&page_.offset.HostVector());
   fi->Read(&page_.data.HostVector());
-#endif // __SGX__
 }
 
 void SimpleCSRSource::SaveBinary(dmlc::Stream* fo) const {
-#ifndef __SGX__
-  // FIXME
   int tmagic = kMagic;
   fo->Write(&tmagic, sizeof(tmagic));
   info.SaveBinary(fo);
   fo->Write(page_.offset.HostVector());
   fo->Write(page_.data.HostVector());
-#endif // __SGX__
 }
 
 void SimpleCSRSource::BeforeFirst() {

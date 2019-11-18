@@ -970,7 +970,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              xgboost::bst_ulong *len,
                              const bst_float **out_result) {
 #ifndef __ENCLAVE__
-  //FIXME
+  //FIXME ThreadLocalStore
   std::vector<bst_float>&preds =
     XGBAPIThreadLocalStore::Get()->ret_vec_float;
 #endif

@@ -32,11 +32,8 @@ DMLC_REGISTRY_LINK_TAG(updater_prune);
 DMLC_REGISTRY_LINK_TAG(updater_sync);
 DMLC_REGISTRY_LINK_TAG(updater_quantile_hist);
 DMLC_REGISTRY_LINK_TAG(updater_histmaker);
-#ifndef __SGX__
-//FIXME
 DMLC_REGISTRY_LINK_TAG(updater_skmaker);
 DMLC_REGISTRY_LINK_TAG(updater_refresh);
-#endif // __SGX__
 #ifdef XGBOOST_USE_CUDA
 DMLC_REGISTRY_LINK_TAG(updater_gpu);
 DMLC_REGISTRY_LINK_TAG(updater_gpu_hist);

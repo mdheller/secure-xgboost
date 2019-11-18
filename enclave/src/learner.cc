@@ -246,8 +246,7 @@ class LearnerImpl : public Learner {
     // add to configurations
     tparam_.InitAllowUnknown(args);
     ConsoleLogger::Configure(args.cbegin(), args.cend());
-    // FIXME
-    //monitor_.Init("Learner");
+    monitor_.Init("Learner");
     cfg_.clear();
 
     for (const auto& kv : args) {
@@ -329,10 +328,6 @@ class LearnerImpl : public Learner {
   void InitModel() override { this->LazyInitModel(); }
 
   void Load(dmlc::Stream* fi) override {
-#ifndef __SGX__
-    // FIXME 
-    LOG(FATAL) << "LearnerImpl::Load not implemented";
-#endif
     // TODO(tqchen) mark deprecation of old format.
     common::PeekableInStream fp(fi);
     // backward compatible header check.
@@ -490,7 +485,7 @@ class LearnerImpl : public Learner {
   }
 
   void UpdateOneIter(int iter, DMatrix* train) override {
-    //monitor_.Start("UpdateOneIter");
+    monitor_.Start("UpdateOneIter");
 
     // TODO(trivialfis): Merge the duplicated code with BoostOneIter
     CHECK(ModelInitialized())
@@ -509,19 +504,19 @@ class LearnerImpl : public Learner {
     this->ValidateDMatrix(train);
     this->PerformTreeMethodHeuristic(train);
 
-    //monitor_.Start("PredictRaw");
+    monitor_.Start("PredictRaw");
     this->PredictRaw(train, &preds_[train]);
-    //monitor_.Stop("PredictRaw");
-    //monitor_.Start("GetGradient");
+    monitor_.Stop("PredictRaw");
+    monitor_.Start("GetGradient");
     obj_->GetGradient(preds_[train], train->Info(), iter, &gpair_);
-    //monitor_.Stop("GetGradient");
+    monitor_.Stop("GetGradient");
     gbm_->DoBoost(train, &gpair_, obj_.get());
-    //monitor_.Stop("UpdateOneIter");
+    monitor_.Stop("UpdateOneIter");
   }
 
   void BoostOneIter(int iter, DMatrix* train,
                     HostDeviceVector<GradientPair>* in_gpair) override {
-    //monitor_.Start("BoostOneIter");
+    monitor_.Start("BoostOneIter");
 
     CHECK(ModelInitialized())
         << "Always call InitModel or LoadModel before boost.";
@@ -540,12 +535,12 @@ class LearnerImpl : public Learner {
     this->PerformTreeMethodHeuristic(train);
 
     gbm_->DoBoost(train, in_gpair);
-    //monitor_.Stop("BoostOneIter");
+    monitor_.Stop("BoostOneIter");
   }
 
   std::string EvalOneIter(int iter, const std::vector<DMatrix*>& data_sets,
                           const std::vector<std::string>& data_names) override {
-    //monitor_.Start("EvalOneIter");
+    monitor_.Start("EvalOneIter");
     std::ostringstream os;
     os << '[' << iter << ']' << std::setiosflags(std::ios::fixed);
     if (metrics_.size() == 0 && tparam_.disable_default_eval_metric <= 0) {
@@ -563,7 +558,7 @@ class LearnerImpl : public Learner {
       }
     }
 
-    //monitor_.Stop("EvalOneIter");
+    monitor_.Stop("EvalOneIter");
     return os.str();
   }
 
@@ -756,7 +751,7 @@ class LearnerImpl : public Learner {
     }
     // run allreduce on num_feature to find the maximum value
 #ifndef __SGX__
-    // FIXME
+    // FIXME allreduce
     rabit::Allreduce<rabit::op::Max>(&num_feature, 1);
 #endif // __SGX__
     if (num_feature > mparam_.num_feature) {
@@ -824,8 +819,7 @@ class LearnerImpl : public Learner {
   // internal cached dmatrix
   std::vector<std::shared_ptr<DMatrix> > cache_;
 
-  // FIXME enabling monitor throws segmentation fault on calling the constructor
-  //common::Monitor monitor_;
+  common::Monitor monitor_;
 };
 
 Learner* Learner::Create(

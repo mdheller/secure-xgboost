@@ -124,7 +124,7 @@ class QuantileHistMaker: public TreeUpdater {
       : param_(param), pruner_(std::move(pruner)),
         spliteval_(std::move(spliteval)), p_last_tree_(nullptr),
         p_last_fmat_(nullptr) {
-      //builder_monitor_.Init("Quantile::Builder");
+      builder_monitor_.Init("Quantile::Builder");
     }
     // update one tree, growing
     virtual void Update(const GHistIndexMatrix& gmat,
@@ -140,7 +140,7 @@ class QuantileHistMaker: public TreeUpdater {
                           const GHistIndexBlockMatrix& gmatb,
                           GHistRow hist,
                           bool sync_hist) {
-      //builder_monitor_.Start("BuildHist");
+      builder_monitor_.Start("BuildHist");
       if (param_.enable_feature_grouping > 0) {
         hist_builder_.BuildBlockHist(gpair, row_indices, gmatb, hist);
       } else {
@@ -149,13 +149,13 @@ class QuantileHistMaker: public TreeUpdater {
       if (sync_hist) {
         this->histred_.Allreduce(hist.data(), hist_builder_.GetNumBins());
       }
-      //builder_monitor_.Stop("BuildHist");
+      builder_monitor_.Stop("BuildHist");
     }
 
     inline void SubtractionTrick(GHistRow self, GHistRow sibling, GHistRow parent) {
-      //builder_monitor_.Start("SubtractionTrick");
+      builder_monitor_.Start("SubtractionTrick");
       hist_builder_.SubtractionTrick(self, sibling, parent);
-      //builder_monitor_.Stop("SubtractionTrick");
+      builder_monitor_.Stop("SubtractionTrick");
     }
 
     bool UpdatePredictionCache(const DMatrix* data,
@@ -311,8 +311,7 @@ class QuantileHistMaker: public TreeUpdater {
     enum DataLayout { kDenseDataZeroBased, kDenseDataOneBased, kSparseData };
     DataLayout data_layout_;
 
-    // FIXME
-    //common::Monitor builder_monitor_;
+    common::Monitor builder_monitor_;
     rabit::Reducer<GradStats, GradStats::Reduce> histred_;
   };
 

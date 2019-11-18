@@ -15,9 +15,15 @@
 namespace xgboost {
 namespace common {
 struct Timer {
+#ifndef __SGX__
   using ClockT = std::chrono::high_resolution_clock;
   using TimePointT = std::chrono::high_resolution_clock::time_point;
   using DurationT = std::chrono::high_resolution_clock::duration;
+#else
+  using ClockT = std::chrono::system_clock;
+  using TimePointT = std::chrono::system_clock::time_point;
+  using DurationT = std::chrono::system_clock::duration;
+#endif // __SGX__
   using SecondsT = std::chrono::duration<double>;
 
   TimePointT start;
@@ -59,13 +65,10 @@ struct Monitor {
 
  public:
   Monitor() { 
-#ifndef __SGX__
     self_timer.Start(); 
-#endif // __SGX__
   }
 
   ~Monitor() {
-#ifndef __SGX__
     if (!ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) return;
 
     LOG(CONSOLE) << "======== Monitor: " << label << " ========";
@@ -83,27 +86,21 @@ struct Monitor {
                    << "us";
     }
     self_timer.Stop();
-#endif // __SGX__
   }
   void Init(std::string label) { this->label = label; }
   void Start(const std::string &name) {
-#ifndef __SGX__
     if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
       statistics_map[name].timer.Start();
     }
-#endif // __SGX__
   }
   void Stop(const std::string &name) {
-#ifndef __SGX__
     if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
       auto &stats = statistics_map[name];
       stats.timer.Stop();
       stats.count++;
     }
-#endif // __SGX__
   }
   void StartCuda(const std::string &name) {
-#ifndef __SGX__
     if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
       auto &stats = statistics_map[name];
       stats.timer.Start();
@@ -111,10 +108,8 @@ struct Monitor {
       stats.nvtx_id = nvtxRangeStartA(name.c_str());
 #endif
     }
-#endif // __SGX__
   }
   void StopCuda(const std::string &name) {
-#ifndef __SGX__
     if (ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) {
       auto &stats = statistics_map[name];
       stats.timer.Stop();
@@ -123,7 +118,6 @@ struct Monitor {
       nvtxRangeEnd(stats.nvtx_id);
 #endif
     }
-#endif // __SGX__
   }
 };
 }  // namespace common

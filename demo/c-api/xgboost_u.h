@@ -14,8 +14,8 @@ oe_result_t oe_create_xgboost_enclave(
     const char* path,
     oe_enclave_type_t type,
     uint32_t flags,
-    const void* config,
-    uint32_t config_size,
+    const oe_enclave_setting_t* settings,
+    uint32_t setting_count,
     oe_enclave_t** enclave);
 
 /**** ECALL prototypes. ****/
@@ -67,7 +67,7 @@ oe_result_t enclave_XGBoosterPredict(
     int option_mask,
     unsigned int ntree_limit,
     bst_ulong* out_len,
-    const float** out_result);
+    const bst_float** out_result);
 
 oe_result_t enclave_XGDMatrixGetFloatInfo(
     oe_enclave_t* enclave,
