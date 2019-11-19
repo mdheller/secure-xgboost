@@ -47,28 +47,6 @@ inline cudaError_t ThrowOnCudaError(cudaError_t code, const char *file,
 #endif  // defined(__CUDACC__)
 }  // namespace dh
 
-
-#ifdef __ENCLAVE__ // macros for errors / safety checks
-#define safe_ocall(call) {                                \
-oe_result_t result = (call);                              \
-if (result != OE_OK) {                                    \
-  fprintf(stderr,                                         \
-      "%s:%d: Ocall failed; error in %s: %s\n",           \
-      __FILE__, __LINE__, #call, oe_result_str(result));  \
-  exit(1);                                                \
-}                                                         \
-}
-
-#define check_enclave_ptr(ptr) {                          \
-if (!oe_is_within_enclave((ptr), sizeof((ptr)))) {        \
-  fprintf(stderr,                                         \
-      "%s:%d: Ptr bounds check faileds\n",                \
-      __FILE__, __LINE__);                                \
-  exit(1);                                                \
-}                                                         \
-}
-#endif
-
 namespace xgboost {
 namespace common {
 /*!

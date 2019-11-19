@@ -25,6 +25,27 @@
 #define XGB_DLL XGB_EXTERN_C
 #endif  // defined(_MSC_VER) || defined(_WIN32)
 
+#ifdef __ENCLAVE__ // macros for errors / safety checks
+#define safe_ocall(call) {                                \
+oe_result_t result = (call);                              \
+if (result != OE_OK) {                                    \
+  fprintf(stderr,                                         \
+      "%s:%d: Ocall failed; error in %s: %s\n",           \
+      __FILE__, __LINE__, #call, oe_result_str(result));  \
+  exit(1);                                                \
+}                                                         \
+}
+
+#define check_enclave_ptr(ptr) {                          \
+if (!oe_is_within_enclave((ptr), sizeof((ptr)))) {        \
+  fprintf(stderr,                                         \
+      "%s:%d: Ptr bounds check faileds\n",                \
+      __FILE__, __LINE__);                                \
+  exit(1);                                                \
+}                                                         \
+}
+#endif
+
 // manually define unsigned long
 typedef uint64_t bst_ulong;  // NOLINT(*)
 
