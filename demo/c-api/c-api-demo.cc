@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
   if (result != OE_OK) {
     fprintf(
         stderr,
-        "oe_create_helloworld_enclave(): result=%u (%s)\n",
+        "oe_create_xgboost_enclave(): result=%u (%s)\n",
         result,
         oe_result_str(result));
     oe_terminate_enclave(enclave);
@@ -84,7 +84,6 @@ int main(int argc, char** argv) {
   // load the data
   DMatrixHandle dtrain, dtest;
 #ifdef __SGX__
-  enclave_helloworld(enclave);
   safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.train", silent, &dtrain));
   safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.test", silent, &dtest));
 #else
@@ -131,7 +130,7 @@ int main(int argc, char** argv) {
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "min_child_weight", "1"));
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "gamma", "0.1"));
   safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "max_depth", "3"));
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "verbosity", silent ? "0" : "2"));
+  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "verbosity", silent ? "0" : "3"));
 #else
   safe_xgboost(XGBoosterSetParam(booster, "objective", "binary:logistic"));
   safe_xgboost(XGBoosterSetParam(booster, "min_child_weight", "1"));

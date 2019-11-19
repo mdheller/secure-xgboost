@@ -20,11 +20,6 @@
 /* There were no user defined types. */
 
 /**** ECALL marshalling structs. ****/
-typedef struct _enclave_helloworld_args_t
-{
-    oe_result_t _result;
-} enclave_helloworld_args_t;
-
 typedef struct _enclave_XGDMatrixCreateFromFile_args_t
 {
     oe_result_t _result;
@@ -126,11 +121,6 @@ typedef struct _enclave_XGBoosterFree_args_t
 } enclave_XGBoosterFree_args_t;
 
 /**** OCALL marshalling structs. ****/
-typedef struct _host_helloworld_args_t
-{
-    oe_result_t _result;
-} host_helloworld_args_t;
-
 typedef struct _host_opendir_args_t
 {
     oe_result_t _result;
@@ -193,33 +183,31 @@ typedef struct _host_fwrite_one_args_t
 /**** Trusted function IDs ****/
 enum
 {
-    xgboost_fcn_id_enclave_helloworld = 0,
-    xgboost_fcn_id_enclave_XGDMatrixCreateFromFile = 1,
-    xgboost_fcn_id_enclave_XGBoosterCreate = 2,
-    xgboost_fcn_id_enclave_XGBoosterSetParam = 3,
-    xgboost_fcn_id_enclave_XGBoosterUpdateOneIter = 4,
-    xgboost_fcn_id_enclave_XGBoosterEvalOneIter = 5,
-    xgboost_fcn_id_enclave_XGBoosterPredict = 6,
-    xgboost_fcn_id_enclave_XGDMatrixGetFloatInfo = 7,
-    xgboost_fcn_id_enclave_XGBoosterLoadModel = 8,
-    xgboost_fcn_id_enclave_XGBoosterSaveModel = 9,
-    xgboost_fcn_id_enclave_XGDMatrixFree = 10,
-    xgboost_fcn_id_enclave_XGBoosterFree = 11,
+    xgboost_fcn_id_enclave_XGDMatrixCreateFromFile = 0,
+    xgboost_fcn_id_enclave_XGBoosterCreate = 1,
+    xgboost_fcn_id_enclave_XGBoosterSetParam = 2,
+    xgboost_fcn_id_enclave_XGBoosterUpdateOneIter = 3,
+    xgboost_fcn_id_enclave_XGBoosterEvalOneIter = 4,
+    xgboost_fcn_id_enclave_XGBoosterPredict = 5,
+    xgboost_fcn_id_enclave_XGDMatrixGetFloatInfo = 6,
+    xgboost_fcn_id_enclave_XGBoosterLoadModel = 7,
+    xgboost_fcn_id_enclave_XGBoosterSaveModel = 8,
+    xgboost_fcn_id_enclave_XGDMatrixFree = 9,
+    xgboost_fcn_id_enclave_XGBoosterFree = 10,
     xgboost_fcn_id_trusted_call_id_max = OE_ENUM_MAX
 };
 
 /**** Untrusted function IDs. ****/
 enum
 {
-    xgboost_fcn_id_host_helloworld = 0,
-    xgboost_fcn_id_host_opendir = 1,
-    xgboost_fcn_id_host_opendir_and_readdir = 2,
-    xgboost_fcn_id_host_stat = 3,
-    xgboost_fcn_id_host_fopen = 4,
-    xgboost_fcn_id_host_fclose = 5,
-    xgboost_fcn_id_host_fseek = 6,
-    xgboost_fcn_id_host_fread_one = 7,
-    xgboost_fcn_id_host_fwrite_one = 8,
+    xgboost_fcn_id_host_opendir = 0,
+    xgboost_fcn_id_host_opendir_and_readdir = 1,
+    xgboost_fcn_id_host_stat = 2,
+    xgboost_fcn_id_host_fopen = 3,
+    xgboost_fcn_id_host_fclose = 4,
+    xgboost_fcn_id_host_fseek = 5,
+    xgboost_fcn_id_host_fread_one = 6,
+    xgboost_fcn_id_host_fwrite_one = 7,
     xgboost_fcn_id_untrusted_call_max = OE_ENUM_MAX
 };
 

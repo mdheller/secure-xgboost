@@ -19,8 +19,6 @@ oe_result_t oe_create_xgboost_enclave(
     oe_enclave_t** enclave);
 
 /**** ECALL prototypes. ****/
-oe_result_t enclave_helloworld(oe_enclave_t* enclave);
-
 oe_result_t enclave_XGDMatrixCreateFromFile(
     oe_enclave_t* enclave,
     int* _retval,
@@ -100,8 +98,6 @@ oe_result_t enclave_XGBoosterFree(
     BoosterHandle handle);
 
 /**** OCALL prototypes. ****/
-void host_helloworld(void);
-
 DIR* host_opendir(char* path);
 
 void* host_opendir_and_readdir(char* path);

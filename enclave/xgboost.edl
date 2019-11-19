@@ -1,7 +1,6 @@
 enclave {
     include "xgboost/c_api.h"
     trusted {
-        public void enclave_helloworld();
         public int enclave_XGDMatrixCreateFromFile(
                 [user_check] const char *fname,
                 int silent,
@@ -62,8 +61,6 @@ enclave {
     include "dirent.h"
     include "sys/stat.h"
     untrusted {
-        void host_helloworld();
-
         DIR* host_opendir(
                 [user_check] char* path);
 
