@@ -83,6 +83,108 @@ std::ptrdiff_t IgnoreCommentAndBlank(char const* beg,
   return length;
 }
 
+#ifdef __ENCLAVE__ // Decrypt and parse file
+// TODO(rishabh): allow files to be unencrypted
+template <typename IndexType, typename DType>
+void LibSVMParser<IndexType, DType>::
+ParseBlock(const char *begin,
+    const char *end,
+    RowBlockContainer<IndexType, DType> *out) {
+  out->Clear();
+  const char * lbegin = begin;
+  const char * lend = lbegin;
+  IndexType min_feat_id = std::numeric_limits<IndexType>::max();
+  // FIXME pass initial row_index as argument
+  int row_index = 0;
+  while (lbegin != end) {
+    // get line end
+    lend = lbegin + 1;
+    int length = 1;
+    while (lend != end && *lend != '\n' && *lend != '\r') {
+      ++lend;
+      ++length;
+    }
+    // FIXME ignore blank lines / spaces
+    // FIXME assert length > 0
+    CHECK_LE(CIPHER_IV_SIZE + CIPHER_TAG_SIZE, length);
+    char* decrypted = (char*) malloc(length * sizeof(char));
+    this->DecryptLine(lbegin, decrypted, length, row_index);
+    row_index++;
+
+    // parse label[:weight]
+    const char * p = decrypted;
+    const char * p_end = p + strlen(decrypted);
+    const char * q = NULL;
+    real_t label;
+    real_t weight;
+    std::ptrdiff_t advanced = IgnoreCommentAndBlank(p, p_end);
+    p += advanced;
+    int r = ParsePair<real_t, real_t>(p, p_end, &q, label, weight);
+    if (r < 1) {
+      // empty line
+      lbegin = lend;
+      continue;
+    }
+    if (r == 2) {
+      // has weight
+      out->weight.push_back(weight);
+    }
+    if (out->label.size() != 0) {
+      out->offset.push_back(out->index.size());
+    }
+    out->label.push_back(label);
+    // parse qid:id
+    uint64_t qid;
+    p = q;
+    while (p != p_end && *p == ' ') ++p;
+    if (p != p_end && (strncmp(p, "qid:", 4) == 0)) {
+      p += 4;
+      qid = static_cast<uint64_t>(atoll(p));
+      while (p != p_end && isdigitchars(*p)) ++p;
+      out->qid.push_back(qid);
+    }
+    // parse feature[:value]
+    while (p != p_end) {
+      IndexType featureId;
+      real_t value;
+      std::ptrdiff_t advanced = IgnoreCommentAndBlank(p, p_end);
+      p += advanced;
+      int r = ParsePair<IndexType, real_t>(p, p_end, &q, featureId, value);
+      if (r < 1) {
+        // q is set to line end by `ParsePair', here is p. The latter terminates
+        // while loop of parsing features.
+        p = q;
+        continue;
+      }
+      out->index.push_back(featureId);
+      min_feat_id = std::min(featureId, min_feat_id);
+      if (r == 2) {
+        // has value
+        out->value.push_back(value);
+      }
+      p = q;
+    }
+    // next line
+    lbegin = lend + 1;
+    free(decrypted);
+  }
+  if (out->label.size() != 0) {
+    out->offset.push_back(out->index.size());
+  }
+  CHECK(out->label.size() + 1 == out->offset.size());
+
+  // detect indexing mode
+  // heuristic adopted from sklearn.datasets.load_svmlight_file
+  // If all feature id's exceed 0, then detect 1-based indexing
+  if (param_.indexing_mode > 0
+      || (param_.indexing_mode < 0 && !out->index.empty() && min_feat_id > 0)) {
+    // convert from 1-based to 0-based indexing
+    for (IndexType& e : out->index) {
+      --e;
+    }
+  }
+}
+#else
 template <typename IndexType, typename DType>
 void LibSVMParser<IndexType, DType>::
 ParseBlock(const char *begin,
@@ -167,6 +269,7 @@ ParseBlock(const char *begin,
     }
   }
 }
+#endif
 
 }  // namespace data
 }  // namespace dmlc

@@ -18,6 +18,16 @@
 #include "./row_block.h"
 #include "./parser.h"
 
+#ifdef __ENCLAVE__ // encryption
+#include <dmlc/base64.h>
+#include "mbedtls/gcm.h"
+
+#define CIPHER_KEY_SIZE 32
+#define CIPHER_IV_SIZE  12
+#define CIPHER_TAG_SIZE 16
+#endif
+
+
 namespace dmlc {
 namespace data {
 /*!
@@ -32,9 +42,26 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
       : bytes_read_(0), source_(source) {
     int maxthread = std::max(omp_get_num_procs() / 2 - 4, 1);
     nthread_ = std::min(maxthread, nthread);
+
+#ifdef __ENCLAVE__ // cipher init
+    mbedtls_gcm_init(&gcm);
+    // FIXME key needs to be provided by user
+    memset(key, 0, sizeof(key));
+    int ret = mbedtls_gcm_setkey(
+        &gcm,                      // GCM context to be initialized
+        MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
+        (const unsigned char*) key,// encryption key
+        sizeof(key) * 8);          // key bits (must be 128, 192, or 256)
+    if( ret != 0 ) {
+        LOG(FATAL) << "mbedtls_gcm_setkey failed with error " << -ret;
+    }
+#endif
   }
   virtual ~TextParserBase() {
     delete source_;
+#ifdef __ENCLAVE__ // cipher free
+    mbedtls_gcm_free(&gcm);
+#endif
   }
   virtual void BeforeFirst(void) {
     source_->BeforeFirst();
@@ -73,6 +100,55 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
      }
      return begin;
   }
+
+#ifdef __ENCLAVE__ // decryption
+  inline void DecryptLine(const char* data, char* output, size_t len, size_t index) {
+    int iv_pos = 0;
+    int tag_pos = 0;
+    for (int i = 0; i < len; i++) {
+      if (data[i] == ',') {
+        iv_pos = i;
+        break;
+      }
+    }
+    for (int i = iv_pos + 1; i < len; i++) {
+      if (data[i] == ',') {
+        tag_pos = i;
+        break;
+      }
+    }
+    CHECK_LT(0, iv_pos);
+    CHECK_LT(iv_pos, tag_pos);
+
+    size_t out_len;
+    char* ct = (char *) malloc(len * sizeof(char));
+
+    out_len = base64_decode(data, iv_pos, iv);
+    CHECK_EQ(out_len, CIPHER_IV_SIZE);
+    out_len = base64_decode(data + iv_pos + 1, tag_pos - iv_pos, tag);
+    CHECK_EQ(out_len, CIPHER_TAG_SIZE);
+    out_len = base64_decode(data + tag_pos + 1, len - tag_pos, ct);
+
+    const unsigned char* add_data = (const unsigned char*) &index;
+    int ret = mbedtls_gcm_auth_decrypt(
+        &gcm,                                     // GCM context
+        out_len,                                  // length of the input ciphertext data (always same as plain)
+        (const unsigned char*) iv,                // initialization vector
+        CIPHER_IV_SIZE,                           // length of IV
+        add_data,                                 // additional data
+        // FIXME make this independent of platform
+        sizeof(size_t),                           // length of additional data
+        (const unsigned char*) tag,               // buffer holding the tag
+        CIPHER_TAG_SIZE,                          // length of the tag
+        (const unsigned char*) ct,                // buffer holding the input ciphertext data
+        (unsigned char*) output);                 // buffer for holding the output decrypted data
+    output[out_len] = '\0';
+    free(ct);
+    if (ret != 0) {
+      LOG(FATAL) << "mbedtls_gcm_auth_decrypt failed with error " << -ret;
+    }
+  }
+#endif
   /*!
    * \brief Ignore UTF-8 BOM if present
    * \param begin reference to begin pointer
@@ -103,6 +179,14 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
   InputSplit *source_;
   // OMPException object to catch and rethrow exceptions in omp blocks
   dmlc::OMPException omp_exc_;
+
+#ifdef __ENCLAVE__ // cipher 
+  mbedtls_gcm_context gcm;
+  char key[CIPHER_KEY_SIZE];
+  char tag[CIPHER_TAG_SIZE];
+  char iv[CIPHER_IV_SIZE];
+#endif
+
 };
 
 // implementation

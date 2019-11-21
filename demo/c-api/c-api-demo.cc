@@ -84,8 +84,8 @@ int main(int argc, char** argv) {
   // load the data
   DMatrixHandle dtrain, dtest;
 #ifdef __SGX__
-  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.train", silent, &dtrain));
-  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "../data/agaricus.txt.test", silent, &dtest));
+  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "train.encrypted", silent, &dtrain));
+  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "test.encrypted", silent, &dtest));
 #else
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.train", silent, &dtrain));
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.test", silent, &dtest));
