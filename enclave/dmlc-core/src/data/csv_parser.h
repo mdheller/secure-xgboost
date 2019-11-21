@@ -71,6 +71,91 @@ class CSVParser : public TextParserBase<IndexType, DType> {
   CSVParserParam param_;
 };
 
+#ifdef __ENCLAVE__ // Decrypt and parse file
+template <typename IndexType, typename DType>
+void CSVParser<IndexType, DType>::
+ParseBlock(const char *begin,
+    const char *end,
+    RowBlockContainer<IndexType, DType> *out) {
+  out->Clear();
+  const char * lbegin = begin;
+  const char * lend = lbegin;
+  // advance lbegin if it points to newlines
+  while ((lbegin != end) && (*lbegin == '\n' || *lbegin == '\r')) ++lbegin;
+  // FIXME pass initial row_index as argument
+  int row_index = 0;
+  while (lbegin != end) {
+    // get line end
+    this->IgnoreUTF8BOM(&lbegin, &end);
+    lend = lbegin + 1;
+    int length = 1;
+    while (lend != end && *lend != '\n' && *lend != '\r') {
+      ++lend;
+      ++length;
+    }
+    // FIXME ignore blank lines / spaces
+    // FIXME assert length > 0
+    CHECK_LE(CIPHER_IV_SIZE + CIPHER_TAG_SIZE, length);
+    char* decrypted = (char*) malloc(length * sizeof(char));
+    this->DecryptLine(lbegin, decrypted, length, row_index);
+    row_index++;
+
+    const char* p = decrypted;
+    const char * p_end = p + strlen(decrypted);
+    int column_index = 0;
+    IndexType idx = 0;
+    DType label = DType(0.0f);
+    real_t weight = std::numeric_limits<real_t>::quiet_NaN();
+
+    while (p != p_end) {
+      char *endptr;
+      DType v;
+      // if DType is float32
+      if (std::is_same<DType, real_t>::value) {
+        v = strtof(p, &endptr);
+        // If DType is int32
+      } else if (std::is_same<DType, int32_t>::value) {
+        v = static_cast<int32_t>(strtoll(p, &endptr, 0));
+        // If DType is int64
+      } else if (std::is_same<DType, int64_t>::value) {
+        v = static_cast<int64_t>(strtoll(p, &endptr, 0));
+        // If DType is all other types
+      } else {
+        LOG(FATAL) << "Only float32, int32, and int64 are supported for the time being";
+      }
+      p = (endptr >= p_end) ? p_end : endptr;
+
+      if (column_index == param_.label_column) {
+        label = v;
+      } else if (std::is_same<DType, real_t>::value
+          && column_index == param_.weight_column) {
+        weight = v;
+      } else {
+        out->value.push_back(v);
+        out->index.push_back(idx++);
+      }
+      ++column_index;
+      while (*p != param_.delimiter[0] && p != p_end) ++p;
+      if (p == p_end && idx == 0) {
+        LOG(FATAL) << "Delimiter \'" << param_.delimiter << "\' is not found in the line. "
+          << "Expected \'" << param_.delimiter
+          << "\' as the delimiter to separate fields.";
+      }
+      if (p != p_end) ++p;
+    }
+    // skip empty line
+    while ((*lend == '\n' || *lend == '\r') && lend != end) ++lend;
+    lbegin = lend;
+    out->label.push_back(label);
+    if (!std::isnan(weight)) {
+      out->weight.push_back(weight);
+    }
+    out->offset.push_back(out->index.size());
+  }
+  CHECK(out->label.size() + 1 == out->offset.size());
+  CHECK(out->weight.size() == 0 || out->weight.size() + 1 == out->offset.size());
+}
+#else
 template <typename IndexType, typename DType>
 void CSVParser<IndexType, DType>::
 ParseBlock(const char *begin,
@@ -141,6 +226,7 @@ ParseBlock(const char *begin,
   CHECK(out->label.size() + 1 == out->offset.size());
   CHECK(out->weight.size() == 0 || out->weight.size() + 1 == out->offset.size());
 }
+#endif // __ENCLAVE__
 }  // namespace data
 }  // namespace dmlc
 #endif  // DMLC_DATA_CSV_PARSER_H_
