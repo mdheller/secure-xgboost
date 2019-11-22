@@ -25,6 +25,7 @@
 
 #ifdef __ENCLAVE__ // includes
 #include "../common/common.h"
+#include "mbedtls/sha256.h"
 #include "xgboost_t.h"
 #endif
 
@@ -1011,6 +1012,127 @@ XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
   bst->learner()->Save(fo.get());
   API_END();
 }
+
+#ifdef __ENCLAVE__ // attestation
+/**
+ * Generate a remote report for the given data. The SHA256 digest of the data is
+ * stored in the report_data field of the generated remote report.
+ */
+bool generate_remote_report(
+    const uint8_t* data,
+    const size_t data_size,
+    uint8_t** remote_report_buf,
+    size_t* remote_report_buf_size) {
+  bool ret = false;
+  uint8_t sha256[32];
+  oe_result_t result = OE_OK;
+  uint8_t* temp_buf = NULL;
+
+  // Compute the sha256 hash of given data.
+  mbedtls_sha256_context ctx;
+
+#define safe_crypto(call) {             \
+int ret = (call);                       \
+if (ret) {                              \
+  mbedtls_sha256_free(&ctx);            \
+  return false;                         \
+}                                       \
+}
+
+  mbedtls_sha256_init(&ctx);
+  safe_crypto(mbedtls_sha256_starts_ret(&ctx, 0));
+  safe_crypto(mbedtls_sha256_update_ret(&ctx, data, data_size));
+  safe_crypto(mbedtls_sha256_finish_ret(&ctx, sha256));
+
+  mbedtls_sha256_free(&ctx);
+
+  // To generate a remote report that can be attested remotely by an enclave
+  // running  on a different platform, pass the
+  // OE_REPORT_FLAGS_REMOTE_ATTESTATION option. This uses the trusted
+  // quoting enclave to generate the report based on this enclave's local
+  // report.
+  // To generate a remote report that just needs to be attested by another
+  // enclave running on the same platform, pass 0 instead. This uses the
+  // EREPORT instruction to generate this enclave's local report.
+  // Both kinds of reports can be verified using the oe_verify_report
+  // function.
+  result = oe_get_report(
+      OE_REPORT_FLAGS_REMOTE_ATTESTATION,
+      sha256, // Store sha256 in report_data field
+      sizeof(sha256),
+      NULL, // opt_params must be null
+      0,
+      &temp_buf,
+      remote_report_buf_size);
+  if (result != OE_OK) {
+    LOG(INFO) << "oe_get_report failed.";
+    return false;
+  }
+  *remote_report_buf = temp_buf;
+  LOG(INFO) << "generate_remote_report succeeded.";
+  return true;
+}
+
+/**
+ * Return the public key of this enclave along with the enclave's remote report.
+ * The enclave that receives the key will use the remote report to attest this
+ * enclave.
+ */
+int get_remote_report_with_pubkey(
+    uint8_t** pem_key,
+    size_t* key_size,
+    uint8_t** remote_report,
+    size_t* remote_report_size) {
+
+  uint8_t pem_public_key[512];
+  uint8_t* report = NULL;
+  size_t report_size = 0;
+  uint8_t* key_buf = NULL;
+  int ret = 1;
+
+  // FIXME: enable this; save this with static / singleton enclave object
+  //retrieve_public_key(pem_public_key);
+
+  if (generate_remote_report(
+        pem_public_key, sizeof(pem_public_key), &report, &report_size)) {
+    // Allocate memory on the host and copy the report over.
+    *remote_report = (uint8_t*)oe_host_malloc(report_size);
+    if (*remote_report == NULL) {
+      ret = OE_OUT_OF_MEMORY;
+      goto exit;
+    }
+    memcpy(*remote_report, report, report_size);
+    *remote_report_size = report_size;
+    oe_free_report(report);
+
+    key_buf = (uint8_t*)oe_host_malloc(512);
+    if (key_buf == NULL) {
+      ret = OE_OUT_OF_MEMORY;
+      goto exit;
+    }
+    memcpy(key_buf, pem_public_key, sizeof(pem_public_key));
+
+    *pem_key = key_buf;
+    *key_size = sizeof(pem_public_key);
+
+    ret = 0;
+    LOG(INFO) << "get_remote_report_with_pubkey succeeded";
+  } else {
+    LOG(FATAL) << "get_remote_report_with_pubkey failed.";
+  }
+
+exit:
+  if (ret != 0) {
+    if (report)
+      oe_free_report(report);
+    if (key_buf)
+      oe_host_free(key_buf);
+    if (*remote_report)
+      oe_host_free(*remote_report);
+  }
+  return ret;
+}
+#endif // __ENCLAVE__
 
 #ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,

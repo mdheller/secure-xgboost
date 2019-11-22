@@ -167,6 +167,12 @@ add_custom_command(OUTPUT xgboost_enclave.signed
 	DEPENDS xgboost_enclave xgboost.conf private.pem
 	COMMAND openenclave::oesign sign -e $<TARGET_FILE:xgboost_enclave> -c ${CMAKE_SOURCE_DIR}/xgboost.conf -k private.pem)
 
+# Dump enclave info
+add_custom_command(OUTPUT xgboost_enclave.info
+  DEPENDS xgboost_enclave.signed 
+  COMMAND openenclave::oesign dump -e xgboost_enclave.signed > xgboost_enclave.info)
+
 add_custom_target(sign ALL DEPENDS xgboost_enclave.signed)
+add_custom_target(info ALL DEPENDS xgboost_enclave.info)
 
 #-- End object library
