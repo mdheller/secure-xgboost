@@ -110,7 +110,7 @@ XGB_DLL const char *XGBGetLastError(void);
  */
 XGB_DLL int XGBRegisterLogCallback(void (*callback)(const char*));
 
-XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode);
+XGB_DLL int XGBCreateEnclave(const char *enclave_image);
 
 /*!
  * \brief load a data matrix
@@ -121,7 +121,7 @@ XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode);
  */
 XGB_DLL int XGDMatrixCreateFromFile(const char *fname,
                                     int silent,
-                                    DMatrixHandle *out); 
+                                    DMatrixHandle *out);
 
 /*!
  * \brief Create a DMatrix from a data iterator.

@@ -1,6 +1,7 @@
 file(GLOB_RECURSE CPU_SOURCES *.cc)
 list(REMOVE_ITEM CPU_SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc)
 
+# find_package(OpenEnclave CONFIG REQUIRED)
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
 #include <xmmintrin.h>
@@ -67,6 +68,9 @@ if (USE_CUDA)
     CUDA_SEPARABLE_COMPILATION OFF)
 else (USE_CUDA)
   add_library(objxgboost OBJECT ${CPU_SOURCES} ${PLUGINS_SOURCES})
+  # add_library(objxgboost STATIC ${CPU_SOURCES} ${PLUGINS_SOURCES})
+  # add_library(objxgboost SHARED ${CPU_SOURCES} ${PLUGINS_SOURCES})
+  target_link_libraries(objxgboost openenclave::oehostapp ${LINKED_LIBRARIES_PRIVATE})
 endif (USE_CUDA)
 
 target_include_directories(objxgboost
@@ -122,3 +126,4 @@ endif (USE_OPENMP)
 msvc_use_static_runtime()
 
 #-- End object library
+# target_link_libraries(objxgboost openenclave::oehostapp)
