@@ -332,7 +332,8 @@ class DMatrix(object):
     def __init__(self, data, label=None, missing=None,
                  weight=None, silent=False,
                  feature_names=None, feature_types=None,
-                 nthread=None):
+                 nthread=None, open_enclave=False,
+                 enclave_image=None, simulation_mode=True):
         """
         Parameters
         ----------
@@ -365,6 +366,11 @@ class DMatrix(object):
             Number of threads to use for loading data from numpy array. If -1,
             uses maximum threads available on the system.
         """
+        self.open_enclave = int(open_enclave)
+
+        if open_enclave:
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_int(simulation_mode)))
+
         # force into void_p, mac need to pass things in as void_p
         if data is None:
             self.handle = None
@@ -550,6 +556,7 @@ class DMatrix(object):
                                                c_str(field),
                                                ctypes.byref(length),
                                                ctypes.byref(ret)))
+                                  
         return ctypes2numpy(ret, length.value, np.float32)
 
     def get_uint_info(self, field):
@@ -923,7 +930,7 @@ class Booster(object):
 
     feature_names = None
 
-    def __init__(self, params=None, cache=(), model_file=None):
+    def __init__(self, params=None, cache=(), model_file=None, open_enclave=False, enclave_image=None, simulation_mode=True):
         # pylint: disable=invalid-name
         """
         Parameters
@@ -935,17 +942,20 @@ class Booster(object):
         model_file : string
             Path to the model file.
         """
+        self.open_enclave = int(open_enclave)
+
         for d in cache:
             if not isinstance(d, DMatrix):
                 raise TypeError('invalid cache item: {}'.format(type(d).__name__))
             self._validate_features(d)
-
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
         self.handle = ctypes.c_void_p()
+        if open_enclave:
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_int(int(simulation_mode))))    
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),
                                          ctypes.byref(self.handle)))
-        self.set_param({'seed': 0})
-        self.set_param(params or {})
+        #  self.set_param({'seed': 0})
+        #  self.set_param(params or {})
         if (params is not None) and ('booster' in params):
             self.booster = params['booster']
         else:
@@ -1170,6 +1180,7 @@ class Booster(object):
                                               dmats, evnames,
                                               c_bst_ulong(len(evals)),
                                               ctypes.byref(msg)))
+                                       
         res = msg.value.decode()
         if feval is not None:
             for dmat, evname in evals:
@@ -1290,6 +1301,7 @@ class Booster(object):
                                           ctypes.c_uint(ntree_limit),
                                           ctypes.byref(length),
                                           ctypes.byref(preds)))
+                         
         preds = ctypes2numpy(preds, length.value, np.float32)
         if pred_leaf:
             preds = preds.astype(np.int32)

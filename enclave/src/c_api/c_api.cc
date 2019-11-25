@@ -3,6 +3,7 @@
 
 #include <xgboost/data.h>
 #include <xgboost/learner.h>
+// #include "./c_api.h"
 #include <xgboost/c_api.h>
 #include <xgboost/logging.h>
 
@@ -899,7 +900,6 @@ XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
   auto* bst = static_cast<Booster*>(handle);
   auto *dtr =
       static_cast<std::shared_ptr<DMatrix>*>(dtrain);
-
   bst->LazyInit();
   bst->learner()->UpdateOneIter(iter, dtr->get());
   API_END();

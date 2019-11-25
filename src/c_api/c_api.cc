@@ -1,3 +1,4 @@
+// A
 // Copyright (c) 2014 by Contributors
 
 #include <xgboost/data.h>
@@ -22,6 +23,10 @@
 #include "../common/io.h"
 #include "../common/group_data.h"
 
+#ifdef __SGX__
+#include <openenclave/host.h>
+#include "xgboost_u.h"
+#endif
 
 namespace xgboost {
 // booster wrapper for backward compatible reason.
@@ -236,18 +241,25 @@ int XGBRegisterLogCallback(void (*callback)(const char*)) {
   API_END();
 }
 
+static int enclave_ret = 1;
+static oe_enclave_t* enclave = NULL;
+
 int XGDMatrixCreateFromFile(const char *fname,
                             int silent,
                             DMatrixHandle *out) {
-  API_BEGIN();
-  bool load_row_split = false;
-  if (rabit::IsDistributed()) {
-    LOG(CONSOLE) << "XGBoost distributed mode detected, "
-                 << "will split data among workers";
-    load_row_split = true;
-  }
-  *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
-  API_END();
+#ifdef __SGX__
+    enclave_XGDMatrixCreateFromFile(enclave, &enclave_ret, fname, silent, out);
+#else
+    API_BEGIN();
+    bool load_row_split = false;
+    if (rabit::IsDistributed()) {
+        LOG(CONSOLE) << "XGBoost distributed mode detected, "
+            << "will split data among workers";
+        load_row_split = true;
+    }
+    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
+    API_END();
+#endif 
 }
 
 int XGDMatrixCreateFromDataIter(
@@ -730,10 +742,14 @@ XGB_DLL int XGDMatrixSliceDMatrix(DMatrixHandle handle,
 }
 
 XGB_DLL int XGDMatrixFree(DMatrixHandle handle) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  delete static_cast<std::shared_ptr<DMatrix>*>(handle);
-  API_END();
+#ifdef __SGX__
+    enclave_XGDMatrixFree(enclave, &enclave_ret, handle);
+#else
+    API_BEGIN();
+    CHECK_HANDLE();
+    delete static_cast<std::shared_ptr<DMatrix>*>(handle);
+    API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixSaveBinary(DMatrixHandle handle,
@@ -786,22 +802,26 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
                                   const char* field,
                                   xgboost::bst_ulong* out_len,
                                   const bst_float** out_dptr) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  const MetaInfo& info = static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info();
-  const std::vector<bst_float>* vec = nullptr;
-  if (!std::strcmp(field, "label")) {
-    vec = &info.labels_.HostVector();
-  } else if (!std::strcmp(field, "weight")) {
-    vec = &info.weights_.HostVector();
-  } else if (!std::strcmp(field, "base_margin")) {
-    vec = &info.base_margin_.HostVector();
-  } else {
-    LOG(FATAL) << "Unknown float field name " << field;
-  }
-  *out_len = static_cast<xgboost::bst_ulong>(vec->size());  // NOLINT
-  *out_dptr = dmlc::BeginPtr(*vec);
-  API_END();
+#ifdef __SGX__
+    enclave_XGDMatrixGetFloatInfo(enclave, &enclave_ret, handle, field, out_len, out_dptr);
+#else
+    API_BEGIN();
+    CHECK_HANDLE();
+    const MetaInfo& info = static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info();
+    const std::vector<bst_float>* vec = nullptr;
+    if (!std::strcmp(field, "label")) {
+      vec = &info.labels_.HostVector();
+    } else if (!std::strcmp(field, "weight")) {
+      vec = &info.weights_.HostVector();
+    } else if (!std::strcmp(field, "base_margin")) {
+      vec = &info.base_margin_.HostVector();
+    } else {
+      LOG(FATAL) << "Unknown float field name " << field;
+    }
+    *out_len = static_cast<xgboost::bst_ulong>(vec->size());  // NOLINT
+    *out_dptr = dmlc::BeginPtr(*vec);
+    API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
@@ -841,46 +861,91 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
 }
 
 // xgboost implementation
+
+
+XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode) {
+  if (!enclave) {
+    oe_result_t result;
+    uint32_t flags = OE_ENCLAVE_FLAG_DEBUG;
+    if (simulation_mode) {
+      flags |= OE_ENCLAVE_FLAG_SIMULATE;
+    }
+
+    flags |= OE_ENCLAVE_FLAG_DEBUG;
+
+    // Create the enclave
+    result = oe_create_xgboost_enclave(
+        enclave_image, OE_ENCLAVE_TYPE_AUTO, flags, NULL, 0, &enclave);
+    if (result != OE_OK) {
+      fprintf(
+          stderr,
+          "oe_create_helloworld_enclave(): result=%u (%s)\n",
+          result,
+          oe_result_str(result));
+      oe_terminate_enclave(enclave);
+      return enclave_ret;
+    }
+    enclave_helloworld(enclave);
+  }
+  return 0;
+}
+
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                     xgboost::bst_ulong len,
                     BoosterHandle *out) {
-  API_BEGIN();
-  std::vector<std::shared_ptr<DMatrix> > mats;
-  for (xgboost::bst_ulong i = 0; i < len; ++i) {
-    mats.push_back(*static_cast<std::shared_ptr<DMatrix>*>(dmats[i]));
-  }
-  *out = new Booster(mats);
-  API_END();
+#ifdef __SGX__
+    enclave_XGBoosterCreate(enclave, &enclave_ret, dmats, len, out);
+#else
+    API_BEGIN();
+    std::vector<std::shared_ptr<DMatrix> > mats;
+    for (xgboost::bst_ulong i = 0; i < len; ++i) {
+      mats.push_back(*static_cast<std::shared_ptr<DMatrix>*>(dmats[i]));
+    }
+    *out = new Booster(mats);
+    API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterFree(BoosterHandle handle) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  delete static_cast<Booster*>(handle);
-  API_END();
+#ifdef __SGX__
+    enclave_XGBoosterFree(enclave, &enclave_ret, handle);
+#else 
+    API_BEGIN();
+    CHECK_HANDLE();
+    delete static_cast<Booster*>(handle);
+    API_END();
+#endif 
 }
 
 XGB_DLL int XGBoosterSetParam(BoosterHandle handle,
                               const char *name,
                               const char *value) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  static_cast<Booster*>(handle)->SetParam(name, value);
-  API_END();
+#ifdef __SGX__
+    enclave_XGBoosterSetParam(enclave, &enclave_ret, handle, name, value);
+#else
+    API_BEGIN();
+    CHECK_HANDLE();
+    static_cast<Booster*>(handle)->SetParam(name, value);
+    API_END();
+#endif 
 }
 
 XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
                                    int iter,
                                    DMatrixHandle dtrain) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  auto* bst = static_cast<Booster*>(handle);
-  auto *dtr =
+#ifdef __SGX__
+    enclave_XGBoosterUpdateOneIter(enclave, &enclave_ret, handle, iter, dtrain);
+#else
+    API_BEGIN();
+    CHECK_HANDLE();
+    auto* bst = static_cast<Booster*>(handle);
+    auto *dtr =
       static_cast<std::shared_ptr<DMatrix>*>(dtrain);
 
-  bst->LazyInit();
-  bst->learner()->UpdateOneIter(iter, dtr->get());
-  API_END();
+    bst->LazyInit();
+    bst->learner()->UpdateOneIter(iter, dtr->get());
+    API_END();
+#endif 
 }
 
 XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
@@ -911,22 +976,26 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  const char* evnames[],
                                  xgboost::bst_ulong len,
                                  const char** out_str) {
-  std::string& eval_str = XGBAPIThreadLocalStore::Get()->ret_str;
-  API_BEGIN();
-  CHECK_HANDLE();
-  auto* bst = static_cast<Booster*>(handle);
-  std::vector<DMatrix*> data_sets;
-  std::vector<std::string> data_names;
+#ifdef __SGX__ 
+    enclave_XGBoosterEvalOneIter(enclave, &enclave_ret, handle, iter, dmats, evnames, len, out_str);
+#else
+    std::string& eval_str = XGBAPIThreadLocalStore::Get()->ret_str;
+    API_BEGIN();
+    CHECK_HANDLE();
+    auto* bst = static_cast<Booster*>(handle);
+    std::vector<DMatrix*> data_sets;
+    std::vector<std::string> data_names;
 
-  for (xgboost::bst_ulong i = 0; i < len; ++i) {
-    data_sets.push_back(static_cast<std::shared_ptr<DMatrix>*>(dmats[i])->get());
-    data_names.emplace_back(evnames[i]);
-  }
+    for (xgboost::bst_ulong i = 0; i < len; ++i) {
+      data_sets.push_back(static_cast<std::shared_ptr<DMatrix>*>(dmats[i])->get());
+      data_names.emplace_back(evnames[i]);
+    }
 
-  bst->LazyInit();
-  eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
-  *out_str = eval_str.c_str();
-  API_END();
+    bst->LazyInit();
+    eval_str = bst->learner()->EvalOneIter(iter, data_sets, data_names);
+    *out_str = eval_str.c_str();
+    API_END();
+#endif 
 }
 
 XGB_DLL int XGBoosterPredict(BoosterHandle handle,
@@ -935,44 +1004,63 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
                              const bst_float **out_result) {
-  std::vector<bst_float>&preds =
-    XGBAPIThreadLocalStore::Get()->ret_vec_float;
-  API_BEGIN();
-  CHECK_HANDLE();
-  auto *bst = static_cast<Booster*>(handle);
-  bst->LazyInit();
-  HostDeviceVector<bst_float> tmp_preds;
-  bst->learner()->Predict(
-      static_cast<std::shared_ptr<DMatrix>*>(dmat)->get(),
-      (option_mask & 1) != 0,
-      &tmp_preds, ntree_limit,
-      (option_mask & 2) != 0,
-      (option_mask & 4) != 0,
-      (option_mask & 8) != 0,
-      (option_mask & 16) != 0);
-  preds = tmp_preds.HostVector();
-  *out_result = dmlc::BeginPtr(preds);
-  *len = static_cast<xgboost::bst_ulong>(preds.size());
-  API_END();
+#ifdef __SGX__
+    enclave_XGBoosterPredict(enclave, &enclave_ret, handle, dmat, option_mask, ntree_limit, len, out_result);
+    // int n_print = 10;
+    // printf("y_pred: ");
+    // for (int i = 0; i < n_print; ++i) {
+        // printf("%1.4f ", out_result[i]);
+    // }
+    // printf("\n");
+#else 
+    std::vector<bst_float>&preds =
+      XGBAPIThreadLocalStore::Get()->ret_vec_float;
+    API_BEGIN();
+    CHECK_HANDLE();
+    auto *bst = static_cast<Booster*>(handle);
+    bst->LazyInit();
+    HostDeviceVector<bst_float> tmp_preds;
+    bst->learner()->Predict(
+        static_cast<std::shared_ptr<DMatrix>*>(dmat)->get(),
+        (option_mask & 1) != 0,
+        &tmp_preds, ntree_limit,
+        (option_mask & 2) != 0,
+        (option_mask & 4) != 0,
+        (option_mask & 8) != 0,
+        (option_mask & 16) != 0);
+    preds = tmp_preds.HostVector();
+    *out_result = dmlc::BeginPtr(preds);
+    *len = static_cast<xgboost::bst_ulong>(preds.size());
+    API_END();
+#endif 
 }
 
 XGB_DLL int XGBoosterLoadModel(BoosterHandle handle, const char* fname) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(fname, "r"));
-  static_cast<Booster*>(handle)->LoadModel(fi.get());
-  API_END();
+#ifdef __SGX__ 
+    enclave_XGBoosterLoadModel(enclave, &enclave_ret, handle, fname);
+#else
+    API_BEGIN();
+    CHECK_HANDLE();
+    std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(fname, "r"));
+    static_cast<Booster*>(handle)->LoadModel(fi.get());
+    API_END();
+#endif 
 }
 
 XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
-  API_BEGIN();
-  CHECK_HANDLE();
-  std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(fname, "w"));
-  auto *bst = static_cast<Booster*>(handle);
-  bst->LazyInit();
-  bst->learner()->Save(fo.get());
-  API_END();
+#ifdef __SGX__
+    enclave_XGBoosterSaveModel(enclave, &enclave_ret, handle, fname);
+#else
+    API_BEGIN();
+    CHECK_HANDLE();
+    std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(fname, "w"));
+    auto *bst = static_cast<Booster*>(handle);
+    bst->LazyInit();
+    bst->learner()->Save(fo.get());
+    API_END();
+#endif 
 }
+
 
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  const void* buf,

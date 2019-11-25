@@ -44,6 +44,7 @@ bool check_simulate_opt(int* argc, char* argv[])
 int main(int argc, char** argv) {
 
 #ifdef __SGX__
+    // XGBCreateEnclave(argv[1], 1);
   oe_result_t result;
   int ret = 1;
   oe_enclave_t* enclave = NULL;
@@ -79,7 +80,7 @@ int main(int argc, char** argv) {
   // TODO ecall error handling
 
   int silent = 0;
-  int use_gpu = 0;  // set to 1 to use the GPU for training
+  int use_gpu = 0; // set to 1 to use the GPU for training
   
   // load the data
   DMatrixHandle dtrain, dtest;
