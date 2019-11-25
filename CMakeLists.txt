@@ -98,6 +98,7 @@ set_target_properties(rabit
   CXX_STANDARD 11
   CXX_STANDARD_REQUIRED ON
   POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(rabit mbedcrypto mbedtls mbedx509)
 list(APPEND LINKED_LIBRARIES_PRIVATE rabit)
 
 # Exports some R specific definitions and objects
@@ -115,7 +116,7 @@ target_include_directories(xgboost
   INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
-target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE})
+target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE} mbedcrypto mbedtls mbedx509)
 
 # This creates its own shared library `xgboost4j'.
 if (JVM_BINDINGS)
