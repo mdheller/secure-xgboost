@@ -943,13 +943,13 @@ class Booster(object):
             Path to the model file.
         """
         self.open_enclave = int(open_enclave)
+        self.handle = ctypes.c_void_p()
 
         for d in cache:
             if not isinstance(d, DMatrix):
                 raise TypeError('invalid cache item: {}'.format(type(d).__name__))
             self._validate_features(d)
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
-        self.handle = ctypes.c_void_p()
         if open_enclave:
             _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_int(int(simulation_mode))))    
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),

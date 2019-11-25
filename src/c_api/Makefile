@@ -23,6 +23,7 @@ build: $(TGT_SGX)
 
 $(TGT_SGX): $(SGX_SRC) Makefile
 	oeedger8r ../../enclave/xgboost.edl --untrusted
+	cp xgboost_u.c xgboost_u.cc
 	# $(cc) $(SGX_CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT_SGX) $(SGX_SRC) xgboost_u.c -lxgboost $(SGX_LDFLAGS)
 	# $(cc) $(SGX_CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(SGX_SRC) xgboost_u.c -lxgboost $(SGX_LDFLAGS)
 

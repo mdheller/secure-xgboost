@@ -885,7 +885,6 @@ XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode) {
       oe_terminate_enclave(enclave);
       return enclave_ret;
     }
-    enclave_helloworld(enclave);
   }
   return 0;
 }

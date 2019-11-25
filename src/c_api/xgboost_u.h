@@ -14,13 +14,11 @@ oe_result_t oe_create_xgboost_enclave(
     const char* path,
     oe_enclave_type_t type,
     uint32_t flags,
-    const void* config,
-    uint32_t config_size,
+    const oe_enclave_setting_t* settings,
+    uint32_t setting_count,
     oe_enclave_t** enclave);
 
 /**** ECALL prototypes. ****/
-oe_result_t enclave_helloworld(oe_enclave_t* enclave);
-
 oe_result_t enclave_XGDMatrixCreateFromFile(
     oe_enclave_t* enclave,
     int* _retval,
@@ -100,14 +98,6 @@ oe_result_t enclave_XGBoosterFree(
     BoosterHandle handle);
 
 /**** OCALL prototypes. ****/
-void host_helloworld(void);
-
-int host_rabit__GetRank(void);
-
-int host_rabit__GetWorldSize(void);
-
-int host_rabit__IsDistributed(void);
-
 DIR* host_opendir(char* path);
 
 void* host_opendir_and_readdir(char* path);

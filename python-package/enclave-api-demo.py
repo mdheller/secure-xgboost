@@ -1,8 +1,10 @@
 # Based off demo/c-api/c-api.cc
 import xgboost as xgb
 
-dtrain = xgb.DMatrix("/root/mc2/secure-xgboost/demo/data/agaricus.txt.train", open_enclave=True, enclave_image="/root/mc2/secure-xgboost/enclave/build/xgboost_enclave.signed", simulation_mode=True)
-dtest = xgb.DMatrix("/root/mc2/secure-xgboost/demo/data/agaricus.txt.test") 
+print("Creating training matrix")
+dtrain = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/train.encrypted", open_enclave=True, enclave_image="/root/mc2/secure-xgboost/enclave/build/xgboost_enclave.signed", simulation_mode=True)
+print("Creating test matrix")
+dtest = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/test.encrypted") 
 print("Data loaded")
 booster = xgb.Booster(cache=(dtrain, dtest))
 print("Booster created")
