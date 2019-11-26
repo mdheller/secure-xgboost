@@ -3,7 +3,6 @@
 
 #include <xgboost/data.h>
 #include <xgboost/learner.h>
-// #include "./c_api.h"
 #include <xgboost/c_api.h>
 #include <xgboost/logging.h>
 
