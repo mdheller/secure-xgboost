@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.11)
 project(xgboost LANGUAGES CXX C VERSION 0.90)
 # openenclave
 find_package(OpenEnclave CONFIG REQUIRED)
