@@ -596,13 +596,13 @@ XGB_DLL int XGBoosterSaveRabitCheckpoint(BoosterHandle handle);
 
 #if defined(__SGX__) && defined(__ENCLAVE__)
 
-int get_report_with_pubkey(
+int get_remote_report_with_pubkey(
     uint8_t** pem_key,
     size_t* key_size,
     uint8_t** remote_report,
     size_t* remote_report_size);
 
-int verify_report_and_set_pubkey(
+int verify_remote_report_and_set_pubkey(
     uint8_t* pem_key,
     size_t key_size,
     uint8_t* remote_report,
