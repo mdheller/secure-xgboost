@@ -13,7 +13,6 @@
 
 #ifdef __SGX__
 #include <openenclave/host.h>
-#include "xgboost_u.h"
 
 bool check_simulate_opt(int* argc, char* argv[]) {
   for (int i = 0; i < *argc; i++) {

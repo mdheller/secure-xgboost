@@ -29,8 +29,7 @@ encrypt: $(TGT_ENC)
 	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT_ENC)
 
 $(TGT_SGX): $(SGX_SRC) Makefile
-	oeedger8r ../../enclave/xgboost.edl --untrusted
-	$(cc) $(SGX_CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT_SGX) $(SGX_SRC) xgboost_u.c -lxgboost -lmbedtls -lmbedcrypto $(SGX_LDFLAGS)
+	$(cc) $(SGX_CFLAGS) $(INCLUDE_DIR) $(LIB_DIR) -o $(TGT_SGX) $(SGX_SRC) -lxgboost $(SGX_LDFLAGS)
 
 sgx: $(TGT_SGX)
 	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed

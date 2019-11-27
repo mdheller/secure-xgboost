@@ -121,7 +121,7 @@ target_include_directories(xgboost
   INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
-target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::oehostapp)
+target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::oehostapp mbedcrypto mbedtls)
 
 # This creates its own shared library `xgboost4j'.
 # if (JVM_BINDINGS)
