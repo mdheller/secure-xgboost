@@ -932,16 +932,22 @@ class Enclave(object):
     """
     def __init__(self, enclave_image, flags=3):
         _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
+        self.pem_key = ctypes.POINTER(ctypes.c_uint)()
+        self.key_size = ctypes.c_size_t()
+        self.remote_report = ctypes.POINTER(ctypes.c_uint)()
+        self.remote_report_size = ctypes.c_size_t()
 
-    def remote_attestation(self):
-        # Remote Attestation
-        pem_key = ctypes.POINTER(ctypes.c_uint)()
-        key_size = ctypes.c_size_t()
-        remote_report = ctypes.POINTER(ctypes.c_uint)()
-        remote_report_size = ctypes.c_size_t()
-        _check_call(_LIB.get_remote_report_with_pubkey(ctypes.byref(pem_key), ctypes.byref(key_size), ctypes.byref(remote_report), ctypes.byref(remote_report_size)))
+    def get_remote_report_with_pubkey(self):
+        """
+        Get remote attestation report and public key of enclave
+        """
+        _check_call(_LIB.get_remote_report_with_pubkey(ctypes.byref(self.pem_key), ctypes.byref(self.key_size), ctypes.byref(self.remote_report), ctypes.byref(self.remote_report_size)))
 
-        _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
+    def verify_remote_report_and_set_pubkey(self):
+        """
+        Verify the received attestation report and set the public key
+        """
+        _check_call(_LIB.verify_remote_report_and_set_pubkey(self.pem_key, self.key_size, self.remote_report, self.remote_report_size))
 
 
 class Booster(object):

@@ -71,7 +71,7 @@ struct Monitor {
   ~Monitor() {
     if (!ConsoleLogger::ShouldLog(ConsoleLogger::LV::kDebug)) return;
 
-    LOG(CONSOLE) << "======== Monitor: " << label << " ========";
+    LOG(CONSOLE) << "======== Enclave Monitor: " << label << " ========";
     for (auto &kv : statistics_map) {
       if (kv.second.count == 0) {
         LOG(WARNING) <<

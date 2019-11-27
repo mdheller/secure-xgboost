@@ -7,8 +7,11 @@ OE_ENCLAVE_FLAG_SIMULATE = 2
 print("Creating enclave")
 # enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
 enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
-enclave.remote_attestation()
+print("Remote attestation")
+enclave.get_remote_report_with_pubkey()
+enclave.verify_remote_report_and_set_pubkey()
 
+print("\n--------Loading Data----------")
 print("Creating training matrix")
 dtrain = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/train.encrypted")
 
@@ -17,9 +20,11 @@ dtest = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/test.encrypted")
 
 print("Data loaded")
 
+print("\n--------Creating Booster------")
 booster = xgb.Booster(cache=(dtrain, dtest))
 print("Booster created")
 
+print("\n--------Beginning Training-----")
 # Set training parameters
 params = {
         "tree_method": "hist",
@@ -40,16 +45,17 @@ for i in range(n_trees):
   print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
 # Save model
-fname = "demo_model.model"
-booster.save_model(fname)
+# fname = "demo_model.model"
+# booster.save_model(fname)
 
 # Load model from scratch
-booster = None
-booster = xgb.Booster(cache=(dtrain, dtest))
-booster.load_model(fname)
+# booster = None
+# booster = xgb.Booster(cache=(dtrain, dtest))
+# booster.load_model(fname)
 
+print("\n--------Prediction------------")
 # Predict
 print("------ y_pred --------")
-print(booster.predict(dtest, validate_features=False)[:10])
+print(booster.predict(dtest)[:10])
 print("------ y_test --------")
 print(dtest.get_label()[:10])
