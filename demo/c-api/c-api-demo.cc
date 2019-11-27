@@ -14,7 +14,6 @@
 #ifdef __SGX__
 #include <openenclave/host.h>
 #include "xgboost_u.h"
-#include "mbedtls/sha256.h"
 
 bool check_simulate_opt(int* argc, char* argv[])
 {
@@ -43,48 +42,24 @@ if (err != 0) {                                                         \
 int main(int argc, char** argv) {
 
 #ifdef __SGX__
-    // XGBCreateEnclave(argv[1], 1);
-  oe_result_t result;
-  int ret = 1;
-  oe_enclave_t* enclave = NULL;
-
-  uint32_t flags = 0; //OE_ENCLAVE_FLAG_DEBUG;
+  uint32_t flags = OE_ENCLAVE_FLAG_DEBUG;
   if (check_simulate_opt(&argc, argv)) {
     flags |= OE_ENCLAVE_FLAG_SIMULATE;
   }
 
-  flags |= OE_ENCLAVE_FLAG_DEBUG;
+  XGBCreateEnclave(argv[1], flags);
+  oe_result_t result;
+  int ret = 1;
+  oe_enclave_t* enclave = NULL;
 
-  if (argc != 2) {
-    fprintf(
-        stderr, "Usage: %s enclave_image_path [ --simulate  ]\n", argv[0]);
-    oe_terminate_enclave(enclave);
-    return ret;
-  }
-
-  // Create the enclave
-  result = oe_create_xgboost_enclave(
-      argv[1], OE_ENCLAVE_TYPE_AUTO, flags, NULL, 0, &enclave);
-  if (result != OE_OK) {
-    fprintf(
-        stderr,
-        "oe_create_xgboost_enclave(): result=%u (%s)\n",
-        result,
-        oe_result_str(result));
-    oe_terminate_enclave(enclave);
-    return ret;
-  }
-
-  uint8_t* pem_key = NULL;
-  size_t key_size = 0;
-  uint8_t* remote_report = NULL;
-  size_t remote_report_size = 0;
-  safe_xgboost(enclave_get_remote_report_with_pubkey(enclave, &ret, &pem_key, &key_size, &remote_report, &remote_report_size));
-  safe_xgboost(enclave_verify_remote_report_and_set_pubkey(enclave, &ret, pem_key, key_size, remote_report, remote_report_size));
-  verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size);
+  //uint8_t* pem_key = NULL;
+  //size_t key_size = 0;
+  //uint8_t* remote_report = NULL;
+  //size_t remote_report_size = 0;
+  //safe_xgboost(enclave_get_remote_report_with_pubkey(enclave, &ret, &pem_key, &key_size, &remote_report, &remote_report_size));
+  //safe_xgboost(enclave_verify_remote_report_and_set_pubkey(enclave, &ret, pem_key, key_size, remote_report, remote_report_size));
+  //verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size);
 #endif
-
-  // TODO ecall error handling
 
   int silent = 0;
   int use_gpu = 0; // set to 1 to use the GPU for training
@@ -92,8 +67,8 @@ int main(int argc, char** argv) {
   // load the data
   DMatrixHandle dtrain, dtest;
 #ifdef __SGX__
-  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "train.encrypted", silent, &dtrain));
-  safe_xgboost(enclave_XGDMatrixCreateFromFile(enclave, &ret, "test.encrypted", silent, &dtest));
+  safe_xgboost(XGDMatrixCreateFromFile("train.encrypted", silent, &dtrain));
+  safe_xgboost(XGDMatrixCreateFromFile("test.encrypted", silent, &dtest));
 #else
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.train", silent, &dtrain));
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.test", silent, &dtest));
@@ -103,21 +78,13 @@ int main(int argc, char** argv) {
   // create the booster
   BoosterHandle booster;
   DMatrixHandle eval_dmats[2] = {dtrain, dtest};
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterCreate(enclave, &ret, eval_dmats, 2, &booster));
-#else
   safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
-#endif
   std::cout << "Booster created" << std::endl;
 
   // configure the training
   // available parameters are described here:
   //   https://xgboost.readthedocs.io/en/latest/parameter.html
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "tree_method", use_gpu ? "gpu_hist" : "hist"));
-#else
   safe_xgboost(XGBoosterSetParam(booster, "tree_method", use_gpu ? "gpu_hist" : "hist"));
-#endif
   std::cout << "First parameter set" << std::endl;
   if (use_gpu) {
     // set the number of GPUs and the first GPU to use;
@@ -125,27 +92,14 @@ int main(int argc, char** argv) {
     safe_xgboost(XGBoosterSetParam(booster, "n_gpus", "1"));
     safe_xgboost(XGBoosterSetParam(booster, "gpu_id", "0"));
   } else {
-    // avoid evaluating objective and metric on a GPU
-#ifdef __SGX__
-    safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "n_gpus", "0"));
-#else
     safe_xgboost(XGBoosterSetParam(booster, "n_gpus", "0"));
-#endif
   }
 
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "objective", "binary:logistic"));
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "min_child_weight", "1"));
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "gamma", "0.1"));
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "max_depth", "3"));
-  safe_xgboost(enclave_XGBoosterSetParam(enclave, &ret, booster, "verbosity", silent ? "0" : "3"));
-#else
   safe_xgboost(XGBoosterSetParam(booster, "objective", "binary:logistic"));
   safe_xgboost(XGBoosterSetParam(booster, "min_child_weight", "1"));
   safe_xgboost(XGBoosterSetParam(booster, "gamma", "0.1"));
   safe_xgboost(XGBoosterSetParam(booster, "max_depth", "3"));
-  safe_xgboost(XGBoosterSetParam(booster, "verbosity", silent ? "0" : "2"));
-#endif
+  safe_xgboost(XGBoosterSetParam(booster, "verbosity", silent ? "0" : "3"));
   std::cout << "All parameters set" << std::endl;
   
   // train and evaluate for 10 iterations
@@ -153,34 +107,20 @@ int main(int argc, char** argv) {
   const char* eval_names[2] = {"train", "test"};
   const char* eval_result = NULL;
   for (int i = 0; i < n_trees; ++i) {
-#ifdef __SGX__
-    safe_xgboost(enclave_XGBoosterUpdateOneIter(enclave, &ret, booster, i, dtrain));
-    safe_xgboost(enclave_XGBoosterEvalOneIter(enclave, &ret, booster, i, eval_dmats, eval_names, 2, &eval_result));
-#else
     safe_xgboost(XGBoosterUpdateOneIter(booster, i, dtrain));
     safe_xgboost(XGBoosterEvalOneIter(booster, i, eval_dmats, eval_names, 2, &eval_result));
-#endif
     printf("%s\n", eval_result);
   }
 
   // save model
   const char* fname = "demo_model.model";
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterSaveModel(enclave, &ret, booster, fname));
-#else
   safe_xgboost(XGBoosterSaveModel(booster, fname));
-#endif
   std::cout << "Saved model to demo_model.model" << std::endl;
 
   // load model
   booster = NULL;
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterCreate(enclave, &ret, eval_dmats, 2, &booster));
-  safe_xgboost(enclave_XGBoosterLoadModel(enclave, &ret, booster, fname));
-#else
   safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
   safe_xgboost(XGBoosterLoadModel(booster, fname));
-#endif
   std::cout << "Loaded model" << std::endl;
 
   // predict
@@ -188,37 +128,22 @@ int main(int argc, char** argv) {
   const float* out_result = NULL;
   int n_print = 10;
   
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterPredict(enclave, &ret, booster, dtest, 0, 0, &out_len, &out_result));
-#else
   safe_xgboost(XGBoosterPredict(booster, dtest, 0, 0, &out_len, &out_result));
-#endif
   printf("y_pred: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
   
-  // print true labels
-#ifdef __SGX__
-  safe_xgboost(enclave_XGDMatrixGetFloatInfo(enclave, &ret, dtest, "label", &out_len, &out_result));
-#else 
   safe_xgboost(XGDMatrixGetFloatInfo(dtest, "label", &out_len, &out_result));
-#endif 
   printf("y_test: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
 
-#ifdef __SGX__
-  safe_xgboost(enclave_XGBoosterFree(enclave, &ret, booster));
-  safe_xgboost(enclave_XGDMatrixFree(enclave, &ret, dtrain));
-  safe_xgboost(enclave_XGDMatrixFree(enclave, &ret, dtest));
-#else
   safe_xgboost(XGBoosterFree(booster));
   safe_xgboost(XGDMatrixFree(dtrain));
   safe_xgboost(XGDMatrixFree(dtest));
-#endif
   return 0;
 }

@@ -29,6 +29,8 @@
 #include "mbedtls/sha256.h"
 #endif
 
+// TODO(rishabh): Ecall error handling
+
 namespace xgboost {
 // booster wrapper for backward compatible reason.
 class Booster {
@@ -864,15 +866,10 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
 // xgboost implementation
 
 
-XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode) {
+#if defined(__SGX__) && defined (__HOST__)
+XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags) {
   if (!enclave) {
     oe_result_t result;
-    uint32_t flags = OE_ENCLAVE_FLAG_DEBUG;
-    if (simulation_mode) {
-      flags |= OE_ENCLAVE_FLAG_SIMULATE;
-    }
-
-    flags |= OE_ENCLAVE_FLAG_DEBUG;
 
     // Create the enclave
     result = oe_create_xgboost_enclave(
@@ -889,6 +886,7 @@ XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode) {
   }
   return 0;
 }
+#endif
 
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                     xgboost::bst_ulong len,
@@ -1371,6 +1369,8 @@ bool attest_remote_report(
   return ret;
 }
 
+// FIXME eventually we only need an enclave implementation of this API, callable from the host
+// currently implemented for local testing
 int verify_remote_report_and_set_pubkey(
     uint8_t* pem_key,
     size_t key_size,

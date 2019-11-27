@@ -131,7 +131,9 @@ XGB_DLL const char *XGBGetLastError(void);
  */
 XGB_DLL int XGBRegisterLogCallback(void (*callback)(const char*));
 
-XGB_DLL int XGBCreateEnclave(const char *enclave_image, int simulation_mode);
+#if defined(__SGX__) && defined(__HOST__)
+XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t simulation_mode);
+#endif
 
 /*!
  * \brief load a data matrix
@@ -598,13 +600,11 @@ XGB_DLL int XGBoosterLoadRabitCheckpoint(
 XGB_DLL int XGBoosterSaveRabitCheckpoint(BoosterHandle handle);
 
 #if defined(__SGX__) 
-#if defined(__ENCLAVE__)
 int get_remote_report_with_pubkey(
     uint8_t** pem_key,
     size_t* key_size,
     uint8_t** remote_report,
     size_t* remote_report_size);
-#endif
 
 int verify_remote_report_and_set_pubkey(
     uint8_t* pem_key,
