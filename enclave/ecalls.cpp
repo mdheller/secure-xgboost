@@ -70,3 +70,21 @@ int enclave_XGBoosterFree(BoosterHandle handle) {
   LOG(DEBUG) << "Ecall: XGBoosterFree";
   return XGBoosterFree(handle);
 }
+
+int enclave_get_remote_report_with_pubkey(
+        uint8_t** pem_key,
+        size_t* key_size,
+        uint8_t** remote_report,
+        size_t* remote_report_size) {
+  fprintf(stdout, "Ecall: enclave_get_remote_report_with_pubkey\n");
+  return get_remote_report_with_pubkey(pem_key, key_size, remote_report, remote_report_size);
+}
+
+int enclave_verify_remote_report_and_set_pubkey(
+        uint8_t* pem_key,
+        size_t key_size,
+        uint8_t* remote_report,
+        size_t remote_report_size) {
+  fprintf(stdout, "Ecall: verify_remote_report_and_set_pubkey\n");
+  return verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size);
+}

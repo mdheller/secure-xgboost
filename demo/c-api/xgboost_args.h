@@ -120,6 +120,26 @@ typedef struct _enclave_XGBoosterFree_args_t
     BoosterHandle handle;
 } enclave_XGBoosterFree_args_t;
 
+typedef struct _enclave_get_remote_report_with_pubkey_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    uint8_t** pem_key;
+    size_t* key_size;
+    uint8_t** remote_report;
+    size_t* remote_report_size;
+} enclave_get_remote_report_with_pubkey_args_t;
+
+typedef struct _enclave_verify_remote_report_and_set_pubkey_args_t
+{
+    oe_result_t _result;
+    int _retval;
+    uint8_t* pem_key;
+    size_t key_size;
+    uint8_t* remote_report;
+    size_t remote_report_size;
+} enclave_verify_remote_report_and_set_pubkey_args_t;
+
 /**** OCALL marshalling structs. ****/
 typedef struct _host_opendir_args_t
 {
@@ -194,6 +214,8 @@ enum
     xgboost_fcn_id_enclave_XGBoosterSaveModel = 8,
     xgboost_fcn_id_enclave_XGDMatrixFree = 9,
     xgboost_fcn_id_enclave_XGBoosterFree = 10,
+    xgboost_fcn_id_enclave_get_remote_report_with_pubkey = 11,
+    xgboost_fcn_id_enclave_verify_remote_report_and_set_pubkey = 12,
     xgboost_fcn_id_trusted_call_id_max = OE_ENUM_MAX
 };
 

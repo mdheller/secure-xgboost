@@ -97,6 +97,22 @@ oe_result_t enclave_XGBoosterFree(
     int* _retval,
     BoosterHandle handle);
 
+oe_result_t enclave_get_remote_report_with_pubkey(
+    oe_enclave_t* enclave,
+    int* _retval,
+    uint8_t** pem_key,
+    size_t* key_size,
+    uint8_t** remote_report,
+    size_t* remote_report_size);
+
+oe_result_t enclave_verify_remote_report_and_set_pubkey(
+    oe_enclave_t* enclave,
+    int* _retval,
+    uint8_t* pem_key,
+    size_t key_size,
+    uint8_t* remote_report,
+    size_t remote_report_size);
+
 /**** OCALL prototypes. ****/
 DIR* host_opendir(char* path);
 
