@@ -52,8 +52,8 @@ int main(int argc, char** argv) {
   size_t key_size = 0;
   uint8_t* remote_report = NULL;
   size_t remote_report_size = 0;
-  safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
-  safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
+  // safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
+  // safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
 #endif
 
   int silent = 0;

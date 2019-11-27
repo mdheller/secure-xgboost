@@ -5,13 +5,15 @@ OE_ENCLAVE_FLAG_DEBUG = 1
 OE_ENCLAVE_FLAG_SIMULATE = 2
 
 print("Creating enclave")
-enclave = xgb.Enclave("/root/mc2/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+# enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
+enclave.remote_attestation()
 
 print("Creating training matrix")
-dtrain = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/train.encrypted")
+dtrain = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/train.encrypted")
 
 print("Creating test matrix")
-dtest = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/test.encrypted") 
+dtest = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/test.encrypted") 
 
 print("Data loaded")
 

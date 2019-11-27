@@ -936,10 +936,10 @@ class Enclave(object):
     def remote_attestation(self):
         # Remote Attestation
         pem_key = ctypes.POINTER(ctypes.c_uint)()
-        key_size = ctypes.c_size_t
+        key_size = ctypes.c_size_t()
         remote_report = ctypes.POINTER(ctypes.c_uint)()
-        remote_report_size = ctypes.c_size_t
-        _check_call(_LIB.get_remote_report_with_pubkey(ctypes.by_ref(pem_key), ctypes.by_ref(key_size), ctypes.byref(remote_report), ctypes.by_ref(remote_report_size)))
+        remote_report_size = ctypes.c_size_t()
+        _check_call(_LIB.get_remote_report_with_pubkey(ctypes.byref(pem_key), ctypes.byref(key_size), ctypes.byref(remote_report), ctypes.byref(remote_report_size)))
 
         _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
 

@@ -1278,7 +1278,7 @@ if (ret) {                              \
   return ret;
 }
 
-int get_remote_report_with_pubkey(
+XGB_DLL int get_remote_report_with_pubkey(
     uint8_t** pem_key,
     size_t* key_size,
     uint8_t** remote_report,
@@ -1375,7 +1375,7 @@ bool attest_remote_report(
 
 // FIXME eventually we only need an enclave implementation of this API, callable from the host
 // currently implemented for local testing
-int verify_remote_report_and_set_pubkey(
+XGB_DLL int verify_remote_report_and_set_pubkey(
     uint8_t* pem_key,
     size_t key_size,
     uint8_t* remote_report,
