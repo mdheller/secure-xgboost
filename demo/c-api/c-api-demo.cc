@@ -15,12 +15,9 @@
 #include <openenclave/host.h>
 #include "xgboost_u.h"
 
-bool check_simulate_opt(int* argc, char* argv[])
-{
-  for (int i = 0; i < *argc; i++)
-  {
-    if (strcmp(argv[i], "--simulate") == 0)
-    {
+bool check_simulate_opt(int* argc, char* argv[]) {
+  for (int i = 0; i < *argc; i++) {
+    if (strcmp(argv[i], "--simulate") == 0) {
       std::cout << "Running in simulation mode" << std::endl;
       memmove(&argv[i], &argv[i + 1], (*argc - i) * sizeof(char*));
       (*argc)--;
@@ -52,13 +49,12 @@ int main(int argc, char** argv) {
   int ret = 1;
   oe_enclave_t* enclave = NULL;
 
-  //uint8_t* pem_key = NULL;
-  //size_t key_size = 0;
-  //uint8_t* remote_report = NULL;
-  //size_t remote_report_size = 0;
-  //safe_xgboost(enclave_get_remote_report_with_pubkey(enclave, &ret, &pem_key, &key_size, &remote_report, &remote_report_size));
-  //safe_xgboost(enclave_verify_remote_report_and_set_pubkey(enclave, &ret, pem_key, key_size, remote_report, remote_report_size));
-  //verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size);
+  uint8_t* pem_key = NULL;
+  size_t key_size = 0;
+  uint8_t* remote_report = NULL;
+  size_t remote_report_size = 0;
+  safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
+  safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
 #endif
 
   int silent = 0;
@@ -83,7 +79,7 @@ int main(int argc, char** argv) {
 
   // configure the training
   // available parameters are described here:
-  //   https://xgboost.readthedocs.io/en/latest/parameter.html
+  // https://xgboost.readthedocs.io/en/latest/parameter.html
   safe_xgboost(XGBoosterSetParam(booster, "tree_method", use_gpu ? "gpu_hist" : "hist"));
   std::cout << "First parameter set" << std::endl;
   if (use_gpu) {

@@ -10,7 +10,7 @@ INCLUDE_DIR=-I$(XGBOOST_ROOT)/include -I$(XGBOOST_ROOT)/dmlc-core/include -I$(XG
 LIB_DIR=-L$(XGBOOST_ROOT)/lib -L/usr/lib/x86_64-linux-gnu/
 #LIB_DIR=-Wl,-rpath,$(XGBOOST_ROOT)/lib
 
-SGX_SRC = $(SRC) ocalls.cc
+SGX_SRC = $(SRC)
 SGX_CFLAGS = $(CFLAGS) -D__SGX__ -D__HOST__ $(shell pkg-config oehost-g++ --cflags)
 SGX_LDFLAGS = $(shell pkg-config oehost-g++ --libs)
 

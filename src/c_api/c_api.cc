@@ -30,6 +30,7 @@
 #endif
 
 // TODO(rishabh): Ecall error handling
+// FIXME Check enclave initialized before doing ecalls
 
 namespace xgboost {
 // booster wrapper for backward compatible reason.
@@ -1004,12 +1005,6 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              const bst_float **out_result) {
 #ifdef __SGX__
     enclave_XGBoosterPredict(enclave, &enclave_ret, handle, dmat, option_mask, ntree_limit, len, out_result);
-    // int n_print = 10;
-    // printf("y_pred: ");
-    // for (int i = 0; i < n_print; ++i) {
-        // printf("%1.4f ", out_result[i]);
-    // }
-    // printf("\n");
 #else 
     std::vector<bst_float>&preds =
       XGBAPIThreadLocalStore::Get()->ret_vec_float;
@@ -1281,7 +1276,16 @@ if (ret) {                              \
 
   mbedtls_sha256_free(&ctx);
   return ret;
-  }
+}
+
+int get_remote_report_with_pubkey(
+    uint8_t** pem_key,
+    size_t* key_size,
+    uint8_t** remote_report,
+    size_t* remote_report_size) {
+  enclave_get_remote_report_with_pubkey(enclave, &enclave_ret, pem_key, key_size, remote_report, remote_report_size);
+  return enclave_ret;
+}
 /**
  * Attest the given remote report and accompanying data. It consists of the
  * following three steps:
