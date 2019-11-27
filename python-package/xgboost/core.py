@@ -981,7 +981,7 @@ class Booster(object):
         for d in cache:
             if not isinstance(d, DMatrix):
                 raise TypeError('invalid cache item: {}'.format(type(d).__name__))
-            self._validate_features(d)
+            # self._validate_features(d)
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
 
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),
@@ -1144,7 +1144,7 @@ class Booster(object):
         """
         if not isinstance(dtrain, DMatrix):
             raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
-        self._validate_features(dtrain)
+        # self._validate_features(dtrain)
 
         if fobj is None:
             _check_call(_LIB.XGBoosterUpdateOneIter(self.handle, ctypes.c_int(iteration),
@@ -1203,7 +1203,7 @@ class Booster(object):
                 raise TypeError('expected DMatrix, got {}'.format(type(d[0]).__name__))
             if not isinstance(d[1], STRING_TYPES):
                 raise TypeError('expected string, got {}'.format(type(d[1]).__name__))
-            self._validate_features(d[0])
+            # self._validate_features(d[0])
 
         dmats = c_array(ctypes.c_void_p, [d[0].handle for d in evals])
         evnames = c_array(ctypes.c_char_p, [c_str(d[1]) for d in evals])
@@ -1323,8 +1323,8 @@ class Booster(object):
         if pred_interactions:
             option_mask |= 0x10
 
-        if validate_features:
-            self._validate_features(data)
+        # if validate_features:
+            # self._validate_features(data)
 
         length = c_bst_ulong()
         preds = ctypes.POINTER(ctypes.c_float)()
@@ -1337,24 +1337,24 @@ class Booster(object):
         preds = ctypes2numpy(preds, length.value, np.float32)
         if pred_leaf:
             preds = preds.astype(np.int32)
-        nrow = data.num_row()
-        if preds.size != nrow and preds.size % nrow == 0:
-            chunk_size = int(preds.size / nrow)
-
-            if pred_interactions:
-                ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
-                if ngroup == 1:
-                    preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
-                else:
-                    preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
-            elif pred_contribs:
-                ngroup = int(chunk_size / (data.num_col() + 1))
-                if ngroup == 1:
-                    preds = preds.reshape(nrow, data.num_col() + 1)
-                else:
-                    preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
-            else:
-                preds = preds.reshape(nrow, chunk_size)
+        # nrow = data.num_row()
+        # if preds.size != nrow and preds.size % nrow == 0:
+            # chunk_size = int(preds.size / nrow)
+# 
+            # if pred_interactions:
+                # ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
+                # if ngroup == 1:
+                    # preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
+                # else:
+                    # preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
+            # elif pred_contribs:
+                # ngroup = int(chunk_size / (data.num_col() + 1))
+                # if ngroup == 1:
+                    # preds = preds.reshape(nrow, data.num_col() + 1)
+                # else:
+                    # preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
+            # else:
+                # preds = preds.reshape(nrow, chunk_size)
         return preds
 
     def save_model(self, fname):

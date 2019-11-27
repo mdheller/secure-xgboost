@@ -50,6 +50,6 @@ booster.load_model(fname)
 
 # Predict
 print("------ y_pred --------")
-print(booster.predict(dtest)[:10])
+print(booster.predict(dtest, validate_features=False)[:10])
 print("------ y_test --------")
 print(dtest.get_label()[:10])

@@ -1352,24 +1352,24 @@ bool attest_remote_report(
   // Check the enclave's product id and security version
   // See enc.conf for values specified when signing the enclave.
   if (parsed_report.identity.product_id[0] != 1) {
-    std::cout << "identity.product_id checking failed.";
+    std::cout << "identity.product_id checking failed." << std::endl;
   }
 
   if (parsed_report.identity.security_version < 1) {
-    std::cout << "identity.security_version checking failed.";
+    std::cout << "identity.security_version checking failed." << std::endl;
   }
 
   // 3) Validate the report data
   //    The report_data has the hash value of the report data
   if (compute_sha256(data, data_size, sha256) != 0) {
-    std::cout << "hash validation failed.";
+    std::cout << "hash validation failed." << std::endl;
   }
 
   if (memcmp(parsed_report.report_data, sha256, sizeof(sha256)) != 0) {
-    std::cout << "SHA256 mismatch.";
+    std::cout << "SHA256 mismatch." << std::endl;
   }
   ret = true;
-  std::cout << "remote attestation succeeded.";
+  std::cout << "remote attestation succeeded." << std::endl;
   return ret;
 }
 
@@ -1386,10 +1386,10 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
     // FIXME save the pubkey passed by the other enclave
     //memcpy(m_crypto->get_the_other_enclave_public_key(), pem_key, key_size);
   } else {
-    std::cout << "verify_report_and_set_pubkey failed.";
+    std::cout << "verify_report_and_set_pubkey failed." << std::endl;
     return -1;
   }
-  std::cout << "verify_report_and_set_pubkey succeeded.";
+  std::cout << "verify_report_and_set_pubkey succeeded." << std::endl;
   return 0;
 }
 #endif
