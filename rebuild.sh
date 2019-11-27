@@ -1,5 +1,5 @@
-cd /root/mc2/secure-xgboost/src/c_api
-make build
+# cd /root/mc2/secure-xgboost/src/c_api
+# make build
 cd /root/mc2/secure-xgboost/enclave/build
 cmake ..
 make -j4

@@ -28,6 +28,7 @@ from .libpath import find_lib_path
 c_bst_ulong = ctypes.c_uint64
 
 
+
 class XGBoostError(Exception):
     """Error thrown by xgboost trainer."""
 
@@ -333,7 +334,7 @@ class DMatrix(object):
                  weight=None, silent=False,
                  feature_names=None, feature_types=None,
                  nthread=None, open_enclave=False,
-                 enclave_image=None, simulation_mode=True):
+                 enclave_image=None, flags=3):
         """
         Parameters
         ----------
@@ -365,11 +366,29 @@ class DMatrix(object):
         nthread : integer, optional
             Number of threads to use for loading data from numpy array. If -1,
             uses maximum threads available on the system.
+        open_enclave : boolean, optional
+            Whether to initialize the DMatrix in an enclave
+            If true, enclave_image must be set
+        enclave_image : string, optional
+            If running in an enclave mode, a path to the signed enclave
+        flags : int, optional
+            Flags for enclave initialization
+                1 : debug mode
+                2 : simulation mode
+                3 : debug + simulation mode
         """
-        self.open_enclave = int(open_enclave)
-
         if open_enclave:
-            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_int(simulation_mode)))
+            # Create Enclave
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))
+
+            # Remote Attestation
+            pem_key = ctypes.POINTER(ctypes.c_uint)()
+            key_size = ctypes.c_size_t
+            remote_report = ctypes.POINTER(ctypes.c_uint)()
+            remote_report_size = ctypes.c_size_t
+            _check_call(_LIB.get_remote_report_with_pubkey(ctypes.by_ref(pem_key), ctypes.by_ref(key_size), ctypes.byref(remote_report), ctypes.by_ref(remote_report_size)))
+
+            _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
 
         # force into void_p, mac need to pass things in as void_p
         if data is None:
@@ -920,6 +939,14 @@ class DMatrix(object):
         self._feature_types = feature_types
 
 
+#  class Enclave(object):
+    #  """An enclave.
+#  
+    #  A trusted execution environment used for secure XGBoost.
+    #  """
+    #  def __init__(enclave_image, flags=3):
+        #  _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
+
 class Booster(object):
     # pylint: disable=too-many-public-methods
     """A Booster of XGBoost.
@@ -930,7 +957,7 @@ class Booster(object):
 
     feature_names = None
 
-    def __init__(self, params=None, cache=(), model_file=None, open_enclave=False, enclave_image=None, simulation_mode=True):
+    def __init__(self, params=None, cache=(), model_file=None, open_enclave=False, enclave_image=None, flags=3):
         # pylint: disable=invalid-name
         """
         Parameters
@@ -941,8 +968,17 @@ class Booster(object):
             List of cache items.
         model_file : string
             Path to the model file.
+        open_enclave : boolean, optional
+            Whether to initialize the DMatrix in an enclave
+            If true, enclave_image must be set
+        enclave_image : string, optional
+            If running in an enclave mode, a path to the signed enclave
+        flags : int, optional
+            Flags for enclave initialization
+                1 : debug mode
+                2 : simulation mode
+                3 : debug + simulation mode
         """
-        self.open_enclave = int(open_enclave)
         self.handle = ctypes.c_void_p()
 
         for d in cache:
@@ -950,8 +986,20 @@ class Booster(object):
                 raise TypeError('invalid cache item: {}'.format(type(d).__name__))
             self._validate_features(d)
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
+
         if open_enclave:
-            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_int(int(simulation_mode))))    
+            # Create Enclave
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))
+
+            # Remote Attestation
+            pem_key = ctypes.POINTER(ctypes.c_uint)()
+            key_size = ctypes.c_size_t
+            remote_report = ctypes.POINTER(ctypes.c_uint)()
+            remote_report_size = ctypes.c_size_t
+            _check_call(_LIB.get_remote_report_with_pubkey(ctypes.by_ref(pem_key), ctypes.by_ref(key_size), ctypes.byref(remote_report), ctypes.by_ref(remote_report_size)))
+
+            _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
+
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),
                                          ctypes.byref(self.handle)))
         #  self.set_param({'seed': 0})
