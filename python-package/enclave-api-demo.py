@@ -4,14 +4,17 @@ import xgboost as xgb
 OE_ENCLAVE_FLAG_DEBUG = 1
 OE_ENCLAVE_FLAG_SIMULATE = 2
 
-#  print("Creating enclave")
-#  xgb.Enclave(enclave_image="/root/mc2/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE)
+print("Creating enclave")
+enclave = xgb.Enclave("/root/mc2/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
 
 print("Creating training matrix")
-dtrain = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/train.encrypted", open_enclave=True, enclave_image="/root/mc2/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE)
+dtrain = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/train.encrypted")
+
 print("Creating test matrix")
 dtest = xgb.DMatrix("/root/mc2/secure-xgboost/demo/c-api/test.encrypted") 
+
 print("Data loaded")
+
 booster = xgb.Booster(cache=(dtrain, dtest))
 print("Booster created")
 

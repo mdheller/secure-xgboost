@@ -333,8 +333,7 @@ class DMatrix(object):
     def __init__(self, data, label=None, missing=None,
                  weight=None, silent=False,
                  feature_names=None, feature_types=None,
-                 nthread=None, open_enclave=False,
-                 enclave_image=None, flags=3):
+                 nthread=None):
         """
         Parameters
         ----------
@@ -377,19 +376,6 @@ class DMatrix(object):
                 2 : simulation mode
                 3 : debug + simulation mode
         """
-        if open_enclave:
-            # Create Enclave
-            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))
-
-            # Remote Attestation
-            pem_key = ctypes.POINTER(ctypes.c_uint)()
-            key_size = ctypes.c_size_t
-            remote_report = ctypes.POINTER(ctypes.c_uint)()
-            remote_report_size = ctypes.c_size_t
-            _check_call(_LIB.get_remote_report_with_pubkey(ctypes.by_ref(pem_key), ctypes.by_ref(key_size), ctypes.byref(remote_report), ctypes.by_ref(remote_report_size)))
-
-            _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
-
         # force into void_p, mac need to pass things in as void_p
         if data is None:
             self.handle = None
@@ -939,13 +925,24 @@ class DMatrix(object):
         self._feature_types = feature_types
 
 
-#  class Enclave(object):
-    #  """An enclave.
-#  
-    #  A trusted execution environment used for secure XGBoost.
-    #  """
-    #  def __init__(enclave_image, flags=3):
-        #  _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
+class Enclave(object):
+    """An enclave.
+
+    A trusted execution environment used for secure XGBoost.
+    """
+    def __init__(self, enclave_image, flags=3):
+        _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
+
+    def remote_attestation(self):
+        # Remote Attestation
+        pem_key = ctypes.POINTER(ctypes.c_uint)()
+        key_size = ctypes.c_size_t
+        remote_report = ctypes.POINTER(ctypes.c_uint)()
+        remote_report_size = ctypes.c_size_t
+        _check_call(_LIB.get_remote_report_with_pubkey(ctypes.by_ref(pem_key), ctypes.by_ref(key_size), ctypes.byref(remote_report), ctypes.by_ref(remote_report_size)))
+
+        _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
+
 
 class Booster(object):
     # pylint: disable=too-many-public-methods
@@ -957,7 +954,7 @@ class Booster(object):
 
     feature_names = None
 
-    def __init__(self, params=None, cache=(), model_file=None, open_enclave=False, enclave_image=None, flags=3):
+    def __init__(self, params=None, cache=(), model_file=None):
         # pylint: disable=invalid-name
         """
         Parameters
@@ -987,23 +984,10 @@ class Booster(object):
             self._validate_features(d)
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
 
-        if open_enclave:
-            # Create Enclave
-            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))
-
-            # Remote Attestation
-            pem_key = ctypes.POINTER(ctypes.c_uint)()
-            key_size = ctypes.c_size_t
-            remote_report = ctypes.POINTER(ctypes.c_uint)()
-            remote_report_size = ctypes.c_size_t
-            _check_call(_LIB.get_remote_report_with_pubkey(ctypes.by_ref(pem_key), ctypes.by_ref(key_size), ctypes.byref(remote_report), ctypes.by_ref(remote_report_size)))
-
-            _check_call(_LIB.verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size))
-
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),
                                          ctypes.byref(self.handle)))
-        #  self.set_param({'seed': 0})
-        #  self.set_param(params or {})
+        self.set_param({'seed': 0})
+        self.set_param(params or {})
         if (params is not None) and ('booster' in params):
             self.booster = params['booster']
         else:
