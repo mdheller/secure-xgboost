@@ -1343,6 +1343,8 @@ class Booster(object):
         preds = ctypes2numpy(preds, length.value, np.float32)
         if pred_leaf:
             preds = preds.astype(np.int32)
+
+        # TODO: port num_row() to enclave
         # nrow = data.num_row()
         # if preds.size != nrow and preds.size % nrow == 0:
             # chunk_size = int(preds.size / nrow)
@@ -1717,6 +1719,8 @@ class Booster(object):
         Validate Booster and data's feature_names are identical.
         Set feature_names and feature_types from DMatrix
         """
+        # FIXME: figure out how to run this function without erroring
+        # data.feature_names and data.feature_types are accessed outside the enclave, causing errors
         if self.feature_names is None:
             self.feature_names = data.feature_names
             self.feature_types = data.feature_types
