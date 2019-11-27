@@ -1388,18 +1388,4 @@ int verify_remote_report_and_set_pubkey(
   std::cout << "verify_report_and_set_pubkey succeeded.";
   return 0;
 }
-bool check_simulate_opt(int* argc, char* argv[])
-{
-  for (int i = 0; i < *argc; i++)
-  {
-    if (strcmp(argv[i], "--simulate") == 0)
-    {
-      std::cout << "Running in simulation mode" << std::endl;
-      memmove(&argv[i], &argv[i + 1], (*argc - i) * sizeof(char*));
-      (*argc)--;
-      return true;
-    }
-  }
-  return false;
-}
 #endif
