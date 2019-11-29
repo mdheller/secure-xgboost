@@ -20,6 +20,7 @@ import grpc
 
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
+import xgboost as xgb
 
 
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
@@ -28,12 +29,24 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         """
         Calls get_remote_report_with_public_key()
         """
-        return remote_attestation_pb2.Report(pem_key=1, key_size=2, remote_report=3, remote_report_size=4)
+        # Get a reference to the existing enclave
+        enclave_reference = xgb.Enclave(create_enclave=False)
+
+        # Get report from enclave
+        xgb.Enclave.get_remote_report_with_pub_key()
+        pem_key, key_size, remote_report, remote_report_size = xgb.Enclave.get_report_attrs()
+
+        return remote_attestation_pb2.Report(pem_key=pem_key, key_size=key_size, remote_report=remote_report, remote_report_size=remote_report_size)
 
     def SendKey(self, request, context):
         """
         Sends symmetric key and filenames of data
         """
+        # Get encrypted symmetric key and filenames from request
+        enc_sym_key = request.enc_sym_key
+        training_data_fname = request.training_data_fname
+        test_data_fname = request.test_data_fname
+
         return remote_attestation_pb2.Status(status=1)
 
 

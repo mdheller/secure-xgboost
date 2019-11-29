@@ -930,8 +930,9 @@ class Enclave(object):
 
     A trusted execution environment used for secure XGBoost.
     """
-    def __init__(self, enclave_image, flags=3):
-        _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
+    def __init__(self, enclave_image=None, flags=3, create_enclave=True):
+        if create_enclave:
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
         self.pem_key = ctypes.POINTER(ctypes.c_uint)()
         self.key_size = ctypes.c_size_t()
         self.remote_report = ctypes.POINTER(ctypes.c_uint)()
@@ -948,6 +949,22 @@ class Enclave(object):
         Verify the received attestation report and set the public key
         """
         _check_call(_LIB.verify_remote_report_and_set_pubkey(self.pem_key, self.key_size, self.remote_report, self.remote_report_size))
+
+    def set_report_attrs(self, pem_key, key_size, remote_report, remote_report_size):
+        self.pem_key = pem_key
+        self.key_size = key_size
+        self.remote_report = remote_report
+        self.remote_report_size = remote_report_size
+
+    def get_report_attrs(self):
+        """
+        Get the enclave public key and remote report
+
+        To be called by the RPC service
+
+        Must be called after get_remote_report_with_pubkey() is called
+        """
+        return self.pem_key, self.key_size, self.remote_report, self.remote_report_size
 
 
 class Booster(object):
