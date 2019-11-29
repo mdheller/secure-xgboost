@@ -34,6 +34,7 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
 
         # Get report from enclave
         xgb.Enclave.get_remote_report_with_pub_key()
+        #  pem_key, key_size, remote_report, remote_report_size = 0, 0, 0, 0
         pem_key, key_size, remote_report, remote_report_size = xgb.Enclave.get_report_attrs()
 
         return remote_attestation_pb2.Report(pem_key=pem_key, key_size=key_size, remote_report=remote_report, remote_report_size=remote_report_size)
@@ -46,6 +47,8 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         enc_sym_key = request.enc_sym_key
         training_data_fname = request.training_data_fname
         test_data_fname = request.test_data_fname
+
+        # TODO: decrypt the symmetric key with the public key, save the filenames
 
         return remote_attestation_pb2.Status(status=1)
 
