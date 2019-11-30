@@ -18,6 +18,7 @@ syntax = "proto3";
 // option java_package = "io.grpc.examples.routeguide";
 // option java_outer_classname = "RemoteAttestationProto";
 // option objc_class_prefix = "RA";
+import "ndarray.proto";
 
 package remote_attestation;
 
@@ -45,13 +46,17 @@ message Status {
 // A report returned by the enclave for attestation 
 message Report {
   // Public key of enclave 
-  uint64 pem_key = 1;
+  //uint64 pem_key = 1;
+  //bytes pem_key = 1;
+  numproto.protobuf.NDArray pem_key = 1;
 
   // Size of public key
   uint32 key_size = 2;
 
   // Remote report of enclave
-  uint64 remote_report = 3;
+  //uint64 remote_report = 3;
+  //bytes remote_report = 3;
+  numproto.protobuf.NDArray remote_report = 3;
 
   // Size of remote report
   uint32 remote_report_size = 4;

@@ -33,9 +33,8 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         enclave_reference = xgb.Enclave(create_enclave=False)
 
         # Get report from enclave
-        xgb.Enclave.get_remote_report_with_pub_key()
-        #  pem_key, key_size, remote_report, remote_report_size = 0, 0, 0, 0
-        pem_key, key_size, remote_report, remote_report_size = xgb.Enclave.get_report_attrs()
+        enclave_reference.get_remote_report_with_pubkey()
+        pem_key, key_size, remote_report, remote_report_size = enclave_reference.get_report_attrs()
 
         return remote_attestation_pb2.Report(pem_key=pem_key, key_size=key_size, remote_report=remote_report, remote_report_size=remote_report_size)
 
