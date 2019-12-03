@@ -92,8 +92,9 @@ int enclave_verify_remote_report_and_set_pubkey(
 int enclave_add_client_key(
     char* fname,
     uint8_t* data,
-    size_t len,
-    uint8_t* signature) {
+    size_t data_len,
+    uint8_t* signature,
+    size_t sig_len) {
   fprintf(stdout, "Ecall: add_client_key\n");
-  return add_client_key(fname, data, len, signature);
+  return add_client_key(fname, data, data_len, signature, sig_len);
 }

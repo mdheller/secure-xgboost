@@ -16,6 +16,7 @@
 #include <mbedtls/gcm.h>        // mbedtls_gcm_context
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
+#include "mbedtls/sha256.h"
 
 #define KEY_BYTES 32
 #define IV_BYTES 12
@@ -33,4 +34,6 @@ void decryptFile(char* fname, char* d_fname);
 
 void encryptDataWithPublicKey(char* data, size_t len, uint8_t* pem_key, size_t key_size, uint8_t* encrypted_data, size_t* encrypted_data_size);
 
+void signData(char* keyfile, uint8_t* encrypted_data, size_t encrypted_data_size, uint8_t* signature, size_t* sig_len);
+void verifySignature(char *pkfile, uint8_t* data, size_t data_size, uint8_t* signature, size_t sig_len);
 #endif

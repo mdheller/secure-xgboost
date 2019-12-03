@@ -615,8 +615,9 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
 XGB_DLL int add_client_key(
     char* fname,
     uint8_t* data,
-    size_t len,
-    uint8_t* signature);
+    size_t data_len,
+    uint8_t* signature,
+    size_t sig_len);
 #endif // __SGX__ && __ENCLAVE__
 
 #if defined(__SGX__) && defined(__HOST__)

@@ -66,13 +66,18 @@ int main(int argc, char** argv) {
 
   uint8_t* encrypted_data = (uint8_t*) malloc(1024*sizeof(uint8_t));
   size_t encrypted_data_size = 1024;
+  uint8_t* signature = (uint8_t*) malloc(1024*sizeof(uint8_t));
+  size_t sig_len;
+
   encryptDataWithPublicKey(test_key, KEY_BYTES, pem_key, key_size, encrypted_data, &encrypted_data_size);
+  signData("keypair.pem", encrypted_data, encrypted_data_size, signature, &sig_len);
+  verifySignature("publickey.crt", encrypted_data, encrypted_data_size, signature, sig_len);
   // safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
 
   std::string fname1("train.encrypted");
-  safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, NULL));
+  safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
   std::string fname2("test.encrypted");
-  safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, NULL));
+  safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
 #endif
 
   int silent = 0;

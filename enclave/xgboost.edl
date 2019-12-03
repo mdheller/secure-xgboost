@@ -72,8 +72,9 @@ enclave {
         public int enclave_add_client_key(
                 [user_check] char* fname, 
                 [user_check] uint8_t* data, 
-                size_t len, 
-                [user_check] uint8_t* signature);
+                size_t data_len, 
+                [user_check] uint8_t* signature,
+                size_t sig_len);
     };
 
     include "dirent.h"
