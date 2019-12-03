@@ -618,6 +618,21 @@ XGB_DLL int add_client_key(
     size_t data_len,
     uint8_t* signature,
     size_t sig_len);
+
+XGB_DLL int encrypt_data_with_pk(
+    char* data,
+    size_t len,
+    uint8_t* pem_key,
+    size_t key_size,
+    uint8_t* encrypted_data,
+    size_t* encrypted_data_size);
+
+XGB_DLL int sign_data(
+    char* keyfile,
+    uint8_t* encrypted_data,
+    size_t encrypted_data_size,
+    uint8_t* signature,
+    size_t* sig_len);
 #endif // __SGX__ && __ENCLAVE__
 
 #if defined(__SGX__) && defined(__HOST__)

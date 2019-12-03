@@ -169,63 +169,6 @@ void decryptFile(char* fname, char* d_fname) {
   myfile.close();
 }
 
-void encryptDataWithPublicKey(char* data, size_t len, uint8_t* pem_key, size_t key_size, uint8_t* encrypted_data, size_t* encrypted_data_size) {
-    bool result = false;
-    mbedtls_pk_context key;
-    int res = -1;
-
-    mbedtls_ctr_drbg_context m_ctr_drbg_context;
-    mbedtls_entropy_context m_entropy_context;
-    mbedtls_pk_context m_pk_context;
-    mbedtls_ctr_drbg_init(&m_ctr_drbg_context);
-    mbedtls_entropy_init(&m_entropy_context);
-    mbedtls_pk_init(&m_pk_context);
-    res = mbedtls_ctr_drbg_seed(
-        &m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
-    res = mbedtls_pk_setup(
-        &m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
-
-
-    mbedtls_rsa_context* rsa_context;
-
-    mbedtls_pk_init(&key);
-
-    // Read the given public key.
-    key_size = strlen((const char*)pem_key) + 1; // Include ending '\0'.
-    res = mbedtls_pk_parse_public_key(&key, pem_key, key_size);
-    if (res != 0) {
-        std::cout << "mbedtls_pk_parse_public_key failed.\n";
-        mbedtls_pk_free(&key);
-        return;
-    }
-
-    rsa_context = mbedtls_pk_rsa(key);
-    rsa_context->padding = MBEDTLS_RSA_PKCS_V21;
-    rsa_context->hash_id = MBEDTLS_MD_SHA256;
-
-    // Encrypt the data.
-    res = mbedtls_rsa_pkcs1_encrypt(
-        rsa_context,
-        //mbedtls_pk_rsa(key),
-        mbedtls_ctr_drbg_random,
-        &m_ctr_drbg_context,
-        MBEDTLS_RSA_PUBLIC,
-        len,
-        (const unsigned char*) data,
-        (unsigned char*) encrypted_data);
-    if (res != 0) {
-        std::cout << "mbedtls_rsa_pkcs1_encrypt failed\n";
-        mbedtls_pk_free(&key);
-        return;
-    }
-
-    *encrypted_data_size = mbedtls_pk_rsa(key)->len;
-
-    mbedtls_pk_free( &m_pk_context );
-    mbedtls_ctr_drbg_free( &m_ctr_drbg_context );
-    mbedtls_entropy_free( &m_entropy_context );
-}
-
 int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[32]) {
   int ret = 0;
   mbedtls_sha256_context ctx;
@@ -244,43 +187,6 @@ if (ret) {                              \
 
   mbedtls_sha256_free(&ctx);
   return ret;
-}
-
-void signData(char *keyfile, uint8_t* data, size_t data_size, uint8_t* signature, size_t* sig_len) {
-  mbedtls_pk_context pk;
-  mbedtls_entropy_context m_entropy_context;
-  mbedtls_ctr_drbg_context m_ctr_drbg_context;
-
-  mbedtls_entropy_init( &m_entropy_context );
-  mbedtls_pk_init( &pk );
-  mbedtls_ctr_drbg_init( &m_ctr_drbg_context ); 
-
-  unsigned char hash[32];
-  int ret = 1;
-
-  ret = mbedtls_ctr_drbg_seed(&m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
-
-  if((ret = mbedtls_pk_parse_keyfile( &pk, keyfile, "")) != 0) {
-    printf( " failed\n  ! Could not read key from '%s'\n", keyfile);
-    printf( "  ! mbedtls_pk_parse_public_keyfile returned %d\n\n", ret );
-    exit(1);
-  }
-  if(!mbedtls_pk_can_do(&pk, MBEDTLS_PK_RSA)) {
-    printf( " failed\n  ! Key is not an RSA key\n" );
-    exit(1);
-  }
-
-  mbedtls_rsa_set_padding(mbedtls_pk_rsa(pk), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256 );
-
-  if((ret = compute_sha256(data, data_size, hash)) != 0) {
-    printf( " failed\n  ! Could not hash\n\n");
-    exit(1);
-  }
-
-  if((ret = mbedtls_pk_sign(&pk, MBEDTLS_MD_SHA256, hash, 0, signature, sig_len, mbedtls_ctr_drbg_random, &m_ctr_drbg_context)) != 0) {
-    printf( " failed\n  ! mbedtls_pk_sign returned %d\n\n", ret );
-    exit(1);
-  }
 }
 
 void verifySignature(char *pkfile, uint8_t* data, size_t data_size, uint8_t* signature, size_t sig_len) {
