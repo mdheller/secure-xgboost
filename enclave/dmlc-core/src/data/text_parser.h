@@ -37,16 +37,21 @@ namespace data {
 template <typename IndexType, typename DType = real_t>
 class TextParserBase : public ParserImpl<IndexType, DType> {
  public:
+#ifdef __ENCLAVE__ // pass decryption key
+   explicit TextParserBase(InputSplit *source,
+       int nthread,
+       const char* _key)
+#else
   explicit TextParserBase(InputSplit *source,
                           int nthread)
+#endif
       : bytes_read_(0), source_(source) {
     int maxthread = std::max(omp_get_num_procs() / 2 - 4, 1);
     nthread_ = std::min(maxthread, nthread);
 
 #ifdef __ENCLAVE__ // cipher init
     mbedtls_gcm_init(&gcm);
-    // FIXME key needs to be provided by user
-    memset(key, 0, sizeof(key));
+    memcpy(key, _key, CIPHER_KEY_SIZE);
     int ret = mbedtls_gcm_setkey(
         &gcm,                      // GCM context to be initialized
         MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)

@@ -51,6 +51,19 @@ struct CSVParserParam : public Parameter<CSVParserParam> {
 template <typename IndexType, typename DType = real_t>
 class CSVParser : public TextParserBase<IndexType, DType> {
  public:
+#ifdef __ENCLAVE__ // Init with encryption key
+   explicit CSVParser(InputSplit *source,
+       const std::map<std::string, std::string>& args,
+       int nthread,
+       const char* key)
+     : TextParserBase<IndexType, DType>(source, nthread, key) {
+       param_.Init(args);
+       CHECK_EQ(param_.format, "csv");
+       CHECK(param_.label_column != param_.weight_column
+           || param_.label_column < 0)
+         << "Must have distinct columns for labels and instance weights";
+     }
+#else
   explicit CSVParser(InputSplit *source,
                      const std::map<std::string, std::string>& args,
                      int nthread)
@@ -61,6 +74,7 @@ class CSVParser : public TextParserBase<IndexType, DType> {
           || param_.label_column < 0)
       << "Must have distinct columns for labels and instance weights";
   }
+#endif
 
  protected:
   virtual void ParseBlock(const char *begin,

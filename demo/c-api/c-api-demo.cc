@@ -12,6 +12,7 @@
 #include <xgboost/c_api.h>
 
 #ifdef __SGX__
+#include "encrypt.h"
 #include <openenclave/host.h>
 
 bool check_simulate_opt(int* argc, char* argv[]) {
@@ -38,6 +39,14 @@ if (err != 0) {                                                         \
 int main(int argc, char** argv) {
 
 #ifdef __SGX__
+  for (int i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--encrypt") == 0) {
+      encryptFile("../data/agaricus.txt.train", "train.encrypted");
+      encryptFile("../data/agaricus.txt.test", "test.encrypted");
+      return 0;
+    }
+  }
+
   uint32_t flags = OE_ENCLAVE_FLAG_DEBUG;
   if (check_simulate_opt(&argc, argv)) {
     flags |= OE_ENCLAVE_FLAG_SIMULATE;
@@ -52,8 +61,18 @@ int main(int argc, char** argv) {
   size_t key_size = 0;
   uint8_t* remote_report = NULL;
   size_t remote_report_size = 0;
-  // safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
+
+  safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
+
+  uint8_t* encrypted_data = (uint8_t*) malloc(1024*sizeof(uint8_t));
+  size_t encrypted_data_size = 1024;
+  encryptDataWithPublicKey(test_key, KEY_BYTES, pem_key, key_size, encrypted_data, &encrypted_data_size);
   // safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
+
+  std::string fname1("train.encrypted");
+  safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, NULL));
+  std::string fname2("test.encrypted");
+  safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, NULL));
 #endif
 
   int silent = 0;

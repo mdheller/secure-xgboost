@@ -68,6 +68,12 @@ enclave {
                 size_t key_size,
                 [in, count=remote_report_size] uint8_t *remote_report,
                 size_t remote_report_size);
+
+        public int enclave_add_client_key(
+                [user_check] char* fname, 
+                [user_check] uint8_t* data, 
+                size_t len, 
+                [user_check] uint8_t* signature);
     };
 
     include "dirent.h"

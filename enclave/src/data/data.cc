@@ -152,6 +152,9 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
 DMatrix* DMatrix::Load(const std::string& uri,
                        bool silent,
                        bool load_row_split,
+#ifdef __ENCLAVE__ // pass decryption key
+                       char* key,
+#endif
                        const std::string& file_format,
                        const size_t page_size) {
   std::string fname, cache_file;
@@ -219,8 +222,13 @@ DMatrix* DMatrix::Load(const std::string& uri,
     }
   }
 
+#ifdef __ENCLAVE__ // pass decryption key
+  std::unique_ptr<dmlc::Parser<uint32_t> > parser(
+      dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str(), key));
+#else
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));
+#endif
   DMatrix* dmat = DMatrix::Create(parser.get(), cache_file, page_size);
   if (!silent) {
     LOG(CONSOLE) << dmat->Info().num_row_ << 'x' << dmat->Info().num_col_ << " matrix with "

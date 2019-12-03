@@ -228,6 +228,386 @@ int XGBoostNativeDataIterSetData(
 
 using namespace xgboost; // NOLINT(*);
 
+#ifdef __ENCLAVE__ // attestation
+
+#define CIPHER_PK_SIZE 512
+// FIXME multiple definitions of sizes (also in text_parser.h)
+#define CIPHER_KEY_SIZE 32
+#define CIPHER_IV_SIZE  12
+#define CIPHER_TAG_SIZE 16
+
+class EnclaveContext {
+  // FIXME Embed root CA for clients
+
+  private:
+    mbedtls_ctr_drbg_context m_ctr_drbg_context;
+    mbedtls_entropy_context m_entropy_context;
+    mbedtls_pk_context m_pk_context;
+    uint8_t m_public_key[CIPHER_PK_SIZE];
+
+    // FIXME use array of fixed length instead of vector
+    std::unordered_map<std::string, std::vector<uint8_t>> client_keys;
+
+    EnclaveContext() {
+      generate_public_key();
+    }
+
+  public:
+    // Don't forget to declare these two. You want to make sure they
+    // are unacceptable otherwise you may accidentally get copies of
+    // your singleton appearing.
+    EnclaveContext(EnclaveContext const&) = delete;
+    void operator=(EnclaveContext const&) = delete;
+
+    static EnclaveContext& getInstance() {
+      static EnclaveContext instance;
+      return instance;
+    }
+
+    uint8_t* get_public_key() {
+      return m_public_key;
+    }
+
+    bool get_client_key(std::string fname, uint8_t* key) {
+      std::unordered_map<std::string, std::vector<uint8_t>>::const_iterator iter = client_keys.find(fname);
+
+      if (iter == client_keys.end()) {
+        memset(key, 0, CIPHER_KEY_SIZE);
+        return false;
+      } else {
+        //memcpy(key, iter->second, CIPHER_KEY_SIZE);
+        std::copy(iter->second.begin(), iter->second.end(), key);
+        return true;
+      }
+    }
+
+    bool decrypt_and_save_client_key(std::string fname, uint8_t* data, size_t len, uint8_t* signature) {
+      // FIXME verify client identity using root CA and verify signature
+      // signature is over file name and encrypted key
+      int res = 0;
+      mbedtls_rsa_context* rsa_context;
+
+      mbedtls_pk_rsa(m_pk_context)->len = len;
+      rsa_context = mbedtls_pk_rsa(m_pk_context);
+      rsa_context->padding = MBEDTLS_RSA_PKCS_V21;
+      rsa_context->hash_id = MBEDTLS_MD_SHA256;
+
+      size_t output_size;
+      uint8_t output[CIPHER_KEY_SIZE];
+
+      res = mbedtls_rsa_pkcs1_decrypt(
+          rsa_context,
+          mbedtls_ctr_drbg_random,
+          &m_ctr_drbg_context,
+          MBEDTLS_RSA_PRIVATE,
+          &output_size,
+          data,
+          output,
+          CIPHER_KEY_SIZE);
+      if (res != 0) {
+        LOG(INFO) << "mbedtls_rsa_pkcs1_decrypt failed with " << res;
+        return false;
+      }
+      fprintf(stdout, "Decrypted key\n");
+      for (int i = 0; i < CIPHER_KEY_SIZE; i++)
+        fprintf(stdout, "%d\t", output[i]);
+      fprintf(stdout, "\n");
+      std::vector<uint8_t> v(output, output + CIPHER_KEY_SIZE);
+      client_keys.insert({fname, v});
+      return true;
+    }
+
+  private:
+    /**
+     * Generate an ephermeral public key pair for the enclave
+     */
+    bool generate_public_key() {
+      mbedtls_ctr_drbg_init(&m_ctr_drbg_context);
+      mbedtls_entropy_init(&m_entropy_context);
+      mbedtls_pk_init(&m_pk_context);
+
+      int res = -1;
+      // Initialize entropy.
+      res = mbedtls_ctr_drbg_seed(&m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
+      if (res != 0) {
+        LOG(INFO) << "mbedtls_ctr_drbg_seed failed.";
+        return false;
+      }
+
+      // Initialize RSA context.
+      res = mbedtls_pk_setup(&m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+      if (res != 0) {
+        LOG(INFO) << "mbedtls_pk_setup failed " << res;
+        return false;
+      }
+
+      // Generate an ephemeral 2048-bit RSA key pair with
+      // exponent 65537 for the enclave.
+      res = mbedtls_rsa_gen_key(
+          mbedtls_pk_rsa(m_pk_context),
+          mbedtls_ctr_drbg_random,
+          &m_ctr_drbg_context,
+          2048,
+          65537);
+
+      if (res != 0) {
+        LOG(INFO) << "mbedtls_rsa_gen_key failed " << res;
+        return false;
+      }
+
+      // Write out the public key in PEM format for exchange with other enclaves.
+      res = mbedtls_pk_write_pubkey_pem(&m_pk_context, m_public_key, sizeof(m_public_key));
+      if (res != 0) {
+        LOG(INFO) << "mbedtls_pk_write_pubkey_pem failed " << res;
+        return false;
+      }
+      return true;
+    }
+
+  public:
+    // Compute the sha256 hash of given data.
+    int static compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[32]) {
+      int ret = 0;
+      mbedtls_sha256_context ctx;
+
+#define safe_sha(call) {                \
+  int ret = (call);                       \
+  if (ret) {                              \
+    mbedtls_sha256_free(&ctx);            \
+    return -1;                            \
+  }                                       \
+}
+      mbedtls_sha256_init(&ctx);
+      safe_sha(mbedtls_sha256_starts_ret(&ctx, 0));
+      safe_sha(mbedtls_sha256_update_ret(&ctx, data, data_size));
+      safe_sha(mbedtls_sha256_finish_ret(&ctx, sha256));
+
+      mbedtls_sha256_free(&ctx);
+      return ret;
+      }
+};
+
+// FIXME wrap in a struct / class?
+
+
+/**
+ * Generate a remote report for the given data. The SHA256 digest of the data is
+ * stored in the report_data field of the generated remote report.
+ */
+bool generate_remote_report(
+    const uint8_t* data,
+    const size_t data_size,
+    uint8_t** remote_report_buf,
+    size_t* remote_report_buf_size) {
+  bool ret = false;
+  uint8_t sha256[32];
+  oe_result_t result = OE_OK;
+  uint8_t* temp_buf = NULL;
+
+  // Compute the sha256 hash of given data.
+  if (EnclaveContext::compute_sha256(data, data_size, sha256) != 0) {
+    LOG(INFO) << "compute_sha256 failed";
+    return false;
+  }
+
+  // To generate a remote report that can be attested remotely by an enclave
+  // running  on a different platform, pass the
+  // OE_REPORT_FLAGS_REMOTE_ATTESTATION option. This uses the trusted
+  // quoting enclave to generate the report based on this enclave's local
+  // report.
+  // To generate a remote report that just needs to be attested by another
+  // enclave running on the same platform, pass 0 instead. This uses the
+  // EREPORT instruction to generate this enclave's local report.
+  // Both kinds of reports can be verified using the oe_verify_report
+  // function.
+  result = oe_get_report(
+      OE_REPORT_FLAGS_REMOTE_ATTESTATION,
+      sha256, // Store sha256 in report_data field
+      sizeof(sha256),
+      NULL, // opt_params must be null
+      0,
+      &temp_buf,
+      remote_report_buf_size);
+  if (result != OE_OK) {
+    LOG(INFO) << "oe_get_report failed.";
+    return false;
+  }
+  *remote_report_buf = temp_buf;
+  LOG(INFO) << "generate_remote_report succeeded.";
+  return true;
+}
+
+/**
+ * Return the public key of this enclave along with the enclave's remote report.
+ * The enclave that receives the key will use the remote report to attest this
+ * enclave.
+ */
+int get_remote_report_with_pubkey(
+    uint8_t** pem_key,
+    size_t* key_size,
+    uint8_t** remote_report,
+    size_t* remote_report_size) {
+
+  uint8_t* report = NULL;
+  size_t report_size = 0;
+  uint8_t* key_buf = NULL;
+  int ret = 1;
+
+  uint8_t* public_key = EnclaveContext::getInstance().get_public_key();
+
+  if (generate_remote_report(public_key, CIPHER_PK_SIZE, &report, &report_size)) {
+    // Allocate memory on the host and copy the report over.
+    *remote_report = (uint8_t*)oe_host_malloc(report_size);
+    if (*remote_report == NULL) {
+      ret = OE_OUT_OF_MEMORY;
+      if (report)
+        oe_free_report(report);
+      return ret;
+    }
+    memcpy(*remote_report, report, report_size);
+    *remote_report_size = report_size;
+    oe_free_report(report);
+
+    key_buf = (uint8_t*)oe_host_malloc(CIPHER_PK_SIZE);
+    if (key_buf == NULL) {
+      ret = OE_OUT_OF_MEMORY;
+      if (report)
+        oe_free_report(report);
+      if (*remote_report)
+        oe_host_free(*remote_report);
+      return ret;
+    }
+    memcpy(key_buf, public_key, CIPHER_PK_SIZE);
+
+    *pem_key = key_buf;
+    *key_size = CIPHER_PK_SIZE;
+
+    ret = 0;
+    LOG(INFO) << "get_remote_report_with_pubkey succeeded";
+  } else {
+    LOG(FATAL) << "get_remote_report_with_pubkey failed.";
+  }
+
+  return ret;
+} 
+
+/**
+ * Attest the given remote report and accompanying data. It consists of the
+ * following three steps:
+ *
+ * 1) The remote report is first attested using the oe_verify_report API. This
+ * ensures the authenticity of the enclave that generated the remote report.
+ * 2) Next, to establish trust of the enclave that  generated the remote report,
+ * the mrsigner, product_id, isvsvn values are checked to  see if they are
+ * predefined trusted values.
+ * 3) Once the enclave's trust has been established, the validity of
+ * accompanying data is ensured by comparing its SHA256 digest against the
+ * report_data field.
+ */
+bool attest_remote_report(
+    const uint8_t* remote_report,
+    size_t remote_report_size,
+    const uint8_t* data,
+    size_t data_size) {
+
+  bool ret = false;
+  uint8_t sha256[32];
+  oe_report_t parsed_report = {0};
+  oe_result_t result = OE_OK;
+
+  // While attesting, the remote report being attested must not be tampered
+  // with. Ensure that it has been copied over to the enclave.
+  if (!oe_is_within_enclave(remote_report, remote_report_size)) {
+    LOG(FATAL) << "Cannot attest remote report in host memory. Unsafe.";
+  }
+
+  // 1)  Validate the report's trustworthiness
+  // Verify the remote report to ensure its authenticity.
+  result = oe_verify_report(remote_report, remote_report_size, &parsed_report);
+  if (result != OE_OK) {
+    LOG(FATAL) << "oe_verify_report failed " << oe_result_str(result);
+  }
+
+  // 2) validate the enclave identity's signed_id is the hash of the public
+  // signing key that was used to sign an enclave. Check that the enclave was
+  // signed by an trusted entity.
+  // FIXME Enable this check
+  /*if (memcmp(parsed_report.identity.signer_id, m_enclave_mrsigner, 32) != 0) {
+    LOG(FATAL) << "identity.signer_id checking failed."
+
+    LOG(INFO)<< "identity.signer_id " << parsed_report.identity.signer_id;
+
+    for (int i = 0; i < 32; i++) {
+    TRACE_ENCLAVE(
+    "m_enclave_mrsigner[%d]=0x%0x\n",
+    i,
+    (uint8_t)m_enclave_mrsigner[i]);
+    }
+
+    TRACE_ENCLAVE("\n\n\n");
+
+    for (int i = 0; i < 32; i++)
+    {
+    TRACE_ENCLAVE(
+    "parsedReport.identity.signer_id)[%d]=0x%0x\n",
+    i,
+    (uint8_t)parsed_report.identity.signer_id[i]);
+    }
+    TRACE_ENCLAVE("m_enclave_mrsigner %s", m_enclave_mrsigner);
+    goto exit;
+    }*/
+
+  // FIXME add verification for MRENCLAVE
+
+  // Check the enclave's product id and security version
+  // See enc.conf for values specified when signing the enclave.
+  if (parsed_report.identity.product_id[0] != 1) {
+    LOG(FATAL) << "identity.product_id checking failed.";
+  }
+
+  if (parsed_report.identity.security_version < 1) {
+    LOG(FATAL) << "identity.security_version checking failed.";
+  }
+
+  // 3) Validate the report data
+  //    The report_data has the hash value of the report data
+  if (EnclaveContext::compute_sha256(data, data_size, sha256) != 0) {
+    LOG(FATAL) << "hash validation failed.";
+  }
+
+  if (memcmp(parsed_report.report_data, sha256, sizeof(sha256)) != 0) {
+    LOG(FATAL) << "SHA256 mismatch.";
+  }
+  ret = true;
+  LOG(INFO) << "remote attestation succeeded.";
+  return ret;
+}
+
+int verify_remote_report_and_set_pubkey(
+    uint8_t* pem_key,
+    size_t key_size,
+    uint8_t* remote_report,
+    size_t remote_report_size) {
+
+  // Attest the remote report and accompanying key.
+  if (attest_remote_report(remote_report, remote_report_size, pem_key, key_size)) {
+    // FIXME save the pubkey passed by the other enclave
+    //memcpy(m_crypto->get_the_other_enclave_public_key(), pem_key, key_size);
+  } else {
+    LOG(INFO) << "verify_report_and_set_pubkey failed.";
+    return -1;
+  }
+  LOG(INFO) << "verify_report_and_set_pubkey succeeded.";
+  return 0;
+}
+
+int add_client_key(char* fname, uint8_t* data, size_t len, uint8_t* signature) {
+  // FIXME return value / error handling
+  // FIXME char* vs string
+  EnclaveContext::getInstance().decrypt_and_save_client_key(std::string(fname), data, len, signature);
+}
+#endif // __ENCLAVE__
+
 /*! \brief entry to to easily hold returning information */
 struct XGBAPIThreadLocalEntry {
   /*! \brief result holder for returning string */
@@ -262,7 +642,20 @@ int XGDMatrixCreateFromFile(const char *fname,
             << "will split data among workers";
         load_row_split = true;
     }
+#ifdef __ENCLAVE__ // pass decryption key
+    // FIXME consistently use uint8_t* for key bytes
+    char key[CIPHER_KEY_SIZE];
+    fprintf(stdout, "Getting key\n");
+    EnclaveContext::getInstance().get_client_key(fname, (uint8_t*) key);
+    fprintf(stdout, "Got key\n");
+    for (int i = 0; i < CIPHER_KEY_SIZE; i++)
+      fprintf(stdout, "%d\t", key[i]);
+    fprintf(stdout, "\n");
+    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split, key));
+    fprintf(stdout, "Loaded key\n");
+#else
     *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
+#endif
     API_END();
 }
 
@@ -1016,304 +1409,6 @@ XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
   bst->learner()->Save(fo.get());
   API_END();
 }
-
-#ifdef __ENCLAVE__ // attestation
-
-// Compute the sha256 hash of given data.
-int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[32]) {
-  int ret = 0;
-  mbedtls_sha256_context ctx;
-
-#define safe_sha(call) {                \
-int ret = (call);                       \
-if (ret) {                              \
-  mbedtls_sha256_free(&ctx);            \
-  return -1;                            \
-}                                       \
-}
-
-  mbedtls_sha256_init(&ctx);
-  safe_sha(mbedtls_sha256_starts_ret(&ctx, 0));
-  safe_sha(mbedtls_sha256_update_ret(&ctx, data, data_size));
-  safe_sha(mbedtls_sha256_finish_ret(&ctx, sha256));
-
-  mbedtls_sha256_free(&ctx);
-  return ret;
-}
-
-// FIXME wrap in a struct / class?
-static mbedtls_ctr_drbg_context m_ctr_drbg_contex;
-static mbedtls_entropy_context m_entropy_context;
-static mbedtls_pk_context m_pk_context;
-static uint8_t m_public_key[512];
-static bool m_initialized = false;
-
-/**
- * Generate an ephermeral public key pair for the enclave
- */
-bool generate_public_key() {
-  if (m_initialized)
-    return true;
-
-  mbedtls_ctr_drbg_init(&m_ctr_drbg_contex);
-  mbedtls_entropy_init(&m_entropy_context);
-  mbedtls_pk_init(&m_pk_context);
-
-  int res = -1;
-  // Initialize entropy.
-    res = mbedtls_ctr_drbg_seed(&m_ctr_drbg_contex, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
-    if (res != 0) {
-      LOG(INFO) << "mbedtls_ctr_drbg_seed failed.";
-      return false;
-    }
-
-    // Initialize RSA context.
-    res = mbedtls_pk_setup(&m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
-    if (res != 0) {
-      LOG(INFO) << "mbedtls_pk_setup failed " << res;
-      return false;
-    }
-
-    // Generate an ephemeral 2048-bit RSA key pair with
-    // exponent 65537 for the enclave.
-    res = mbedtls_rsa_gen_key(
-        mbedtls_pk_rsa(m_pk_context),
-        mbedtls_ctr_drbg_random,
-        &m_ctr_drbg_contex,
-        2048,
-        65537);
-    if (res != 0) {
-      LOG(INFO) << "mbedtls_rsa_gen_key failed " << res;
-      return false;
-    }
-
-    // Write out the public key in PEM format for exchange with other enclaves.
-    res = mbedtls_pk_write_pubkey_pem(&m_pk_context, m_public_key, sizeof(m_public_key));
-    if (res != 0) {
-      LOG(INFO) << "mbedtls_pk_write_pubkey_pem failed " << res;
-      return false;
-    }
-
-  m_initialized = true;
-  return true;
-}
-
-/**
- * Generate a remote report for the given data. The SHA256 digest of the data is
- * stored in the report_data field of the generated remote report.
- */
-bool generate_remote_report(
-    const uint8_t* data,
-    const size_t data_size,
-    uint8_t** remote_report_buf,
-    size_t* remote_report_buf_size) {
-  bool ret = false;
-  uint8_t sha256[32];
-  oe_result_t result = OE_OK;
-  uint8_t* temp_buf = NULL;
-
-  // Compute the sha256 hash of given data.
-  if (compute_sha256(data, data_size, sha256) != 0) {
-    LOG(INFO) << "compute_sha256 failed";
-    return false;
-  }
-
-  // To generate a remote report that can be attested remotely by an enclave
-  // running  on a different platform, pass the
-  // OE_REPORT_FLAGS_REMOTE_ATTESTATION option. This uses the trusted
-  // quoting enclave to generate the report based on this enclave's local
-  // report.
-  // To generate a remote report that just needs to be attested by another
-  // enclave running on the same platform, pass 0 instead. This uses the
-  // EREPORT instruction to generate this enclave's local report.
-  // Both kinds of reports can be verified using the oe_verify_report
-  // function.
-  result = oe_get_report(
-      OE_REPORT_FLAGS_REMOTE_ATTESTATION,
-      sha256, // Store sha256 in report_data field
-      sizeof(sha256),
-      NULL, // opt_params must be null
-      0,
-      &temp_buf,
-      remote_report_buf_size);
-  if (result != OE_OK) {
-    LOG(INFO) << "oe_get_report failed.";
-    return false;
-  }
-  *remote_report_buf = temp_buf;
-  LOG(INFO) << "generate_remote_report succeeded.";
-  return true;
-}
-
-/**
- * Return the public key of this enclave along with the enclave's remote report.
- * The enclave that receives the key will use the remote report to attest this
- * enclave.
- */
-int get_remote_report_with_pubkey(
-    uint8_t** pem_key,
-    size_t* key_size,
-    uint8_t** remote_report,
-    size_t* remote_report_size) {
-
-  uint8_t* report = NULL;
-  size_t report_size = 0;
-  uint8_t* key_buf = NULL;
-  int ret = 1;
-
-  generate_public_key();
-
-  if (generate_remote_report(
-        m_public_key, sizeof(m_public_key), &report, &report_size)) {
-    // Allocate memory on the host and copy the report over.
-    *remote_report = (uint8_t*)oe_host_malloc(report_size);
-    if (*remote_report == NULL) {
-      ret = OE_OUT_OF_MEMORY;
-      goto exit;
-    }
-    memcpy(*remote_report, report, report_size);
-    *remote_report_size = report_size;
-    oe_free_report(report);
-
-    key_buf = (uint8_t*)oe_host_malloc(512);
-    if (key_buf == NULL) {
-      ret = OE_OUT_OF_MEMORY;
-      goto exit;
-    }
-    memcpy(key_buf, m_public_key, sizeof(m_public_key));
-
-    *pem_key = key_buf;
-    *key_size = sizeof(m_public_key);
-
-    ret = 0;
-    LOG(INFO) << "get_remote_report_with_pubkey succeeded";
-  } else {
-    LOG(FATAL) << "get_remote_report_with_pubkey failed.";
-  }
-
-  //FIXME remove label
-exit:
-  if (ret != 0) {
-    if (report)
-      oe_free_report(report);
-    if (key_buf)
-      oe_host_free(key_buf);
-    if (*remote_report)
-      oe_host_free(*remote_report);
-  }
-  return ret;
-} 
-
-/**
- * Attest the given remote report and accompanying data. It consists of the
- * following three steps:
- *
- * 1) The remote report is first attested using the oe_verify_report API. This
- * ensures the authenticity of the enclave that generated the remote report.
- * 2) Next, to establish trust of the enclave that  generated the remote report,
- * the mrsigner, product_id, isvsvn values are checked to  see if they are
- * predefined trusted values.
- * 3) Once the enclave's trust has been established, the validity of
- * accompanying data is ensured by comparing its SHA256 digest against the
- * report_data field.
- */
-bool attest_remote_report(
-    const uint8_t* remote_report,
-    size_t remote_report_size,
-    const uint8_t* data,
-    size_t data_size) {
-
-    bool ret = false;
-    uint8_t sha256[32];
-    oe_report_t parsed_report = {0};
-    oe_result_t result = OE_OK;
-
-    // While attesting, the remote report being attested must not be tampered
-    // with. Ensure that it has been copied over to the enclave.
-    if (!oe_is_within_enclave(remote_report, remote_report_size)) {
-        LOG(FATAL) << "Cannot attest remote report in host memory. Unsafe.";
-    }
-
-    // 1)  Validate the report's trustworthiness
-    // Verify the remote report to ensure its authenticity.
-    result = oe_verify_report(remote_report, remote_report_size, &parsed_report);
-    if (result != OE_OK) {
-        LOG(FATAL) << "oe_verify_report failed " << oe_result_str(result);
-    }
-
-    // 2) validate the enclave identity's signed_id is the hash of the public
-    // signing key that was used to sign an enclave. Check that the enclave was
-    // signed by an trusted entity.
-    // FIXME Enable this check
-    /*if (memcmp(parsed_report.identity.signer_id, m_enclave_mrsigner, 32) != 0) {
-        LOG(FATAL) << "identity.signer_id checking failed."
-
-        LOG(INFO)<< "identity.signer_id " << parsed_report.identity.signer_id;
-
-        for (int i = 0; i < 32; i++) {
-            TRACE_ENCLAVE(
-                "m_enclave_mrsigner[%d]=0x%0x\n",
-                i,
-                (uint8_t)m_enclave_mrsigner[i]);
-        }
-
-        TRACE_ENCLAVE("\n\n\n");
-
-        for (int i = 0; i < 32; i++)
-        {
-            TRACE_ENCLAVE(
-                "parsedReport.identity.signer_id)[%d]=0x%0x\n",
-                i,
-                (uint8_t)parsed_report.identity.signer_id[i]);
-        }
-        TRACE_ENCLAVE("m_enclave_mrsigner %s", m_enclave_mrsigner);
-        goto exit;
-    }*/
-    
-    // FIXME add verification for MRENCLAVE
-
-    // Check the enclave's product id and security version
-    // See enc.conf for values specified when signing the enclave.
-    if (parsed_report.identity.product_id[0] != 1) {
-        LOG(FATAL) << "identity.product_id checking failed.";
-    }
-
-    if (parsed_report.identity.security_version < 1) {
-        LOG(FATAL) << "identity.security_version checking failed.";
-    }
-
-    // 3) Validate the report data
-    //    The report_data has the hash value of the report data
-    if (compute_sha256(data, data_size, sha256) != 0) {
-        LOG(FATAL) << "hash validation failed.";
-    }
-
-    if (memcmp(parsed_report.report_data, sha256, sizeof(sha256)) != 0) {
-        LOG(FATAL) << "SHA256 mismatch.";
-    }
-    ret = true;
-    LOG(INFO) << "remote attestation succeeded.";
-    return ret;
-}
-
-int verify_remote_report_and_set_pubkey(
-    uint8_t* pem_key,
-    size_t key_size,
-    uint8_t* remote_report,
-    size_t remote_report_size) {
-
-	// Attest the remote report and accompanying key.
-	if (attest_remote_report(remote_report, remote_report_size, pem_key, key_size)) {
-    // FIXME save the pubkey passed by the other enclave
-		//memcpy(m_crypto->get_the_other_enclave_public_key(), pem_key, key_size);
-	} else {
-		LOG(INFO) << "verify_report_and_set_pubkey failed.";
-    return -1;
-	}
-	LOG(INFO) << "verify_report_and_set_pubkey succeeded.";
-  return 0;
-}
-#endif // __ENCLAVE__
 
 #ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
