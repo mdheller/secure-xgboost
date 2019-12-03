@@ -22,6 +22,41 @@ import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 import xgboost as xgb
 
+def xgb_load_train_predict():
+    print("Creating training matrix")
+    dtrain = xgb.DMatrix("/home/rishabh/sample_data/train.encrypted")
+
+    print("Creating test matrix")
+    dtest = xgb.DMatrix("/home/rishabh/sample_data/test.encrypted") 
+
+    booster = xgb.Booster(cache=(dtrain, dtest))
+    print("Booster created")
+
+    # Set training parameters
+    params = {
+            "tree_method": "hist",
+            "n_gpus": "0",
+            "objective": "binary:logistic",
+            "min_child_weight": "1",
+            "gamma": "0.1",
+            "max_depth": "3",
+            "verbosity": "3" 
+    }
+    booster.set_param(params)
+
+    # Train and evaluate
+    n_trees = 10
+    for i in range(n_trees):
+          booster.update(dtrain, i)
+          print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+
+    # Predict
+    print("------ y_pred --------")
+    print(booster.predict(dtest)[:10])
+    print("------ y_test --------")
+    print(dtest.get_label()[:10])
+
+
 
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
 
@@ -50,6 +85,53 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         # TODO: decrypt the symmetric key with the public key, save the filenames
 
         return remote_attestation_pb2.Status(status=1)
+
+    def SignalStart(self, request, context):
+        """
+        Signal to RPC server that client is ready to start
+        """
+        signal = request.status
+        if signal == 1:
+            try:
+                # enclave = xgb.Enclave(create_enclave=False)
+                xgb_load_train_predict()
+                # print("Creating training matrix")
+                # dtrain = xgb.DMatrix("/home/rishabh/train.encrypted")
+# 
+                # print("Creating test matrix")
+                # dtest = xgb.DMatrix("/home/rishabh/test.encrypted") 
+# 
+                # booster = xgb.Booster(cache=(dtrain, dtest))
+                # print("Booster created")
+# 
+                # # Set training parameters
+                # params = {
+                        # "tree_method": "hist",
+                        # "n_gpus": "0",
+                        # "objective": "binary:logistic",
+                        # "min_child_weight": "1",
+                        # "gamma": "0.1",
+                        # "max_depth": "3",
+                        # "verbosity": "3" 
+                        # }
+                # booster.set_param(params)
+# 
+                # # Train and evaluate
+                # n_trees = 10
+                # for i in range(n_trees):
+                    # booster.update(dtrain, i)
+                    # print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+# 
+                # # Predict
+                # print("------ y_pred --------")
+                # print(booster.predict(dtest)[:10])
+                # print("------ y_test --------")
+                # print(dtest.get_label()[:10])
+                return remote_attestation_pb2.Status(status=1)
+            except:
+                return remote_attestation_pb2.Status(status=-1)
+        else:
+            return remote_attestation_pb2.Status(status=-1)
 
 
 def serve():

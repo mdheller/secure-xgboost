@@ -36,6 +36,11 @@ service RemoteAttestation {
   // Send symmetric key encrypted with enclave public key and filenames
   // of training/test data
   rpc SendKey(DataMetadata) returns (Status) {}
+
+  // A simple RPC.
+  //
+  // Signal to RPC server that the client is ready
+  rpc SignalStart(Status) returns (Status) {}
 }
 
 // Current status of the node

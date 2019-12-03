@@ -24,6 +24,11 @@ class RemoteAttestationStub(object):
         request_serializer=remote__attestation__pb2.DataMetadata.SerializeToString,
         response_deserializer=remote__attestation__pb2.Status.FromString,
         )
+    self.SignalStart = channel.unary_unary(
+        '/remote_attestation.RemoteAttestation/SignalStart',
+        request_serializer=remote__attestation__pb2.Status.SerializeToString,
+        response_deserializer=remote__attestation__pb2.Status.FromString,
+        )
 
 
 class RemoteAttestationServicer(object):
@@ -51,6 +56,15 @@ class RemoteAttestationServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def SignalStart(self, request, context):
+    """A simple RPC.
+
+    Signal to RPC server that the client is ready
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_RemoteAttestationServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -62,6 +76,11 @@ def add_RemoteAttestationServicer_to_server(servicer, server):
       'SendKey': grpc.unary_unary_rpc_method_handler(
           servicer.SendKey,
           request_deserializer=remote__attestation__pb2.DataMetadata.FromString,
+          response_serializer=remote__attestation__pb2.Status.SerializeToString,
+      ),
+      'SignalStart': grpc.unary_unary_rpc_method_handler(
+          servicer.SignalStart,
+          request_deserializer=remote__attestation__pb2.Status.FromString,
           response_serializer=remote__attestation__pb2.Status.SerializeToString,
       ),
   }

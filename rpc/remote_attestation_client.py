@@ -55,6 +55,16 @@ def run():
 
     print("Symmetric key and filenames sent to server")
 
+    with grpc.insecure_channel('localhost:50051') as channel:
+        stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
+        response = stub.SignalStart(remote_attestation_pb2.Status(status=1))
+
+    if response.status == 1:
+        print("Training succeeded!")
+    else:
+        print("Training failed")
+    
+
 
 if __name__ == '__main__':
     logging.basicConfig()
