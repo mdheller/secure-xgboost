@@ -23,14 +23,14 @@ import remote_attestation_pb2_grpc
 import xgboost as xgb
 
 def xgb_load_train_predict():
-    print("Creating training matrix")
-    dtrain = xgb.DMatrix("/home/rishabh/sample_data/train.encrypted")
-
     print("Creating test matrix")
     dtest = xgb.DMatrix("/home/rishabh/sample_data/test.encrypted") 
 
+    print("Creating training matrix")
+    dtrain = xgb.DMatrix("/home/rishabh/sample_data/train.encrypted")
+
+    print("Creating booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
-    print("Booster created")
 
     # Set training parameters
     params = {

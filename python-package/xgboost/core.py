@@ -1018,13 +1018,13 @@ class Booster(object):
                 2 : simulation mode
                 3 : debug + simulation mode
         """
-        self.handle = ctypes.c_void_p()
 
         for d in cache:
             if not isinstance(d, DMatrix):
                 raise TypeError('invalid cache item: {}'.format(type(d).__name__))
             # self._validate_features(d)
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
+        self.handle = ctypes.c_void_p()
 
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),
                                          ctypes.byref(self.handle)))
