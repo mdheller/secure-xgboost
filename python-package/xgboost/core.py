@@ -17,6 +17,7 @@ import sys
 import warnings
 
 import numpy as np
+from numproto import ndarray_to_proto, proto_to_ndarray
 import scipy.sparse
 
 from .compat import (STRING_TYPES, PY3, DataFrame, MultiIndex, py_str,
@@ -930,8 +931,9 @@ class Enclave(object):
 
     A trusted execution environment used for secure XGBoost.
     """
-    def __init__(self, enclave_image, flags=3):
-        _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
+    def __init__(self, enclave_image=None, flags=3, create_enclave=True):
+        if create_enclave:
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags)))    
         self.pem_key = ctypes.POINTER(ctypes.c_uint)()
         self.key_size = ctypes.c_size_t()
         self.remote_report = ctypes.POINTER(ctypes.c_uint)()
@@ -948,6 +950,40 @@ class Enclave(object):
         Verify the received attestation report and set the public key
         """
         _check_call(_LIB.verify_remote_report_and_set_pubkey(self.pem_key, self.key_size, self.remote_report, self.remote_report_size))
+
+    def set_report_attrs(self, pem_key, key_size, remote_report, remote_report_size):
+        """
+        Set the enclave public key and remote report
+
+        To be used by RPC client during verification
+        """
+        pem_key_ndarray = proto_to_ndarray(pem_key)
+        self.pem_key = pem_key_ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        self.key_size = ctypes.c_size_t(key_size)
+ 
+        remote_report_ndarray = proto_to_ndarray(remote_report)
+        self.remote_report = remote_report_ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        self.remote_report_size = ctypes.c_size_t(remote_report_size)
+
+    def get_report_attrs(self):
+        """
+        Get the enclave public key and remote report
+
+        To be called by the RPC service
+
+        Must be called after get_remote_report_with_pubkey() is called
+        """
+        # Convert pem_key to serialized numpy array
+        pem_key = ctypes2numpy(self.pem_key, self.key_size.value, np.uint32)
+        pem_key = ndarray_to_proto(pem_key)
+        key_size = self.key_size.value
+
+        # Convert remote_report to serialized numpy array
+        remote_report = ctypes2numpy(self.remote_report, self.remote_report_size.value, np.uint32)
+        remote_report = ndarray_to_proto(remote_report)
+        remote_report_size = self.remote_report_size.value
+        
+        return pem_key, key_size, remote_report, remote_report_size
 
 
 class Booster(object):
