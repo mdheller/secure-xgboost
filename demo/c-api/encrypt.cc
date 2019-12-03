@@ -1,20 +1,5 @@
 
-#include <iostream>
-#include <fstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <xgboost/c_api.h>
-#include <dmlc/base64.h>
-
-#include <mbedtls/entropy.h>    // mbedtls_entropy_context
-#include <mbedtls/ctr_drbg.h>   // mbedtls_ctr_drbg_context
-#include <mbedtls/cipher.h>     // MBEDTLS_CIPHER_ID_AES
-#include <mbedtls/gcm.h>        // mbedtls_gcm_context
-
-#define KEY_BYTES 32
-#define IV_BYTES 12
-#define TAG_BYTES 16
+#include "encrypt.h"
 
 // Creates a CSV file with format "IV,tag,encrypt(line)" (base64 encoded) for each line in input file
 void encryptFile(char* fname, char* e_fname) {
@@ -47,8 +32,8 @@ void encryptFile(char* fname, char* e_fname) {
     printf( "mbedtls_ctr_drbg_random failed to extract key - returned -0x%04x\n", -ret );
     exit(1);
   }
-  // Set key to 0 for testing
-  memset(key, 0, KEY_BYTES);
+  // Set key to test_key for testing
+  memcpy(key, test_key, KEY_BYTES);
   // Extract data for your IV, in this case we generate 12 bytes (96 bits) of random data
   ret = mbedtls_ctr_drbg_random( &ctr_drbg, iv, IV_BYTES );
   if( ret != 0 ) {
@@ -184,13 +169,55 @@ void decryptFile(char* fname, char* d_fname) {
   myfile.close();
 }
 
+void encryptDataWithPublicKey(char* data, size_t len, uint8_t* pem_key, size_t key_size, uint8_t* encrypted_data, size_t* encrypted_data_size) {
+    bool result = false;
+    mbedtls_pk_context key;
+    int res = -1;
 
-int main(int argc, char** argv) {
-  //encryptFile("traincsv", "train.encrypted");
-  //encryptFile("testcsv", "test.encrypted");
-  encryptFile("../data/agaricus.txt.train", "train.encrypted");
-  encryptFile("../data/agaricus.txt.test", "test.encrypted");
-  decryptFile("train.encrypted", "decrypted1.txt");
-  decryptFile("test.encrypted", "decrypted2.txt");
-  return 0;
+    mbedtls_ctr_drbg_context m_ctr_drbg_context;
+    mbedtls_entropy_context m_entropy_context;
+    mbedtls_pk_context m_pk_context;
+    mbedtls_ctr_drbg_init(&m_ctr_drbg_context);
+    mbedtls_entropy_init(&m_entropy_context);
+    mbedtls_pk_init(&m_pk_context);
+    res = mbedtls_ctr_drbg_seed(
+        &m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
+    res = mbedtls_pk_setup(
+        &m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+
+
+    mbedtls_rsa_context* rsa_context;
+
+    mbedtls_pk_init(&key);
+
+    // Read the given public key.
+    key_size = strlen((const char*)pem_key) + 1; // Include ending '\0'.
+    res = mbedtls_pk_parse_public_key(&key, pem_key, key_size);
+    if (res != 0) {
+        std::cout << "mbedtls_pk_parse_public_key failed.\n";
+        mbedtls_pk_free(&key);
+        return;
+    }
+
+    rsa_context = mbedtls_pk_rsa(key);
+    rsa_context->padding = MBEDTLS_RSA_PKCS_V21;
+    rsa_context->hash_id = MBEDTLS_MD_SHA256;
+
+    // Encrypt the data.
+    res = mbedtls_rsa_pkcs1_encrypt(
+        rsa_context,
+        //mbedtls_pk_rsa(key),
+        mbedtls_ctr_drbg_random,
+        &m_ctr_drbg_context,
+        MBEDTLS_RSA_PUBLIC,
+        len,
+        (const unsigned char*) data,
+        (unsigned char*) encrypted_data);
+    if (res != 0) {
+        std::cout << "mbedtls_rsa_pkcs1_encrypt failed\n";
+        mbedtls_pk_free(&key);
+        return;
+    }
+
+    *encrypted_data_size = mbedtls_pk_rsa(key)->len;
 }

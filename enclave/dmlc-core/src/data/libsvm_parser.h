@@ -45,6 +45,18 @@ struct LibSVMParserParam : public Parameter<LibSVMParserParam> {
 template <typename IndexType, typename DType = real_t>
 class LibSVMParser : public TextParserBase<IndexType> {
  public:
+#ifdef __ENCLAVE__ // Init with encryption key
+   explicit LibSVMParser(InputSplit *source, int nthread, char* key)
+     : LibSVMParser(source, std::map<std::string, std::string>(), nthread, key) {}
+  explicit LibSVMParser(InputSplit *source,
+      const std::map<std::string, std::string>& args,
+      int nthread,
+      const char* key)
+    : TextParserBase<IndexType>(source, nthread, key) {
+      param_.Init(args);
+      CHECK_EQ(param_.format, "libsvm");
+    }
+#else
   explicit LibSVMParser(InputSplit *source, int nthread)
       : LibSVMParser(source, std::map<std::string, std::string>(), nthread) {}
   explicit LibSVMParser(InputSplit *source,
@@ -54,6 +66,7 @@ class LibSVMParser : public TextParserBase<IndexType> {
     param_.Init(args);
     CHECK_EQ(param_.format, "libsvm");
   }
+#endif
 
  protected:
   virtual void ParseBlock(const char *begin,

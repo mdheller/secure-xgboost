@@ -20,13 +20,25 @@ namespace data {
 
 template<typename IndexType, typename DType = real_t>
 Parser<IndexType> *
+#ifdef __ENCLAVE__ // Init with encryption key
+CreateLibSVMParser(const std::string& path,
+    const std::map<std::string, std::string>& args,
+    unsigned part_index,
+    unsigned num_parts,
+    const char* key) {
+#else
 CreateLibSVMParser(const std::string& path,
                    const std::map<std::string, std::string>& args,
                    unsigned part_index,
                    unsigned num_parts) {
+#endif
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
+#ifdef __ENCLAVE__ // Init with encryption key
+  ParserImpl<IndexType> *parser = new LibSVMParser<IndexType>(source, args, 2, key);
+#else
   ParserImpl<IndexType> *parser = new LibSVMParser<IndexType>(source, args, 2);
+#endif
 #if DMLC_ENABLE_STD_THREAD
   parser = new ThreadedParser<IndexType>(parser);
 #endif
@@ -35,13 +47,25 @@ CreateLibSVMParser(const std::string& path,
 
 template<typename IndexType, typename DType = real_t>
 Parser<IndexType> *
+#ifdef __ENCLAVE__ // Init with encryption key
+CreateLibFMParser(const std::string& path,
+    const std::map<std::string, std::string>& args,
+    unsigned part_index,
+    unsigned num_parts,
+    const char* key) {
+#else
 CreateLibFMParser(const std::string& path,
                   const std::map<std::string, std::string>& args,
                   unsigned part_index,
                   unsigned num_parts) {
+#endif
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
+#ifdef __ENCLAVE__ // Init with encryption key
+  ParserImpl<IndexType> *parser = new LibFMParser<IndexType>(source, args, 2, key);
+#else
   ParserImpl<IndexType> *parser = new LibFMParser<IndexType>(source, args, 2);
+#endif
 #if DMLC_ENABLE_STD_THREAD
   parser = new ThreadedParser<IndexType>(parser);
 #endif
@@ -50,21 +74,41 @@ CreateLibFMParser(const std::string& path,
 
 template<typename IndexType, typename DType = real_t>
 Parser<IndexType, DType> *
+#ifdef __ENCLAVE__ // Init with encryption key
+CreateCSVParser(const std::string& path,
+    const std::map<std::string, std::string>& args,
+    unsigned part_index,
+    unsigned num_parts,
+    const char* key) {
+#else
 CreateCSVParser(const std::string& path,
                 const std::map<std::string, std::string>& args,
                 unsigned part_index,
                 unsigned num_parts) {
+#endif
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
+#ifdef __ENCLAVE__ // Init with encryption key
+  return new CSVParser<IndexType, DType>(source, args, 2, key);
+#else
   return new CSVParser<IndexType, DType>(source, args, 2);
+#endif
 }
 
 template<typename IndexType, typename DType = real_t>
 inline Parser<IndexType, DType> *
+#ifdef __ENCLAVE__ // Init with encryption key
+CreateParser_(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+#else
 CreateParser_(const char *uri_,
               unsigned part_index,
               unsigned num_parts,
               const char *type) {
+#endif
   std::string ptype = type;
   io::URISpec spec(uri_, part_index, num_parts);
   if (ptype == "auto") {
@@ -81,9 +125,14 @@ CreateParser_(const char *uri_,
     LOG(FATAL) << "Unknown data type " << ptype;
   }
   // create parser
+#ifdef __ENCLAVE__ // Init with encryption key
+  return (*e->body)(spec.uri, spec.args, part_index, num_parts, key);
+#else
   return (*e->body)(spec.uri, spec.args, part_index, num_parts);
+#endif
 }
 
+#ifndef __ENCLAVE__
 template<typename IndexType, typename DType = real_t>
 inline RowBlockIter<IndexType, DType> *
 CreateIter_(const char *uri_,
@@ -105,12 +154,14 @@ CreateIter_(const char *uri_,
     return new BasicRowIter<IndexType, DType>(parser);
   }
 }
+#endif
 
 DMLC_REGISTER_PARAMETER(LibSVMParserParam);
 DMLC_REGISTER_PARAMETER(LibFMParserParam);
 DMLC_REGISTER_PARAMETER(CSVParserParam);
 }  // namespace data
 
+#ifndef __ENCLAVE__
 // template specialization
 template<>
 RowBlockIter<uint32_t, real_t> *
@@ -218,6 +269,67 @@ Parser<uint64_t, int64_t>::Create(const char *uri_,
                                   unsigned num_parts,
                                   const char *type) {
   return data::CreateParser_<uint64_t, int64_t>(uri_, part_index, num_parts, type);
+}
+#endif
+
+template<>
+Parser<uint32_t, real_t> *
+Parser<uint32_t, real_t>::Create(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+  return data::CreateParser_<uint32_t, real_t>(uri_, part_index, num_parts, type, key);
+}
+
+template<>
+Parser<uint64_t, real_t> *
+Parser<uint64_t, real_t>::Create(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+  return data::CreateParser_<uint64_t, real_t>(uri_, part_index, num_parts, type, key);
+}
+
+template<>
+Parser<uint32_t, int32_t> *
+Parser<uint32_t, int32_t>::Create(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+  return data::CreateParser_<uint32_t, int32_t>(uri_, part_index, num_parts, type, key);
+}
+
+template<>
+Parser<uint64_t, int32_t> *
+Parser<uint64_t, int32_t>::Create(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+  return data::CreateParser_<uint64_t, int32_t>(uri_, part_index, num_parts, type, key);
+}
+
+template<>
+Parser<uint32_t, int64_t> *
+Parser<uint32_t, int64_t>::Create(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+  return data::CreateParser_<uint32_t, int64_t>(uri_, part_index, num_parts, type, key);
+}
+
+template<>
+Parser<uint64_t, int64_t> *
+Parser<uint64_t, int64_t>::Create(const char *uri_,
+    unsigned part_index,
+    unsigned num_parts,
+    const char *type,
+    const char* key) {
+  return data::CreateParser_<uint64_t, int64_t>(uri_, part_index, num_parts, type, key);
 }
 
 // registry

@@ -1392,4 +1392,10 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
   std::cout << "verify_report_and_set_pubkey succeeded." << std::endl;
   return 0;
 }
+
+int add_client_key(char* fname, uint8_t* data, size_t len, uint8_t* signature) {
+    // FIXME return value / error handling
+  enclave_add_client_key(enclave, &enclave_ret, fname, data, len, signature);
+  return enclave_ret;
+}
 #endif

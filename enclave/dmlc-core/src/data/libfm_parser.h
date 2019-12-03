@@ -45,6 +45,18 @@ struct LibFMParserParam : public Parameter<LibFMParserParam> {
 template <typename IndexType, typename DType = real_t>
 class LibFMParser : public TextParserBase<IndexType, DType> {
  public:
+#ifdef __ENCLAVE__ // Init with encryption key
+   explicit LibFMParser(InputSplit *source, int nthread, char* key)
+     : LibFMParser(source, std::map<std::string, std::string>(), nthread, key) {}
+   explicit LibFMParser(InputSplit *source,
+       const std::map<std::string, std::string>& args,
+       int nthread,
+       const char* key)
+     : TextParserBase<IndexType>(source, nthread, key) {
+       param_.Init(args);
+       CHECK_EQ(param_.format, "libfm");
+     }
+#else
   explicit LibFMParser(InputSplit *source, int nthread)
       : LibFMParser(source, std::map<std::string, std::string>(), nthread) {}
   explicit LibFMParser(InputSplit *source,
@@ -54,6 +66,7 @@ class LibFMParser : public TextParserBase<IndexType, DType> {
     param_.Init(args);
     CHECK_EQ(param_.format, "libfm");
   }
+#endif
 
  protected:
   virtual void ParseBlock(const char *begin,
