@@ -1393,7 +1393,7 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
   return 0;
 }
 
-int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, sig_len) {
+int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
     // FIXME return value / error handling
   enclave_add_client_key(enclave, &enclave_ret, fname, data, data_len, signature, sig_len);
   return enclave_ret;
