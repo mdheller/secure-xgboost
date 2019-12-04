@@ -26,7 +26,13 @@
 #ifdef __SGX__
 #include <openenclave/host.h>
 #include "xgboost_u.h"
-#include "mbedtls/sha256.h"
+#include <mbedtls/entropy.h>    // mbedtls_entropy_context
+#include <mbedtls/ctr_drbg.h>   // mbedtls_ctr_drbg_context
+#include <mbedtls/cipher.h>     // MBEDTLS_CIPHER_ID_AES
+#include <mbedtls/gcm.h>        // mbedtls_gcm_context
+#include <mbedtls/pk.h>
+#include <mbedtls/rsa.h>
+#include <mbedtls/sha256.h>
 #endif
 
 // TODO(rishabh): Ecall error handling
@@ -1382,10 +1388,7 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
     size_t remote_report_size) {
 
   // Attest the remote report and accompanying key.
-  if (attest_remote_report(remote_report, remote_report_size, pem_key, key_size)) {
-    // FIXME save the pubkey passed by the other enclave
-    //memcpy(m_crypto->get_the_other_enclave_public_key(), pem_key, key_size);
-  } else {
+  if (!attest_remote_report(remote_report, remote_report_size, pem_key, key_size)) {
     std::cout << "verify_report_and_set_pubkey failed." << std::endl;
     return -1;
   }
@@ -1393,9 +1396,105 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
   return 0;
 }
 
-int add_client_key(char* fname, uint8_t* data, size_t len, uint8_t* signature) {
+XGB_DLL int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
     // FIXME return value / error handling
-  enclave_add_client_key(enclave, &enclave_ret, fname, data, len, signature);
+  enclave_add_client_key(enclave, &enclave_ret, fname, data, data_len, signature, sig_len);
   return enclave_ret;
+}
+
+XGB_DLL int encrypt_data_with_pk(char* data, size_t len, uint8_t* pem_key, size_t key_size, uint8_t* encrypted_data, size_t* encrypted_data_size) {
+  bool result = false;
+  mbedtls_pk_context key;
+  int res = -1;
+
+  mbedtls_ctr_drbg_context m_ctr_drbg_context;
+  mbedtls_entropy_context m_entropy_context;
+  mbedtls_pk_context m_pk_context;
+  mbedtls_ctr_drbg_init(&m_ctr_drbg_context);
+  mbedtls_entropy_init(&m_entropy_context);
+  mbedtls_pk_init(&m_pk_context);
+  res = mbedtls_ctr_drbg_seed(
+      &m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
+  res = mbedtls_pk_setup(
+      &m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+
+
+  mbedtls_rsa_context* rsa_context;
+
+  mbedtls_pk_init(&key);
+
+  // Read the given public key.
+  key_size = strlen((const char*)pem_key) + 1; // Include ending '\0'.
+  res = mbedtls_pk_parse_public_key(&key, pem_key, key_size);
+  if (res != 0) {
+    std::cout << "mbedtls_pk_parse_public_key failed.\n";
+    mbedtls_pk_free(&key);
+    return res;
+  }
+
+  rsa_context = mbedtls_pk_rsa(key);
+  rsa_context->padding = MBEDTLS_RSA_PKCS_V21;
+  rsa_context->hash_id = MBEDTLS_MD_SHA256;
+
+  // Encrypt the data.
+  res = mbedtls_rsa_pkcs1_encrypt(
+      rsa_context,
+      //mbedtls_pk_rsa(key),
+      mbedtls_ctr_drbg_random,
+      &m_ctr_drbg_context,
+      MBEDTLS_RSA_PUBLIC,
+      len,
+      (const unsigned char*) data,
+      (unsigned char*) encrypted_data);
+  if (res != 0) {
+    std::cout << "mbedtls_rsa_pkcs1_encrypt failed\n";
+    mbedtls_pk_free(&key);
+    return res;
+  }
+
+  *encrypted_data_size = mbedtls_pk_rsa(key)->len;
+
+  mbedtls_pk_free( &m_pk_context );
+  mbedtls_ctr_drbg_free( &m_ctr_drbg_context );
+  mbedtls_entropy_free( &m_entropy_context );
+  return 0;
+}
+
+XGB_DLL int sign_data(char *keyfile, uint8_t* data, size_t data_size, uint8_t* signature, size_t* sig_len) {
+  mbedtls_pk_context pk;
+  mbedtls_entropy_context m_entropy_context;
+  mbedtls_ctr_drbg_context m_ctr_drbg_context;
+
+  mbedtls_entropy_init( &m_entropy_context );
+  mbedtls_pk_init( &pk );
+  mbedtls_ctr_drbg_init( &m_ctr_drbg_context ); 
+
+  unsigned char hash[32];
+  int ret = 1;
+
+  ret = mbedtls_ctr_drbg_seed(&m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
+
+  if((ret = mbedtls_pk_parse_keyfile( &pk, keyfile, "")) != 0) {
+    printf( " failed\n  ! Could not read key from '%s'\n", keyfile);
+    printf( "  ! mbedtls_pk_parse_public_keyfile returned %d\n\n", ret );
+    return ret;
+  }
+  if(!mbedtls_pk_can_do(&pk, MBEDTLS_PK_RSA)) {
+    printf( " failed\n  ! Key is not an RSA key\n" );
+    return ret;
+  }
+
+  mbedtls_rsa_set_padding(mbedtls_pk_rsa(pk), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256 );
+
+  if((ret = compute_sha256(data, data_size, hash)) != 0) {
+    printf( " failed\n  ! Could not hash\n\n");
+    return ret;
+  }
+
+  if((ret = mbedtls_pk_sign(&pk, MBEDTLS_MD_SHA256, hash, 0, signature, sig_len, mbedtls_ctr_drbg_random, &m_ctr_drbg_context)) != 0) {
+    printf( " failed\n  ! mbedtls_pk_sign returned %d\n\n", ret );
+    return ret;
+  }
+  return 0;
 }
 #endif

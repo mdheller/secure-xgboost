@@ -18,7 +18,7 @@ void encryptFile(char* fname, char* e_fname) {
   mbedtls_gcm_init(&gcm);
   // The personalization string should be unique to your application in order to add some
   // personalized starting randomness to your random sources.
-  char *pers = "aes generate key";
+  char *pers = "aes generate key for MC^2";
   // CTR_DRBG initial seeding Seed and setup entropy source for future reseeds
   int ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy, (unsigned char *)pers, strlen(pers) );
   if( ret != 0 )
@@ -169,55 +169,55 @@ void decryptFile(char* fname, char* d_fname) {
   myfile.close();
 }
 
-void encryptDataWithPublicKey(char* data, size_t len, uint8_t* pem_key, size_t key_size, uint8_t* encrypted_data, size_t* encrypted_data_size) {
-    bool result = false;
-    mbedtls_pk_context key;
-    int res = -1;
+int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[32]) {
+  int ret = 0;
+  mbedtls_sha256_context ctx;
 
-    mbedtls_ctr_drbg_context m_ctr_drbg_context;
-    mbedtls_entropy_context m_entropy_context;
-    mbedtls_pk_context m_pk_context;
-    mbedtls_ctr_drbg_init(&m_ctr_drbg_context);
-    mbedtls_entropy_init(&m_entropy_context);
-    mbedtls_pk_init(&m_pk_context);
-    res = mbedtls_ctr_drbg_seed(
-        &m_ctr_drbg_context, mbedtls_entropy_func, &m_entropy_context, NULL, 0);
-    res = mbedtls_pk_setup(
-        &m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+#define safe_sha(call) {                \
+int ret = (call);                       \
+if (ret) {                              \
+  mbedtls_sha256_free(&ctx);            \
+  return -1;                            \
+}                                       \
+}
+  mbedtls_sha256_init(&ctx);
+  safe_sha(mbedtls_sha256_starts_ret(&ctx, 0));
+  safe_sha(mbedtls_sha256_update_ret(&ctx, data, data_size));
+  safe_sha(mbedtls_sha256_finish_ret(&ctx, sha256));
 
+  mbedtls_sha256_free(&ctx);
+  return ret;
+}
 
-    mbedtls_rsa_context* rsa_context;
+void verifySignature(char *pkfile, uint8_t* data, size_t data_size, uint8_t* signature, size_t sig_len) {
+  mbedtls_pk_context pk;
+  unsigned char hash[32];
+  int ret = 1;
 
-    mbedtls_pk_init(&key);
+  mbedtls_pk_init( &pk );
 
-    // Read the given public key.
-    key_size = strlen((const char*)pem_key) + 1; // Include ending '\0'.
-    res = mbedtls_pk_parse_public_key(&key, pem_key, key_size);
-    if (res != 0) {
-        std::cout << "mbedtls_pk_parse_public_key failed.\n";
-        mbedtls_pk_free(&key);
-        return;
-    }
+  if((ret = mbedtls_pk_parse_public_keyfile(&pk, pkfile)) != 0) {
+    printf(" failed\n  ! Could not read key\n");
+    printf("  ! mbedtls_pk_parse_public_keyfile returned %d\n\n", ret);
+    exit(1);
+  }
 
-    rsa_context = mbedtls_pk_rsa(key);
-    rsa_context->padding = MBEDTLS_RSA_PKCS_V21;
-    rsa_context->hash_id = MBEDTLS_MD_SHA256;
+  if(!mbedtls_pk_can_do(&pk, MBEDTLS_PK_RSA)) {
+    printf( " failed\n  ! Key is not an RSA key\n" );
+    exit(1);
+  }
 
-    // Encrypt the data.
-    res = mbedtls_rsa_pkcs1_encrypt(
-        rsa_context,
-        //mbedtls_pk_rsa(key),
-        mbedtls_ctr_drbg_random,
-        &m_ctr_drbg_context,
-        MBEDTLS_RSA_PUBLIC,
-        len,
-        (const unsigned char*) data,
-        (unsigned char*) encrypted_data);
-    if (res != 0) {
-        std::cout << "mbedtls_rsa_pkcs1_encrypt failed\n";
-        mbedtls_pk_free(&key);
-        return;
-    }
+  mbedtls_rsa_set_padding( mbedtls_pk_rsa( pk ), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256 );
 
-    *encrypted_data_size = mbedtls_pk_rsa(key)->len;
+  if((ret = compute_sha256(data, data_size, hash)) != 0) {
+    printf( " failed\n  ! Could not hash\n\n");
+    exit(1);
+  }
+
+  if((ret = mbedtls_pk_verify(&pk, MBEDTLS_MD_SHA256, hash, 0, signature, sig_len)) != 0 ) {
+    printf( " failed\n  ! mbedtls_pk_verify returned %d\n\n", ret );
+    exit(1);
+  }
+
+  mbedtls_pk_free( &pk );
 }

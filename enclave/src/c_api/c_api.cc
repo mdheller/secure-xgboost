@@ -281,13 +281,67 @@ class EnclaveContext {
       }
     }
 
-    bool decrypt_and_save_client_key(std::string fname, uint8_t* data, size_t len, uint8_t* signature) {
-      // FIXME verify client identity using root CA and verify signature
-      // signature is over file name and encrypted key
+    // FIXME verify client identity using root CA
+    bool verifySignature(uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+      unsigned char hash[32];
+      int ret = 1;
+
+      mbedtls_pk_init(&m_pk_context);
+
+      const char* key =  "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArzxQ9wZ8pwKYEs+XZ1aJ\n"
+        "POur2Fm2AZhnev9hblLVAKUUcRijzieYLDrVoremwSNNoMtN1BED24yLBWJgaAli\n"
+        "0IQsfalXkQQUHOTdfqc6fH0IqdENbKCVMiVfKZ+hLZmuNPVH373xtMT2k95yqExR\n"
+        "wh6/4QRt/zHwUN+1FeumrM3TGB81ZjD5LDAr9AxhQVo17HuU94Nm5FDsCi/mumJ3\n"
+        "9vgi3TWKPAPs0egUbdpzakDBO0gmS9R4FlOQf2ygv8t3Q9Lmv1gr4iXrw1+fyZbf\n"
+        "vInXl8iUINK7imBUGffub1ALgsOuBVd5XomYYAsGdvmNovZu68Iqy2btwf9Bsgbi\n"
+        "uwIDAQAB\n"
+        "-----END PUBLIC KEY-----";
+
+      if((ret = mbedtls_pk_parse_public_key(&m_pk_context, (const unsigned char*) key, strlen(key) + 1)) != 0) {
+        LOG(INFO) << "verification failed - Could not read key";
+        LOG(INFO) << "verification failed - mbedtls_pk_parse_public_keyfile returned" << ret;
+        return false;
+      }
+
+      if(!mbedtls_pk_can_do(&m_pk_context, MBEDTLS_PK_RSA)) {
+        LOG(INFO) << "verification failed - Key is not an RSA key";
+        return false;
+      }
+
+      mbedtls_rsa_set_padding(mbedtls_pk_rsa(m_pk_context), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+
+      if((ret = compute_sha256(data, data_len, hash)) != 0) {
+        LOG(INFO) << "verification failed -- Could not hash";
+        return false;
+      }
+
+      if((ret = mbedtls_pk_verify(&m_pk_context, MBEDTLS_MD_SHA256, hash, 0, signature, sig_len)) != 0) {
+        LOG(INFO) << "verification failed -- mbedtls_pk_verify returned " << ret;
+        return false;
+      }
+
+      return true;
+    }
+
+    bool decrypt_and_save_client_key(std::string fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+      // FIXME signature should be bound to file name as well
+      //uint8_t signed_data = (uint8_t*) malloc (fname.length() + data_len);
+      //memcpy(signed_data, fname.c_str(), fname.length());
+      //memcpy(signed_data + fname.length(), data, data_len);
+      //if (!verifySignature("publickey.crt", signed_data, fname.length() + data_len, signature, sig_len)) {
+      //  LOG(INFO) << "Signature verification failed";
+      //  return false;
+      //}
+      if (!verifySignature(data, data_len, signature, sig_len)) {
+        LOG(INFO) << "Signature verification failed";
+        return false;
+      }
+
       int res = 0;
       mbedtls_rsa_context* rsa_context;
 
-      mbedtls_pk_rsa(m_pk_context)->len = len;
+      mbedtls_pk_rsa(m_pk_context)->len = data_len;
       rsa_context = mbedtls_pk_rsa(m_pk_context);
       rsa_context->padding = MBEDTLS_RSA_PKCS_V21;
       rsa_context->hash_id = MBEDTLS_MD_SHA256;
@@ -366,20 +420,20 @@ class EnclaveContext {
 
   public:
     // Compute the sha256 hash of given data.
-    int static compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[32]) {
+    int static compute_sha256(const uint8_t* data, size_t data_len, uint8_t sha256[32]) {
       int ret = 0;
       mbedtls_sha256_context ctx;
 
 #define safe_sha(call) {                \
-  int ret = (call);                       \
-  if (ret) {                              \
-    mbedtls_sha256_free(&ctx);            \
-    return -1;                            \
-  }                                       \
+int ret = (call);                       \
+if (ret) {                              \
+  mbedtls_sha256_free(&ctx);            \
+  return -1;                            \
+}                                       \
 }
       mbedtls_sha256_init(&ctx);
       safe_sha(mbedtls_sha256_starts_ret(&ctx, 0));
-      safe_sha(mbedtls_sha256_update_ret(&ctx, data, data_size));
+      safe_sha(mbedtls_sha256_update_ret(&ctx, data, data_len));
       safe_sha(mbedtls_sha256_finish_ret(&ctx, sha256));
 
       mbedtls_sha256_free(&ctx);
@@ -601,10 +655,10 @@ int verify_remote_report_and_set_pubkey(
   return 0;
 }
 
-int add_client_key(char* fname, uint8_t* data, size_t len, uint8_t* signature) {
+int add_client_key(char* fname, uint8_t* data, size_t len, uint8_t* signature, size_t sig_len) {
   // FIXME return value / error handling
   // FIXME char* vs string
-  EnclaveContext::getInstance().decrypt_and_save_client_key(std::string(fname), data, len, signature);
+  EnclaveContext::getInstance().decrypt_and_save_client_key(std::string(fname), data, len, signature, sig_len);
 }
 #endif // __ENCLAVE__
 
