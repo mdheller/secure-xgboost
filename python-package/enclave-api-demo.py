@@ -1,7 +1,6 @@
 # Based off demo/c-api/c-api.cc
 import xgboost as xgb
 from datetime import datetime
-# from rpc.remote_attestation_server import serve
 
 start = datetime.now()
 OE_ENCLAVE_FLAG_DEBUG = 1
@@ -11,9 +10,8 @@ print("Creating enclave")
 # enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
 enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 print("Remote attestation")
-# serve()
-# enclave.get_remote_report_with_pubkey()
-# enclave.verify_remote_report_and_set_pubkey()
+enclave.get_remote_report_with_pubkey()
+enclave.verify_remote_report_and_set_pubkey()
 
 print("\n--------Loading Data----------")
 print("Creating training matrix")
@@ -26,7 +24,7 @@ dtest = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/test.encrypted")
 print("Data loaded")
 
 print("\n--------Creating Booster------")
-# booster = xgb.Booster(cache=(dtrain, dtest))
+booster = xgb.Booster(cache=(dtrain, dtest))
 print("Booster created")
 
 print("\n--------Beginning Training-----")
@@ -40,7 +38,7 @@ params = {
         "max_depth": "3",
         "verbosity": "3" 
 }
-# booster.set_param(params)
+booster.set_param(params)
 print("All parameters set")
 
 # Train and evaluate
@@ -51,13 +49,13 @@ for i in range(n_trees):
   print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
 # Save model
-fname = "demo_model.model"
-booster.save_model(fname)
+# fname = "demo_model.model"
+# booster.save_model(fname)
 
 # Load model from scratch
-booster = None
-booster = xgb.Booster(cache=(dtrain, dtest))
-booster.load_model(fname)
+# booster = None
+# booster = xgb.Booster(cache=(dtrain, dtest))
+# booster.load_model(fname)
 
 print("\n--------Prediction------------")
 # Predict
