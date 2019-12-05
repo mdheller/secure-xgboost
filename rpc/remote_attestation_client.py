@@ -23,10 +23,11 @@ import remote_attestation_pb2_grpc
 
 import xgboost as xgb
 
+channel_addr = "51.144.42.29:50051"
 
 def run():
     # Get remote report from enclave
-    with grpc.insecure_channel('localhost:50051') as channel:
+    with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
         response = stub.GetAttestation(remote_attestation_pb2.Status(status=1))
     pem_key = response.pem_key
@@ -43,19 +44,31 @@ def run():
 
     print("Report successfully verified")
 
-    # TODO: Encrypt symmetric key with public key pem_key
-    # TODO: Get filenames of training data + test data
-    enc_sym_key = 0
-    training_data_fname = None
-    test_data_fname = None
+    keypair = "keypair.pem" # TODO
+    crypto_utils = xgb.CryptoUtils()
 
-    with grpc.insecure_channel('localhost:50051') as channel:
+    # Encrypt and sign symmetric key used to encrypt training data
+    training_fname = None # TODO
+    training_sym_key = None # TODO
+    enc_sym_key_train, enc_sym_key_size_train = crypto_utils.encrypt_data_with_pk(training_sym_key, len(training_sym_key), pem_key, key_size)
+    sig_train, sig_len_train = crypto_utils.sign_data(keypair, enc_sym_key_train, enc_sym_key_size_train) 
+
+    # Encrypt and sign symmetric key used to encrypt test data
+    test_fname = None # TODO
+    test_sym_key = None # TODO
+    enc_sym_key_test, enc_sym_key_size_test = crypto_utils.encrypt_data_with_pk(test_sym_key, len(test_sym_key), pem_key, key_size)
+    sig_test, sig_len_test = crypto_utils.sign_data(keypair, enc_sym_key_test, enc_sym_key_size_test) 
+
+    with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
-        response = stub.SendKey(remote_attestation_pb2.DataMetadata(enc_sym_key=enc_sym_key, training_data_fname=training_data_fname, test_data_fname=test_data_fname))
+        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=training_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
+        print("Symmetric key for training data sent to server")
 
-    print("Symmetric key and filenames sent to server")
-
-    with grpc.insecure_channel('localhost:50051') as channel:
+        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=test_fname, enc_sym_key=enc_sym_key_test, key_size=enc_sym_key_size_test, signature=sig_test sig_len=sig_len_test))
+        print("Symmetric key for test data sent to server")
+        
+    # Signal start
+    with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
         response = stub.SignalStart(remote_attestation_pb2.Status(status=1))
 

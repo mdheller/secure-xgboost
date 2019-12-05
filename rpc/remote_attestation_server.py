@@ -75,16 +75,19 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
 
     def SendKey(self, request, context):
         """
-        Sends symmetric key and filenames of data
+        Sends encrypted symmetric key, signature over key, and filename of data that was encrypted using the symmetric key
         """
-        # Get encrypted symmetric key and filenames from request
+        # Get encrypted symmetric key, signature, and filename from request
+        data_fname = request.data_fname
         enc_sym_key = request.enc_sym_key
-        training_data_fname = request.training_data_fname
-        test_data_fname = request.test_data_fname
+        key_size = request.key_size
+        signature = request.signature
+        sig_len = request.sig_len
 
-        # TODO: decrypt the symmetric key with the public key, save the filenames
+        crypto_utils = xgb.CryptoUtils()
+        result = crypto_utils.add_client_key(data_fname, enc_sym_key, key_size, signature, sig_len)
 
-        return remote_attestation_pb2.Status(status=1)
+        return remote_attestation_pb2.Status(status=result)
 
     def SignalStart(self, request, context):
         """
