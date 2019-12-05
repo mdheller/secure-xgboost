@@ -1120,7 +1120,7 @@ class CryptoUtils(object):
         """
         # Cast fname to a char*
         fname = ctypes.c_char_p(str.encode(fname))
-        
+
         # Cast data : proto.NDArray to pointer to pass into C++ add_client_key()
         data = proto_to_pointer(data)
         data_len = ctypes.c_size_t(data_len)
