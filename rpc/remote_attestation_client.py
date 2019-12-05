@@ -49,13 +49,23 @@ def run():
 
     # Encrypt and sign symmetric key used to encrypt training data
     training_fname = None # TODO
-    training_sym_key = None # TODO
+    training_sym_key_path = None # TODO
+
+    training_key_file = open(training_sym_key_path, 'rb')
+    training_sym_key = training_key_file.read() # The key will be type bytes
+    training_key_file.close()
+
     enc_sym_key_train, enc_sym_key_size_train = crypto_utils.encrypt_data_with_pk(training_sym_key, len(training_sym_key), pem_key, key_size)
     sig_train, sig_len_train = crypto_utils.sign_data(keypair, enc_sym_key_train, enc_sym_key_size_train) 
 
     # Encrypt and sign symmetric key used to encrypt test data
     test_fname = None # TODO
-    test_sym_key = None # TODO
+    test_sym_key_path= None # TODO
+
+    test_key_file = open(test_sym_key_path, 'rb')
+    test_sym_key = test_key_file.read() # The key will be type bytes
+    test_key_file.close()
+
     enc_sym_key_test, enc_sym_key_size_test = crypto_utils.encrypt_data_with_pk(test_sym_key, len(test_sym_key), pem_key, key_size)
     sig_test, sig_len_test = crypto_utils.sign_data(keypair, enc_sym_key_test, enc_sym_key_size_test) 
 
