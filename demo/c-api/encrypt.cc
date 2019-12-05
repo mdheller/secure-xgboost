@@ -34,12 +34,7 @@ void encryptFile(char* fname, char* e_fname) {
   }
   // Set key to test_key for testing
   memcpy(key, test_key, KEY_BYTES);
-  // Extract data for your IV, in this case we generate 12 bytes (96 bits) of random data
-  ret = mbedtls_ctr_drbg_random( &ctr_drbg, iv, IV_BYTES );
-  if( ret != 0 ) {
-    printf( "mbedtls_ctr_drbg_random failed to extract IV - returned -0x%04x\n", -ret );
-    exit(1);
-  }
+
   // Initialize the GCM context with our key and desired cipher
   ret = mbedtls_gcm_setkey(&gcm,                      // GCM context to be initialized
       MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
@@ -59,6 +54,13 @@ void encryptFile(char* fname, char* e_fname) {
   size_t index = 0;
   while (std::getline(infile, line)) {
     size_t length = strlen(line.c_str());
+
+    // Extract data for your IV, in this case we generate 12 bytes (96 bits) of random data
+    ret = mbedtls_ctr_drbg_random( &ctr_drbg, iv, IV_BYTES );
+    if( ret != 0 ) {
+        printf( "mbedtls_ctr_drbg_random failed to extract IV - returned -0x%04x\n", -ret );
+        exit(1);
+    }
 
     unsigned char* encrypted = (unsigned char*) malloc(length*sizeof(char));
     // We use line index as AEAD data to prevent tampering across lines

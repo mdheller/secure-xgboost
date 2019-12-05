@@ -362,10 +362,10 @@ class EnclaveContext {
         LOG(INFO) << "mbedtls_rsa_pkcs1_decrypt failed with " << res;
         return false;
       }
-      fprintf(stdout, "Decrypted key\n");
-      for (int i = 0; i < CIPHER_KEY_SIZE; i++)
-        fprintf(stdout, "%d\t", output[i]);
-      fprintf(stdout, "\n");
+      //fprintf(stdout, "Decrypted key\n");
+      //for (int i = 0; i < CIPHER_KEY_SIZE; i++)
+      //  fprintf(stdout, "%d\t", output[i]);
+      //fprintf(stdout, "\n");
       std::vector<uint8_t> v(output, output + CIPHER_KEY_SIZE);
       client_keys.insert({fname, v});
       return true;
@@ -699,14 +699,11 @@ int XGDMatrixCreateFromFile(const char *fname,
 #ifdef __ENCLAVE__ // pass decryption key
     // FIXME consistently use uint8_t* for key bytes
     char key[CIPHER_KEY_SIZE];
-    fprintf(stdout, "Getting key\n");
     EnclaveContext::getInstance().get_client_key(fname, (uint8_t*) key);
-    fprintf(stdout, "Got key\n");
-    for (int i = 0; i < CIPHER_KEY_SIZE; i++)
-      fprintf(stdout, "%d\t", key[i]);
-    fprintf(stdout, "\n");
+    //for (int i = 0; i < CIPHER_KEY_SIZE; i++)
+    //  fprintf(stdout, "%d\t", key[i]);
+    //fprintf(stdout, "\n");
     *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split, key));
-    fprintf(stdout, "Loaded key\n");
 #else
     *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
 #endif

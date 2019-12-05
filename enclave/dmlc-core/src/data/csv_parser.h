@@ -97,6 +97,7 @@ ParseBlock(const char *begin,
   // advance lbegin if it points to newlines
   while ((lbegin != end) && (*lbegin == '\n' || *lbegin == '\r')) ++lbegin;
   // FIXME pass initial row_index as argument
+  // incorrect for large files, get parsed in blocks
   int row_index = 0;
   while (lbegin != end) {
     // get line end
