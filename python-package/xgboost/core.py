@@ -251,7 +251,7 @@ def proto_to_pointer(proto):
     """
     ndarray = proto_to_ndarray(proto)
     # FIXME make the ctype POINTER type configurable
-    pointer = ndarray.ctypes.data_as(ctypes.POINTER(ctypes.u_int))
+    pointer = ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
     return pointer
 
 
@@ -1046,16 +1046,16 @@ class CryptoUtils(object):
             encrypted_data_size_as_int : int
         """
         # Cast data to char*
-        data = ctypes.POINTER(ctypes.c_char)(data)
+        data = ctypes.c_char_p(data)
         data_len = ctypes.c_size_t(data_len)
 
         # Cast proto to pointer to pass into C++ encrypt_data_with_pk()
-        pem_key = proto_to_pointer(pem_key, key_size)
+        pem_key = proto_to_pointer(pem_key)
         pem_key_len = ctypes.c_size_t(key_size)
 
         # Allocate memory that will be used to store the encrypted_data and encrypted_data_size
-        encrypted_data = ctypes.POINTER(ctypes.c_uint)()
-        encrypted_data_size = ctypes.c_size_t()
+        encrypted_data = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        encrypted_data_size = ctypes.c_size_t(1024)
 
         # Encrypt the data with pk pem_key
         _check_call(_LIB.encrypt_data_with_pk(data, data_len, pem_key, key_size, encrypted_data, ctypes.byref(encrypted_data_size)))
@@ -1071,26 +1071,26 @@ class CryptoUtils(object):
         Parameters
         ----------
         keyfile : str 
-        data : ctypes.POINTER(ctypes.c_uint)
-        data_size : ctypes.c_size_t
+        data : proto.NDArray 
+        data_size : int 
 
         Returns:
             signature : proto.NDArray 
             sig_len_as_int : int
         """
         # Cast the keyfile to a char* 
-        keyfile = ctypes.POINTER(ctypes.c_char)(keyfile) 
+        keyfile = ctypes.c_char_p(str.encode(keyfile)) 
 
         # Cast data : proto.NDArray to pointer to pass into C++ sign_data() function
         data = proto_to_pointer(data)
         data_size = ctypes.c_size_t(data_size)
         
         # Allocate memory to store the signature and sig_len
-        signature = ctypes.POINTER(ctypes.c_uint)()
-        sig_len = ctypes.c_size_t()
+        signature = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        sig_len = ctypes.c_size_t(1024)
 
         # Sign data with key keyfile
-        _check_call_(_LIB.sign_data(keyfile, data, data_size, signature, sig_len))
+        _check_call(_LIB.sign_data(keyfile, data, data_size, signature, ctypes.byref(sig_len)))
 
         # Cast the signature and sig_len back to a gRPC serializable format
         sig_len_as_int = sig_len.value
@@ -1119,7 +1119,7 @@ class CryptoUtils(object):
             Exit status of add_client_key()
         """
         # Cast fname to a char*
-        fname = ctypes.POINTER(ctypes.c_char)(fname)
+        fname = ctypes.c_char_p(str.encode(fname))
         
         # Cast data : proto.NDArray to pointer to pass into C++ add_client_key()
         data = proto_to_pointer(data)

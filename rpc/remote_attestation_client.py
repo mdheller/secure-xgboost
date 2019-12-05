@@ -59,7 +59,10 @@ def run():
     training_sym_key = base64.b64decode(training_sym_key)
 
     enc_sym_key_train, enc_sym_key_size_train = crypto_utils.encrypt_data_with_pk(training_sym_key, len(training_sym_key), pem_key, key_size)
+    print("Encrypted symmetric key")
+
     sig_train, sig_len_train = crypto_utils.sign_data(keypair, enc_sym_key_train, enc_sym_key_size_train) 
+    print("Signed ciphertext")
 
     # Encrypt and sign symmetric key used to encrypt test data
     test_fname = "/home/rishabh/sample_data/agaricus.test.enc" 
@@ -75,6 +78,7 @@ def run():
 
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
+        print(type(training_fname), type(enc_sym_key_train), type(enc_sym_key_size_train), type(sig_train), type(sig_len_train))
         response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=training_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
         print("Symmetric key for training data sent to server")
 

@@ -1418,7 +1418,6 @@ XGB_DLL int encrypt_data_with_pk(char* data, size_t len, uint8_t* pem_key, size_
   res = mbedtls_pk_setup(
       &m_pk_context, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
 
-
   mbedtls_rsa_context* rsa_context;
 
   mbedtls_pk_init(&key);
@@ -1426,6 +1425,7 @@ XGB_DLL int encrypt_data_with_pk(char* data, size_t len, uint8_t* pem_key, size_
   // Read the given public key.
   key_size = strlen((const char*)pem_key) + 1; // Include ending '\0'.
   res = mbedtls_pk_parse_public_key(&key, pem_key, key_size);
+
   if (res != 0) {
     std::cout << "mbedtls_pk_parse_public_key failed.\n";
     mbedtls_pk_free(&key);
