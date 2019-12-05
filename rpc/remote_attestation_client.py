@@ -24,7 +24,7 @@ import remote_attestation_pb2_grpc
 
 import xgboost as xgb
 
-channel_addr = "52.174.46.59:50051"
+channel_addr = "40.68.150.201:50051"
 
 def run():
     # Get remote report from enclave
