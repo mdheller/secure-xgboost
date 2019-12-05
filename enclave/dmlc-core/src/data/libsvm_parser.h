@@ -108,6 +108,7 @@ ParseBlock(const char *begin,
   const char * lend = lbegin;
   IndexType min_feat_id = std::numeric_limits<IndexType>::max();
   // FIXME pass initial row_index as argument
+  // incorrect for large files, get parsed in blocks
   int row_index = 0;
   while (lbegin != end) {
     // get line end

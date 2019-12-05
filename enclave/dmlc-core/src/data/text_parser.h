@@ -135,14 +135,15 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
     out_len = base64_decode(data + tag_pos + 1, len - tag_pos, ct);
 
     const unsigned char* add_data = (const unsigned char*) &index;
+    // FIXME use index as additional data
     int ret = mbedtls_gcm_auth_decrypt(
         &gcm,                                     // GCM context
         out_len,                                  // length of the input ciphertext data (always same as plain)
         (const unsigned char*) iv,                // initialization vector
         CIPHER_IV_SIZE,                           // length of IV
-        add_data,                                 // additional data
+        NULL, // index                            // additional data
         // FIXME make this independent of platform
-        sizeof(size_t),                           // length of additional data
+        0, //sizeof(size_t),                      // length of additional data
         (const unsigned char*) tag,               // buffer holding the tag
         CIPHER_TAG_SIZE,                          // length of the tag
         (const unsigned char*) ct,                // buffer holding the input ciphertext data
@@ -150,6 +151,7 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
     output[out_len] = '\0';
     free(ct);
     if (ret != 0) {
+      fprintf(stdout, "Decryption error %d\n", index);
       LOG(FATAL) << "mbedtls_gcm_auth_decrypt failed with error " << -ret;
     }
   }
