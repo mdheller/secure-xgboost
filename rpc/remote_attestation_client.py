@@ -17,13 +17,14 @@ from __future__ import print_function
 import logging
 
 import grpc
+import base64
 
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 
 import xgboost as xgb
 
-channel_addr = "51.144.42.29:50051"
+channel_addr = "52.174.46.59:50051"
 
 def run():
     # Get remote report from enclave
@@ -44,27 +45,30 @@ def run():
 
     print("Report successfully verified")
 
-    keypair = "keypair.pem" # TODO
+    keypair = "keypair.pem"
     crypto_utils = xgb.CryptoUtils()
 
     # Encrypt and sign symmetric key used to encrypt training data
-    training_fname = None # TODO
-    training_sym_key_path = None # TODO
+    # fname must be path to file on server
+    training_fname = "/home/rishabh/sample_data/agaricus.train.enc" 
+    training_sym_key_path = "/root/mc2-client/train.key" 
 
     training_key_file = open(training_sym_key_path, 'rb')
     training_sym_key = training_key_file.read() # The key will be type bytes
     training_key_file.close()
+    training_sym_key = base64.b64decode(training_sym_key)
 
     enc_sym_key_train, enc_sym_key_size_train = crypto_utils.encrypt_data_with_pk(training_sym_key, len(training_sym_key), pem_key, key_size)
     sig_train, sig_len_train = crypto_utils.sign_data(keypair, enc_sym_key_train, enc_sym_key_size_train) 
 
     # Encrypt and sign symmetric key used to encrypt test data
-    test_fname = None # TODO
-    test_sym_key_path= None # TODO
+    test_fname = "/home/rishabh/sample_data/agaricus.test.enc" 
+    test_sym_key_path= "/root/mc2-client/test.key" 
 
     test_key_file = open(test_sym_key_path, 'rb')
     test_sym_key = test_key_file.read() # The key will be type bytes
     test_key_file.close()
+    test_sym_key = base64.b64decode(test_sym_key)
 
     enc_sym_key_test, enc_sym_key_size_test = crypto_utils.encrypt_data_with_pk(test_sym_key, len(test_sym_key), pem_key, key_size)
     sig_test, sig_len_test = crypto_utils.sign_data(keypair, enc_sym_key_test, enc_sym_key_size_test) 
@@ -74,7 +78,7 @@ def run():
         response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=training_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
         print("Symmetric key for training data sent to server")
 
-        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=test_fname, enc_sym_key=enc_sym_key_test, key_size=enc_sym_key_size_test, signature=sig_test sig_len=sig_len_test))
+        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=test_fname, enc_sym_key=enc_sym_key_test, key_size=enc_sym_key_size_test, signature=sig_test, sig_len=sig_len_test))
         print("Symmetric key for test data sent to server")
         
     # Signal start
