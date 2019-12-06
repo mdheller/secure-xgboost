@@ -283,6 +283,8 @@ class EnclaveContext {
 
     // FIXME verify client identity using root CA
     bool verifySignature(uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+      mbedtls_pk_context m_pk_context;
+
       unsigned char hash[32];
       int ret = 1;
 

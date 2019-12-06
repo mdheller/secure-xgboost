@@ -49,8 +49,8 @@ class RemoteAttestationServicer(object):
   def SendKey(self, request, context):
     """A simple RPC.
 
-    Send symmetric key encrypted with enclave public key and filenames
-    of training/test data
+    Send symmetric key encrypted with enclave public key, signature,
+    and name of file encrypted with symmetric key to server
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')

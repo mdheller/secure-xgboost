@@ -219,6 +219,42 @@ def c_array(ctype, values):
     return (ctype * len(values))(*values)
 
 
+def pointer_to_proto(pointer, pointer_len, nptype=np.uint32):
+    """
+    Convert C u_int or float pointer to proto for RPC serialization
+
+    Parameters
+    ----------
+    pointer : ctypes.POINTER
+    pointer_len : length of pointer
+    nptype : np type to cast to
+        if pointer is of type ctypes.c_uint, nptype should be np.uint32
+        if pointer is of type ctypes.c_float, nptype should be np.float32
+
+    Returns:
+        proto : proto.NDArray
+    """
+    ndarray = ctypes2numpy(pointer, pointer_len, nptype)
+    proto = ndarray_to_proto(ndarray)
+    return proto
+
+def proto_to_pointer(proto):
+    """
+    Convert a serialized NDArray to a C pointer
+
+    Parameters
+    ----------
+    proto : proto.NDArray
+
+    Returns:
+        pointer :  ctypes.POINTER(ctypes.u_int)
+    """
+    ndarray = proto_to_ndarray(proto)
+    # FIXME make the ctype POINTER type configurable
+    pointer = ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+    return pointer
+
+
 PANDAS_DTYPE_MAPPER = {'int8': 'int', 'int16': 'int', 'int32': 'int', 'int64': 'int',
                        'uint8': 'int', 'uint16': 'int', 'uint32': 'int', 'uint64': 'int',
                        'float16': 'float', 'float32': 'float', 'float64': 'float',
@@ -972,6 +1008,8 @@ class Enclave(object):
         To be called by the RPC service
 
         Must be called after get_remote_report_with_pubkey() is called
+
+        Returns pem_key (proto), key_size (int), remote_report (proto), remote_report_size (int)
         """
         # Convert pem_key to serialized numpy array
         pem_key = ctypes2numpy(self.pem_key, self.key_size.value, np.uint32)
@@ -984,6 +1022,115 @@ class Enclave(object):
         remote_report_size = self.remote_report_size.value
         
         return pem_key, key_size, remote_report, remote_report_size
+
+
+class CryptoUtils(object):
+    """
+    Crypto utils class
+    """
+    def __init__(self):
+        # FIXME what do we need here?
+        pass
+
+    def encrypt_data_with_pk(self, data, data_len, pem_key, key_size):
+        """
+        Parameters
+        ----------
+        data : byte array  
+        data_len : int
+        pem_key : proto 
+        key_size : int
+
+        Returns:
+            encrypted_data : proto.NDArray 
+            encrypted_data_size_as_int : int
+        """
+        # Cast data to char*
+        data = ctypes.c_char_p(data)
+        data_len = ctypes.c_size_t(data_len)
+
+        # Cast proto to pointer to pass into C++ encrypt_data_with_pk()
+        pem_key = proto_to_pointer(pem_key)
+        pem_key_len = ctypes.c_size_t(key_size)
+
+        # Allocate memory that will be used to store the encrypted_data and encrypted_data_size
+        encrypted_data = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        encrypted_data_size = ctypes.c_size_t(1024)
+
+        # Encrypt the data with pk pem_key
+        _check_call(_LIB.encrypt_data_with_pk(data, data_len, pem_key, key_size, encrypted_data, ctypes.byref(encrypted_data_size)))
+
+        # Cast the encrypted data back to a proto.NDArray (for RPC purposes) and return it
+        encrypted_data_size_as_int = encrypted_data_size.value
+        encrypted_data = pointer_to_proto(encrypted_data, encrypted_data_size_as_int)
+
+        return encrypted_data, encrypted_data_size_as_int
+
+    def sign_data(self, keyfile, data, data_size):
+        """
+        Parameters
+        ----------
+        keyfile : str 
+        data : proto.NDArray 
+        data_size : int 
+
+        Returns:
+            signature : proto.NDArray 
+            sig_len_as_int : int
+        """
+        # Cast the keyfile to a char* 
+        keyfile = ctypes.c_char_p(str.encode(keyfile)) 
+
+        # Cast data : proto.NDArray to pointer to pass into C++ sign_data() function
+        data = proto_to_pointer(data)
+        data_size = ctypes.c_size_t(data_size)
+        
+        # Allocate memory to store the signature and sig_len
+        signature = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        sig_len = ctypes.c_size_t(1024)
+
+        # Sign data with key keyfile
+        _check_call(_LIB.sign_data(keyfile, data, data_size, signature, ctypes.byref(sig_len)))
+
+        # Cast the signature and sig_len back to a gRPC serializable format
+        sig_len_as_int = sig_len.value
+        signature = pointer_to_proto(signature, sig_len_as_int)
+
+        return signature, sig_len_as_int
+
+    def add_client_key(self, fname, data, data_len, signature, sig_len):
+        """
+        Add client symmetric key used to encrypt file fname
+        
+        Parameters
+        ----------
+        fname : str
+            file that was encrypted
+        data : proto.NDArray
+            key used to encrypt fname
+        data_len : int
+            length of data
+        signature : proto.NDArray
+            signature over data, signed with client private key
+        sig_len : int
+            length of signature
+
+        Returns:
+            Exit status of add_client_key()
+        """
+        # Cast fname to a char*
+        fname = ctypes.c_char_p(str.encode(fname))
+
+        # Cast data : proto.NDArray to pointer to pass into C++ add_client_key()
+        data = proto_to_pointer(data)
+        data_len = ctypes.c_size_t(data_len)
+
+        # Cast signature : proto.NDArray to pointer to pass into C++ add_client_key()
+        signature = proto_to_pointer(signature)
+        sig_len = ctypes.c_size_t(sig_len)
+
+        # Add client key
+        return _check_call(_LIB.add_client_key(fname, data, data_len, signature, sig_len))
 
 
 class Booster(object):

@@ -33,8 +33,8 @@ service RemoteAttestation {
 
   // A simple RPC.
   //
-  // Send symmetric key encrypted with enclave public key and filenames
-  // of training/test data
+  // Send symmetric key encrypted with enclave public key, signature,
+  // and name of file encrypted with symmetric key to server
   rpc SendKey(DataMetadata) returns (Status) {}
 
   // A simple RPC.
@@ -70,14 +70,20 @@ message Report {
 // Message from client to enclaves with information on how to retrieve
 // training/test data
 message DataMetadata {
-  // Symmetric key used to encrypt data files, encrypted with
+  // Filename of data
+  string data_fname = 1;
+
+  // Symmetric key used to encrypt data file, encrypted with
   // enclave public key
-  uint64 enc_sym_key = 1;
+  numproto.protobuf.NDArray enc_sym_key = 2;
 
-  // Filename of training data
-  string training_data_fname = 2;
+  // Length of enc_sym_key
+  uint32 key_size = 3;
 
-  // Filename of test data
-  string test_data_fname = 3;
+  // Signature over encrypted symmetric key, signed with client private key
+  numproto.protobuf.NDArray signature = 4;
+
+  // Length of signature
+  uint32 sig_len = 5;
 }
 
