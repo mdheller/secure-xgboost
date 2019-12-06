@@ -127,7 +127,7 @@ target_compile_definitions(xgboost_enclave
   #$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:_MWAITXINTRIN_H_INCLUDED>
   ${XGBOOST_DEFINITIONS})
 
-target_link_libraries(xgboost_enclave openenclave::oeenclave openenclave::oelibcxx)
+target_link_libraries(xgboost_enclave openenclave::oeenclave openenclave::oelibcxx openenclave::oehostfs openenclave::oehostsock openenclave::oehostresolver)
 #if (XGBOOST_MM_PREFETCH_PRESENT)
 #  target_compile_definitions(objxgboost
 #    PRIVATE
