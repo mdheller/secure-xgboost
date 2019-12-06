@@ -283,12 +283,12 @@ class EnclaveContext {
 
     // FIXME verify client identity using root CA
     bool verifySignature(uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
-      mbedtls_pk_context m_pk_context;
+      mbedtls_pk_context _pk_context;
 
       unsigned char hash[32];
       int ret = 1;
 
-      mbedtls_pk_init(&m_pk_context);
+      mbedtls_pk_init(&_pk_context);
 
       const char* key =  "-----BEGIN PUBLIC KEY-----\n"
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArzxQ9wZ8pwKYEs+XZ1aJ\n"
@@ -300,25 +300,25 @@ class EnclaveContext {
         "uwIDAQAB\n"
         "-----END PUBLIC KEY-----";
 
-      if((ret = mbedtls_pk_parse_public_key(&m_pk_context, (const unsigned char*) key, strlen(key) + 1)) != 0) {
+      if((ret = mbedtls_pk_parse_public_key(&_pk_context, (const unsigned char*) key, strlen(key) + 1)) != 0) {
         LOG(INFO) << "verification failed - Could not read key";
         LOG(INFO) << "verification failed - mbedtls_pk_parse_public_keyfile returned" << ret;
         return false;
       }
 
-      if(!mbedtls_pk_can_do(&m_pk_context, MBEDTLS_PK_RSA)) {
+      if(!mbedtls_pk_can_do(&_pk_context, MBEDTLS_PK_RSA)) {
         LOG(INFO) << "verification failed - Key is not an RSA key";
         return false;
       }
 
-      mbedtls_rsa_set_padding(mbedtls_pk_rsa(m_pk_context), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
+      mbedtls_rsa_set_padding(mbedtls_pk_rsa(_pk_context), MBEDTLS_RSA_PKCS_V21, MBEDTLS_MD_SHA256);
 
       if((ret = compute_sha256(data, data_len, hash)) != 0) {
         LOG(INFO) << "verification failed -- Could not hash";
         return false;
       }
 
-      if((ret = mbedtls_pk_verify(&m_pk_context, MBEDTLS_MD_SHA256, hash, 0, signature, sig_len)) != 0) {
+      if((ret = mbedtls_pk_verify(&_pk_context, MBEDTLS_MD_SHA256, hash, 0, signature, sig_len)) != 0) {
         LOG(INFO) << "verification failed -- mbedtls_pk_verify returned " << ret;
         return false;
       }
