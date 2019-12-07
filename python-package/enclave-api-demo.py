@@ -7,19 +7,19 @@ OE_ENCLAVE_FLAG_DEBUG = 1
 OE_ENCLAVE_FLAG_SIMULATE = 2
 
 print("Creating enclave")
-# enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
-enclave = xgb.Enclave("/home/rishabh/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
+# enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 print("Remote attestation")
 enclave.get_remote_report_with_pubkey()
 enclave.verify_remote_report_and_set_pubkey()
 
 print("\n--------Loading Data----------")
 print("Creating training matrix")
-dtrain = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/train.encrypted")
-# dtrain = xgb.DMatrix("/home/rishabh/benchmarking/enc_10m.csv")
+dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/demo/c-api/train.encrypted")
+# dtrain = xgb.DMatrix("/home/xgb/benchmarking/enc_10m.csv")
 
 print("Creating test matrix")
-dtest = xgb.DMatrix("/home/rishabh/secure-xgboost/demo/c-api/test.encrypted") 
+dtest = xgb.DMatrix("/home/xgb/secure-xgboost/demo/c-api/test.encrypted") 
 
 print("Data loaded")
 
