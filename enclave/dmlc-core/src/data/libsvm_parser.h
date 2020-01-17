@@ -55,6 +55,8 @@ class LibSVMParser : public TextParserBase<IndexType> {
     : TextParserBase<IndexType>(source, nthread, key) {
       param_.Init(args);
       CHECK_EQ(param_.format, "libsvm");
+
+      row_index = 0;
     }
 #else
   explicit LibSVMParser(InputSplit *source, int nthread)
@@ -75,6 +77,10 @@ class LibSVMParser : public TextParserBase<IndexType> {
 
  private:
   LibSVMParserParam param_;
+
+#ifdef __ENCLAVE__ // row_index
+  int row_index;
+#endif
 };
 
 template <char kSymbol = '#'>
@@ -109,7 +115,6 @@ ParseBlock(const char *begin,
   IndexType min_feat_id = std::numeric_limits<IndexType>::max();
   // FIXME pass initial row_index as argument
   // incorrect for large files, get parsed in blocks
-  int row_index = 0;
   while (lbegin != end) {
     // get line end
     lend = lbegin + 1;

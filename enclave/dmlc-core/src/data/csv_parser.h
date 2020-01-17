@@ -62,6 +62,8 @@ class CSVParser : public TextParserBase<IndexType, DType> {
        CHECK(param_.label_column != param_.weight_column
            || param_.label_column < 0)
          << "Must have distinct columns for labels and instance weights";
+
+       row_index = 0;
      }
 #else
   explicit CSVParser(InputSplit *source,
@@ -83,6 +85,10 @@ class CSVParser : public TextParserBase<IndexType, DType> {
 
  private:
   CSVParserParam param_;
+
+#ifdef __ENCLAVE__ // row_index
+  int row_index;
+#endif
 };
 
 #ifdef __ENCLAVE__ // Decrypt and parse file
@@ -98,7 +104,6 @@ ParseBlock(const char *begin,
   while ((lbegin != end) && (*lbegin == '\n' || *lbegin == '\r')) ++lbegin;
   // FIXME pass initial row_index as argument
   // incorrect for large files, get parsed in blocks
-  int row_index = 0;
   while (lbegin != end) {
     // get line end
     this->IgnoreUTF8BOM(&lbegin, &end);

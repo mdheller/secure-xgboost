@@ -141,9 +141,14 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
         out_len,                                  // length of the input ciphertext data (always same as plain)
         (const unsigned char*) iv,                // initialization vector
         CIPHER_IV_SIZE,                           // length of IV
-        NULL, // index                            // additional data
+#if true // FIXME temporary macro for testing
+        add_data,                                 // additional data
         // FIXME make this independent of platform
-        0, //sizeof(size_t),                      // length of additional data
+        sizeof(size_t),                           // length of additional data
+#else
+        NULL,                                     // additional data
+        0,                                        // length of additional data
+#endif
         (const unsigned char*) tag,               // buffer holding the tag
         CIPHER_TAG_SIZE,                          // length of the tag
         (const unsigned char*) ct,                // buffer holding the input ciphertext data

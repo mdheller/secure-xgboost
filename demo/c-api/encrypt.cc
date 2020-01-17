@@ -71,9 +71,14 @@ void encryptFile(char* fname, char* e_fname) {
         length,                                     // length of input data
         iv,                                         // initialization vector
         IV_BYTES,                                   // length of IV
-        NULL, //add_data,                                   // additional data
+#if true // temporary macro for testing
+        add_data,                                   // additional data
         // FIXME make this independent of platform
-        0,//sizeof(size_t),                             // length of additional data
+        sizeof(size_t),                             // length of additional data
+#else
+        NULL,                                       // additional data
+        0,                                          // length of additional data
+#endif 
         (const unsigned char*)line.c_str(),         // buffer holding the input data
         encrypted,                                  // buffer for holding the output data
         TAG_BYTES,                                  // length of the tag to generate
@@ -151,9 +156,14 @@ void decryptFile(char* fname, char* d_fname) {
         out_len,                                  // length of the input ciphertext data (always same as plain)
         (const unsigned char*) iv,                // initialization vector
         IV_BYTES,                                 // length of IV
-        NULL,                                 // additional data
+#if true // temporary macro for testing
+        add_data,                                 // additional data
         // FIXME make this independent of platform
-        0,//sizeof(size_t),                           // length of additional data
+        sizeof(size_t),                           // length of additional data
+#else
+        NULL,                                     // additional data
+        0,                                        // length of additional data
+#endif 
         (const unsigned char*) tag,               // buffer holding the tag
         TAG_BYTES,                                // length of the tag
         (const unsigned char*) ct,                // buffer holding the input ciphertext data
