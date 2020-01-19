@@ -33,7 +33,8 @@ void encryptFile(char* fname, char* e_fname) {
     exit(1);
   }
   // Set key to test_key for testing
-  memcpy(key, test_key, KEY_BYTES);
+  // memcpy(key, test_key, KEY_BYTES);
+  memset(key, 0, KEY_BYTES);
 
   // Initialize the GCM context with our key and desired cipher
   ret = mbedtls_gcm_setkey(&gcm,                      // GCM context to be initialized

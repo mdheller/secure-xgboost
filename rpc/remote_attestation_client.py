@@ -1,16 +1,3 @@
-# Copyright 2015 gRPC authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """The Python implementation of the GRPC Remote Attestation client."""
 
 from __future__ import print_function
@@ -24,27 +11,36 @@ import remote_attestation_pb2_grpc
 
 import xgboost as xgb
 
+# FIXME: change the IP address to the server's IP address
 channel_addr = "40.68.150.201:50051"
 
 def run():
+    """
+    The client will make 4 calls to the server that will run computation
+    1. A call to retrieve the attestation report from the server. The client will use this report
+    to verify that the it can trust the server.
+    2. A call to send the symmetric key used to encrypt the training data to the server.
+    3. A call to send the symmetric key used to encrypt the test data to the server.
+    4. A call to commence computation.
+    """
     # Get remote report from enclave
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
         response = stub.GetAttestation(remote_attestation_pb2.Status(status=1))
+
     pem_key = response.pem_key
     key_size = response.key_size
     remote_report = response.remote_report
     remote_report_size = response.remote_report_size
-
     print("Report received from remote enclave")
 
     # Verify report
     enclave_reference = xgb.Enclave(create_enclave=False)
     enclave_reference.set_report_attrs(pem_key, key_size, remote_report, remote_report_size)
     enclave_reference.verify_remote_report_and_set_pubkey()
-
     print("Report successfully verified")
 
+    # This keypair is the public/private key of the client
     keypair = "keypair.pem"
     crypto_utils = xgb.CryptoUtils()
 
@@ -58,9 +54,11 @@ def run():
     training_key_file.close()
     training_sym_key = base64.b64decode(training_sym_key)
 
+    # Encrypt training data symmetric key
     enc_sym_key_train, enc_sym_key_size_train = crypto_utils.encrypt_data_with_pk(training_sym_key, len(training_sym_key), pem_key, key_size)
     print("Encrypted symmetric key")
 
+    # Sign encrypted symmetric key
     sig_train, sig_len_train = crypto_utils.sign_data(keypair, enc_sym_key_train, enc_sym_key_size_train) 
     print("Signed ciphertext")
 
@@ -76,8 +74,10 @@ def run():
     enc_sym_key_test, enc_sym_key_size_test = crypto_utils.encrypt_data_with_pk(test_sym_key, len(test_sym_key), pem_key, key_size)
     sig_test, sig_len_test = crypto_utils.sign_data(keypair, enc_sym_key_test, enc_sym_key_size_test) 
 
+    # Send training and test data keys to the server
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
+
         response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=training_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
         print("Symmetric key for training data sent to server")
 

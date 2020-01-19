@@ -1,4 +1,3 @@
-# Based off demo/c-api/c-api.cc
 import xgboost as xgb
 from rpc.remote_attestation_server import serve
 
