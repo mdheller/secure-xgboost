@@ -94,9 +94,10 @@ Below we list the functions we currently support. Please follow the respective l
 
 
 ## CryptoUtils
-You can find example usage of the CryptoUtils class in `rpc/remote_attestation_client.py` and `rpc/remote_attestation_server.py`
+You can find example usage of the CryptoUtils class in `rpc/remote_attestation_client.py` and `rpc/remote_attestation_server.py`. For now, the CryptoUtils class is only necessary if you're adopting the client/server model of computation.
 
 ### Client Functions
+The below functions would normally be run on the client.
 **encrypt_data_with_pk(data, data_len, key, key_size)**
 
 > Encrypt data to be transferred to server
@@ -106,6 +107,7 @@ You can find example usage of the CryptoUtils class in `rpc/remote_attestation_c
 > Sign data to be transferred to server
   
 ### Server Functions
+The below functions would normally be run on the server.
 **add_client_key(data_filename, key, key_size, signature, signature_length)**
 
 > Store the key used to encrypt a specific data file and check that the key was sent by the client
