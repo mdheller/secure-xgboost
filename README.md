@@ -74,11 +74,11 @@ Below we list the functions we currently support. Please follow the respective l
 
 > Params:
 > * path_to_enclave: string
->  * path to built enclave
+  > * path to built enclave
 > * flags: int
-> * This is a bitwise OR of two OpenEnclaves-specific flags, `OE_ENCLAVE_FLAG_DEBUG = 1` and `OE_ENCLAVE_FLAG_SIMULATE = 2`. If you want to run in debug mode with actual hardware, pass `OE_ENCLAVE_FLAG_DEBUG` in. If you want to run non-debug simulation mode, pass `OE_ENCLAVE_FLAG_SIMULATE`. If you want to run in debug simulation mode, pass `OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE`.
+  > * This is a bitwise OR of two OpenEnclaves-specific flags, `OE_ENCLAVE_FLAG_DEBUG = 1` and `OE_ENCLAVE_FLAG_SIMULATE = 2`. If you want to run in debug mode with actual hardware, pass `OE_ENCLAVE_FLAG_DEBUG` in. If you want to run non-debug simulation mode, pass `OE_ENCLAVE_FLAG_SIMULATE`. If you want to run in debug simulation mode, pass `OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE`.
 > * create_enclave: boolean
->  * whether you want to start an enclave. For example, if you just want to perform remote attestation as a client, there's no need to start an enclave on your client machine, but you will need to instantiate an enclave object to call the remote attestation methods.
+  > * whether you want to start an enclave. For example, if you just want to perform remote attestation as a client, there's no need to start an enclave on your client machine, but you will need to instantiate an enclave object to call the remote attestation methods.
   
  **Enclave.get_remote_report_with_pubkey()** 
  
@@ -90,7 +90,7 @@ Below we list the functions we currently support. Please follow the respective l
  
 > Using the retrieved attestation report, verify that the enclave can be trusted.
  
-> *Note: this function should be run on the client after calling `get_remote_report_with_pubkey()`. 
+> *Note: this function should be run on the client after calling `get_remote_report_with_pubkey()`.* 
 
 
 ## CryptoUtils
@@ -114,15 +114,20 @@ You can find example usage of the CryptoUtils class in `rpc/remote_attestation_c
 **DMatrix(data)**
 * Constructor for DMatrix class
 
-**DMatrix.get_label()**
+[**DMatrix.get_float_info()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix.get_float_info)
+
+[**DMatrix.get_label()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix.get_label)
 
 ## [Booster](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster)
 **Booster()**
 * Constructor for Booster class
 
-**Booster.set_param()**
-**Booster.update()**
-**Booster.eval_set()**
-**Booster.predict()**
+[**Booster.set_param()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.set_param)
+
+[**Booster.update()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.update)
+
+[**Booster.eval_set()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.eval_set)
+
+[**Booster.predict()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.predict)
 
 We are continuing to add support for more functions. If you'd like any specific functions, please file an issue. 
