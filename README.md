@@ -74,11 +74,11 @@ Below we list the functions we currently support. Please follow the respective l
 
 > Params:
 > * path_to_enclave: string
-  > * path to built enclave
+>> * path to built enclave
 > * flags: int
-  > * This is a bitwise OR of two OpenEnclaves-specific flags, `OE_ENCLAVE_FLAG_DEBUG = 1` and `OE_ENCLAVE_FLAG_SIMULATE = 2`. If you want to run in debug mode with actual hardware, pass `OE_ENCLAVE_FLAG_DEBUG` in. If you want to run non-debug simulation mode, pass `OE_ENCLAVE_FLAG_SIMULATE`. If you want to run in debug simulation mode, pass `OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE`.
+>> * This is a bitwise OR of two OpenEnclaves-specific flags, `OE_ENCLAVE_FLAG_DEBUG = 1` and `OE_ENCLAVE_FLAG_SIMULATE = 2`. If you want to run in debug mode with actual hardware, pass `OE_ENCLAVE_FLAG_DEBUG` in. If you want to run non-debug simulation mode, pass `OE_ENCLAVE_FLAG_SIMULATE`. If you want to run in debug simulation mode, pass `OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE`.
 > * create_enclave: boolean
-  > * whether you want to start an enclave. For example, if you just want to perform remote attestation as a client, there's no need to start an enclave on your client machine, but you will need to instantiate an enclave object to call the remote attestation methods.
+>> * whether you want to start an enclave. For example, if you just want to perform remote attestation as a client, there's no need to start an enclave on your client machine, but you will need to instantiate an enclave object to call the remote attestation methods.
   
  **Enclave.get_remote_report_with_pubkey()** 
  
