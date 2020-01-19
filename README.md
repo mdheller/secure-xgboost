@@ -110,16 +110,16 @@ You can find example usage of the CryptoUtils class in `rpc/remote_attestation_c
 
 > Store the key used to encrypt a specific data file and check that the key was sent by the client
 
-## [DMatrix](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix)
-**DMatrix(data)**
+## DMatrix
+[**DMatrix(data)**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix)
 * Constructor for DMatrix class
 
 [**DMatrix.get_float_info()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix.get_float_info)
 
 [**DMatrix.get_label()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix.get_label)
 
-## [Booster](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster)
-**Booster()**
+## Booster
+[**Booster()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster)
 * Constructor for Booster class
 
 [**Booster.set_param()**](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.set_param)
