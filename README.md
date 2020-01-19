@@ -98,6 +98,7 @@ You can find example usage of the CryptoUtils class in `rpc/remote_attestation_c
 
 ### Client Functions
 The below functions would normally be run on the client.
+
 **encrypt_data_with_pk(data, data_len, key, key_size)**
 
 > Encrypt data to be transferred to server
@@ -108,6 +109,7 @@ The below functions would normally be run on the client.
   
 ### Server Functions
 The below functions would normally be run on the server.
+
 **add_client_key(data_filename, key, key_size, signature, signature_length)**
 
 > Store the key used to encrypt a specific data file and check that the key was sent by the client
