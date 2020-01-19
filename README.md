@@ -68,7 +68,7 @@ We also support some additional enclave and cryptography specific functions. We'
 Below we list the functions we currently support. Please follow the respective links for each class for details about each function.
 
 ## Enclave
-**Enclave(path_to_enclave, flags, create_enclave)**
+**Enclave(path_to_enclave, flags, create_enclave=True)**
 
 > Constructor for enclave
 
