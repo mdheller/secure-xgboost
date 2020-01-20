@@ -57,8 +57,46 @@ You can run the example script with the following:
 python3 demo/enclave/enclave-api-demo.py
 ```
 ## Example 2
-This example is for users who want to remotely start their XGBoost job. 
-<TODO>
+This is an example of a scenario in which a party outsources all computation to a server with an enclave. This scenario can be extended to one in which *multiple* parties outsource all computation to the same central enclave, meaning that they collaborate by sending their data to the same location, at which a XGBoost model is trained over all parties' data.
+
+In this example, the enclave server will start an RPC server to listen for client requests. The client will make four requests to the server: a request for remote attestation, a request to transfer the key used to encrypt the training data, a request to transfer the key used to encrypt the test data, and finally a request to start the XGBoost job.
+
+This assumes that the client will have told the server what code to run -- the code to run in this example can be found in the `xgb_load_train_predict()` function in `remote_attestation_server.py`. 
+
+1. Encrypt data locally.
+
+Use the `ohe_encrypt.py` script to one hot encode and encrypt the data. The script assumes that the key used to encrypt the data is in the same directory under `key.txt`. The script takes in three arguments.
+
+```
+python3 ohe_encrypt.py --input_path <plaintext_data.csv> --output_path <desired_output_file_name.csv> --column_names <names_of_columns_to_one_hot_encode>
+```
+
+2. Send encrypted data to the server
+
+We assume that there will be a mechanism to transfer the encrypted data to the server. For the purposes of this demo, the user can try, for example, `scp` to simulate this transfer.
+
+3. Start RPC server
+
+On the server with the enclave, start the RPC server to begin listening for client requests.
+
+```
+python3 rpc/example/enclave_serve.py
+```
+
+Once the console outputs "Waiting for remote attestation...", proceed to step 4. 
+
+4. Make client calls
+
+On the client, make the aforementioned four calls to the server. Be sure to change the IP address of the server in `remote_attestation_client.py`. 
+
+```
+python3 rpc/remote_attestation_client.py
+```
+
+The code run by the server once the client makes the final call is in the `xgb_load_train_predict()` function in `rpc/remote_attestation_server.py`. In this example, data is decrypted and loaded into a `DMatrix`, a model is trained, and predictions are made. 
+
+In this example, predictions are just printed to the console on the server. The user can, however, write code that runs on the server to encrypt the predictions and send them back to the client. 
+
 
 # API
 Our implementation currently supports some XGBoost core data structure ([DMatrix](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.DMatrix) and [Booster](https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster)) methods.
