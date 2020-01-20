@@ -63,7 +63,7 @@ In this example, the enclave server will start an RPC server to listen for clien
 
 This assumes that the client will have told the server what code to run -- the code to run in this example can be found in the `xgb_load_train_predict()` function in `remote_attestation_server.py`. 
 
-1. Encrypt data locally.
+### 1. Encrypt data locally.
 
 Use the `ohe_encrypt.py` script to one hot encode and encrypt the data. The script assumes that the key used to encrypt the data is in the same directory under `key.txt`. The script takes in three arguments.
 
@@ -71,11 +71,11 @@ Use the `ohe_encrypt.py` script to one hot encode and encrypt the data. The scri
 python3 ohe_encrypt.py --input_path <plaintext_data.csv> --output_path <desired_output_file_name.csv> --column_names <names_of_columns_to_one_hot_encode>
 ```
 
-2. Send encrypted data to the server
+### 2. Send encrypted data to the server
 
 We assume that there will be a mechanism to transfer the encrypted data to the server. For the purposes of this demo, the user can try, for example, `scp` to simulate this transfer.
 
-3. Start RPC server
+### 3. Start RPC server
 
 On the server with the enclave, start the RPC server to begin listening for client requests.
 
@@ -85,7 +85,7 @@ python3 rpc/example/enclave_serve.py
 
 Once the console outputs "Waiting for remote attestation...", proceed to step 4. 
 
-4. Make client calls
+### 4. Make client calls
 
 On the client, make the aforementioned four calls to the server. Be sure to change the IP address of the server in `remote_attestation_client.py`. 
 
