@@ -24,6 +24,7 @@ print("Creating Booster")
 booster = xgb.Booster(cache=(dtrain, dtest))
 
 print("Beginning Training")
+
 # Set training parameters
 params = {
         "tree_method": "hist",
