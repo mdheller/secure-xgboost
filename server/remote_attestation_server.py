@@ -54,8 +54,8 @@ def xgb_load_train_predict():
     n_trees = 10
     for i in range(n_trees):
         booster.update(dtrain, i)
-      print("Tree finished")
-      print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+        print("Tree finished")
+        print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
     # Predict
     print("\n\nModel Predictions: ")

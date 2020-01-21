@@ -47,6 +47,6 @@ for i in range(n_trees):
 
 # Predict
 print("\n\nModel Predictions: ")
-print(booster.predict(dtest)[:50])
+print(booster.predict(dtest)[:20])
 print("\n\nTrue Labels: ")
-print(dtest.get_label()[:50])
+print(dtest.get_label()[:20])
