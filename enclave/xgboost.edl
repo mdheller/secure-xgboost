@@ -1,6 +1,8 @@
 enclave {
     include "xgboost/c_api.h"
     trusted {
+        public void enclave_init();
+
         public int enclave_XGDMatrixCreateFromFile(
                 [user_check] const char *fname,
                 int silent,
@@ -75,39 +77,6 @@ enclave {
                 size_t data_len, 
                 [user_check] uint8_t* signature,
                 size_t sig_len);
-    };
-
-    include "dirent.h"
-    include "sys/stat.h"
-    untrusted {
-        DIR* host_opendir(
-                [user_check] char* path);
-
-        void* host_opendir_and_readdir(
-                [user_check] char* path);
-
-        struct stat host_stat(
-                [user_check] char* path);
-
-        FILE* host_fopen(
-                [user_check] char* fname,
-                [user_check] char* flag);
-
-        void host_fclose(
-                [user_check] FILE* fp);
-
-        FILE* host_fseek(
-                [user_check] FILE* fp,
-                long pos);
-
-        void* host_fread_one(
-                [user_check] FILE* fp,
-                size_t size);
-
-        void host_fwrite_one(
-                [user_check] void* ptr,
-                size_t count,
-                [user_check] FILE* fp);
     };
 };
 

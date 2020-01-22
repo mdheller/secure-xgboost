@@ -1,9 +1,29 @@
 #include <xgboost/c_api.h>
 #include <xgboost/base.h>
 #include <xgboost/logging.h>
+#include <sys/mount.h>
 
 #include "xgboost_t.h"
 #include "src/common/common.h"
+
+void enclave_init() {
+  LOG(DEBUG) << "Ecall: init\n";
+  oe_result_t result;
+  if ((result = oe_load_module_host_resolver()) != OE_OK) {
+      fprintf(stdout, "oe_load_module_host_resolver failed with %s\n", oe_result_str(result));
+  }
+  if ((result = oe_load_module_host_socket_interface()) != OE_OK) {
+      fprintf(stdout, "oe_load_module_host_socket_interface failed with %s\n", oe_result_str(result));
+  }
+  if ((result = oe_load_module_host_file_system()) != OE_OK) {
+      fprintf(stdout, "oe_load_module_host_file_system failed with %s\n", oe_result_str(result));
+  }
+  /* Mount the host file system on the root directory. */
+  if (mount("/", "/", OE_HOST_FILE_SYSTEM, 0, NULL) != 0) {
+      fprintf(stdout, "Unable to mount host file system on the root directory\n");
+  }
+  fprintf(stdout, "Loaded all modules\n");
+}
 
 int enclave_XGDMatrixCreateFromFile(const char *fname, int silent, DMatrixHandle *out) {
   LOG(DEBUG) << "Ecall: XGDMatrixCreateFromFile";
