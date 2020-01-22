@@ -272,6 +272,14 @@ int XGDMatrixCreateFromFile(const char *fname,
 #endif 
 }
 
+#ifdef __SGX__
+int XGDMatrixCreateFromEncryptedFile(const char *fname,
+        int silent,
+        DMatrixHandle *out) {
+    enclave_XGDMatrixCreateFromEncryptedFile(enclave, &enclave_ret, fname, silent, out);
+}
+#endif
+
 int XGDMatrixCreateFromDataIter(
     void* data_handle,
     XGBCallbackDataIterNext* callback,

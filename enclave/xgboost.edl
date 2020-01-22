@@ -6,7 +6,12 @@ enclave {
         public int enclave_XGDMatrixCreateFromFile(
                 [user_check] const char *fname,
                 int silent,
-                [out] DMatrixHandle *out); 
+                [out] DMatrixHandle *out);
+
+        public int enclave_XGDMatrixCreateFromEncryptedFile(
+                [user_check] const char *fname,
+                int silent,
+                [out] DMatrixHandle *out);
 
         public int enclave_XGBoosterCreate(
                 [user_check] const DMatrixHandle* dmats, 

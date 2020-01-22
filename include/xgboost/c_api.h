@@ -146,6 +146,19 @@ XGB_DLL int XGDMatrixCreateFromFile(const char *fname,
                                     int silent,
                                     DMatrixHandle *out); 
 
+#if defined(__SGX__)
+/*!
+ * \brief load a data matrix from an encrypted file
+ * \param fname the name of the encrypted file
+ * \param silent whether print messages during loading
+ * \param out a loaded data matrix
+ * \return 0 when success, -1 when failure happens
+ */
+XGB_DLL int XGDMatrixCreateFromEncryptedFile(const char *fname,
+        int silent,
+        DMatrixHandle *out);
+#endif
+
 /*!
  * \brief Create a DMatrix from a data iterator.
  * \param data_handle The handle to the data.

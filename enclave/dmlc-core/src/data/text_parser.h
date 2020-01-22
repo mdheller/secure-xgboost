@@ -40,6 +40,7 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
 #ifdef __ENCLAVE__ // pass decryption key
    explicit TextParserBase(InputSplit *source,
        int nthread,
+       bool _is_encrypted,
        const char* _key)
 #else
   explicit TextParserBase(InputSplit *source,
@@ -50,15 +51,18 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
     nthread_ = std::min(maxthread, nthread);
 
 #ifdef __ENCLAVE__ // cipher init
-    mbedtls_gcm_init(&gcm);
-    memcpy(key, _key, CIPHER_KEY_SIZE);
-    int ret = mbedtls_gcm_setkey(
-        &gcm,                      // GCM context to be initialized
-        MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
-        (const unsigned char*) key,// encryption key
-        sizeof(key) * 8);          // key bits (must be 128, 192, or 256)
-    if( ret != 0 ) {
-        LOG(FATAL) << "mbedtls_gcm_setkey failed with error " << -ret;
+    is_encrypted = _is_encrypted;
+    if (is_encrypted) {
+        mbedtls_gcm_init(&gcm);
+        memcpy(key, _key, CIPHER_KEY_SIZE);
+        int ret = mbedtls_gcm_setkey(
+                &gcm,                      // GCM context to be initialized
+                MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
+                (const unsigned char*) key,// encryption key
+                sizeof(key) * 8);          // key bits (must be 128, 192, or 256)
+        if( ret != 0 ) {
+            LOG(FATAL) << "mbedtls_gcm_setkey failed with error " << -ret;
+        }
     }
 #endif
   }
@@ -86,6 +90,15 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
     */
   virtual void ParseBlock(const char *begin, const char *end,
                           RowBlockContainer<IndexType, DType> *out) = 0;
+#ifdef __ENCLAVE__ // parse encrypted data
+  /*!
+   * \brief parse data into out
+   * \param begin beginning of buffer
+   * \param end end of buffer
+   */
+  virtual void ParseEncryptedBlock(const char *begin, const char *end,
+          RowBlockContainer<IndexType, DType> *out) = 0;
+#endif
    /*!
     * \brief read in next several blocks of data
     * \param data vector of data to be returned
@@ -193,6 +206,8 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
   dmlc::OMPException omp_exc_;
 
 #ifdef __ENCLAVE__ // cipher 
+  bool is_encrypted;
+
   mbedtls_gcm_context gcm;
   char key[CIPHER_KEY_SIZE];
   char tag[CIPHER_TAG_SIZE];
@@ -217,7 +232,10 @@ inline bool TextParserBase<IndexType, DType>::FillData(
   const char *head = reinterpret_cast<char *>(chunk.dptr);
 
 #ifdef __ENCLAVE__ // FIXME support multi-threading
-  ParseBlock(head, head + chunk.size, &(*data)[0]);
+  if (is_encrypted)
+      ParseEncryptedBlock(head, head + chunk.size, &(*data)[0]);
+  else
+      ParseBlock(head, head + chunk.size, &(*data)[0]);
 #else // __ENCLAVE__
   std::vector<std::thread> threads;
   for (int tid = 0; tid < nthread; ++tid) {
