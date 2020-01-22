@@ -15,15 +15,16 @@ enclave.get_remote_report_with_pubkey()
 enclave.verify_remote_report_and_set_pubkey()
 
 print("Creating training matrix")
-dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/demo/c-api/train.encrypted")
+dtrain = xgb.DMatrix("../data/agaricus.txt.train.enc")
 
 print("Creating test matrix")
-dtest = xgb.DMatrix("/home/xgb/secure-xgboost/demo/c-api/test.encrypted") 
+dtest = xgb.DMatrix("../data/agaricus.txt.test.enc") 
 
 print("Creating Booster")
 booster = xgb.Booster(cache=(dtrain, dtest))
 
 print("Beginning Training")
+
 # Set training parameters
 params = {
         "tree_method": "hist",
@@ -44,17 +45,8 @@ for i in range(n_trees):
   print("Tree finished")
   print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
-# Save model
-# fname = "demo_model.model"
-# booster.save_model(fname)
-
-# Load model from scratch
-# booster = None
-# booster = xgb.Booster(cache=(dtrain, dtest))
-# booster.load_model(fname)
-
 # Predict
 print("\n\nModel Predictions: ")
-print(booster.predict(dtest)[:10])
+print(booster.predict(dtest)[:20])
 print("\n\nTrue Labels: ")
-print(dtest.get_label()[:10])
+print(dtest.get_label()[:20])

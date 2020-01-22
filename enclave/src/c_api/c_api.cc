@@ -1267,8 +1267,8 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
   }
   *out_len = static_cast<xgboost::bst_ulong>(vec->size());  // NOLINT
 #ifdef __ENCLAVE__ // write results to host memory
-  bst_float* result = (bst_float*) oe_host_malloc(vec->size() * sizeof(bst_float*));
-  memcpy(result, dmlc::BeginPtr(*vec), *out_len);
+  bst_float* result = (bst_float*) oe_host_malloc(vec->size() * sizeof(bst_float));
+  memcpy(result, dmlc::BeginPtr(*vec), *out_len * sizeof(bst_float));
   *out_dptr = result;
 #else
   *out_dptr = dmlc::BeginPtr(*vec);

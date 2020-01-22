@@ -23,14 +23,19 @@ import remote_attestation_pb2_grpc
 import xgboost as xgb
 
 def xgb_load_train_predict():
+    """
+    This code will have been agreed upon by all parties before being run.
+    """
     print("Creating training matrix")
-    dtrain = xgb.DMatrix("/home/rishabh/sample_data/agaricus.train.enc")
+    dtrain = xgb.DMatrix("../data/agaricus.txt.train.enc")
 
     print("Creating test matrix")
-    dtest = xgb.DMatrix("/home/rishabh/sample_data/agaricus.test.enc") 
+    dtest = xgb.DMatrix("../data/agaricus.txt.test.enc") 
 
-    print("Creating booster")
+    print("Creating Booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
+
+    print("Beginning Training")
 
     # Set training parameters
     params = {
@@ -41,22 +46,22 @@ def xgb_load_train_predict():
             "gamma": "0.1",
             "max_depth": "3",
             "verbosity": "3" 
-    }
+            }
     booster.set_param(params)
+    print("All parameters set")
 
     # Train and evaluate
     n_trees = 10
     for i in range(n_trees):
-          booster.update(dtrain, i)
-          print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+        booster.update(dtrain, i)
+        print("Tree finished")
+        print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
     # Predict
-    print("------ y_pred --------")
-    print(booster.predict(dtest)[:10])
-    print("------ y_test --------")
-    print(dtest.get_label()[:10])
-
-
+    print("\n\nModel Predictions: ")
+    print(booster.predict(dtest)[:50])
+    print("\n\nTrue Labels: ")
+    print(dtest.get_label()[:50])
 
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
 
