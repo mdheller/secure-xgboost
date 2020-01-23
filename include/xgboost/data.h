@@ -462,6 +462,7 @@ class DMatrix {
                        bool load_row_split,
 #ifdef __ENCLAVE__ // pass decryption key
                        // TODO(rishabh): add support for unencrypted files
+                       bool is_encrypted,
                        char* key,
 #endif
                        const std::string& file_format = "auto",

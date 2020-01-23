@@ -55,8 +55,9 @@ class CSVParser : public TextParserBase<IndexType, DType> {
    explicit CSVParser(InputSplit *source,
        const std::map<std::string, std::string>& args,
        int nthread,
+       bool is_encrypted,
        const char* key)
-     : TextParserBase<IndexType, DType>(source, nthread, key) {
+     : TextParserBase<IndexType, DType>(source, nthread, is_encrypted, key) {
        param_.Init(args);
        CHECK_EQ(param_.format, "csv");
        CHECK(param_.label_column != param_.weight_column
@@ -79,6 +80,11 @@ class CSVParser : public TextParserBase<IndexType, DType> {
 #endif
 
  protected:
+#ifdef __ENCLAVE__ // Parse blocks in encrypted files
+  virtual void ParseEncryptedBlock(const char *begin,
+          const char *end,
+          RowBlockContainer<IndexType, DType> *out);
+#endif
   virtual void ParseBlock(const char *begin,
                           const char *end,
                           RowBlockContainer<IndexType, DType> *out);
@@ -94,7 +100,7 @@ class CSVParser : public TextParserBase<IndexType, DType> {
 #ifdef __ENCLAVE__ // Decrypt and parse file
 template <typename IndexType, typename DType>
 void CSVParser<IndexType, DType>::
-ParseBlock(const char *begin,
+ParseEncryptedBlock(const char *begin,
     const char *end,
     RowBlockContainer<IndexType, DType> *out) {
   out->Clear();
@@ -175,7 +181,7 @@ ParseBlock(const char *begin,
   CHECK(out->label.size() + 1 == out->offset.size());
   CHECK(out->weight.size() == 0 || out->weight.size() + 1 == out->offset.size());
 }
-#else
+#endif // __ENCLAVE__
 template <typename IndexType, typename DType>
 void CSVParser<IndexType, DType>::
 ParseBlock(const char *begin,
@@ -246,7 +252,7 @@ ParseBlock(const char *begin,
   CHECK(out->label.size() + 1 == out->offset.size());
   CHECK(out->weight.size() == 0 || out->weight.size() + 1 == out->offset.size());
 }
-#endif // __ENCLAVE__
+
 }  // namespace data
 }  // namespace dmlc
 #endif  // DMLC_DATA_CSV_PARSER_H_

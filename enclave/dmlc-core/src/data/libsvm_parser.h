@@ -46,13 +46,14 @@ template <typename IndexType, typename DType = real_t>
 class LibSVMParser : public TextParserBase<IndexType> {
  public:
 #ifdef __ENCLAVE__ // Init with encryption key
-   explicit LibSVMParser(InputSplit *source, int nthread, char* key)
-     : LibSVMParser(source, std::map<std::string, std::string>(), nthread, key) {}
+  explicit LibSVMParser(InputSplit *source, int nthread, bool is_encrypted, char* key)
+     : LibSVMParser(source, std::map<std::string, std::string>(), nthread, is_encrypted, key) {}
   explicit LibSVMParser(InputSplit *source,
       const std::map<std::string, std::string>& args,
       int nthread,
+      bool is_encrypted,
       const char* key)
-    : TextParserBase<IndexType>(source, nthread, key) {
+    : TextParserBase<IndexType>(source, nthread, is_encrypted, key) {
       param_.Init(args);
       CHECK_EQ(param_.format, "libsvm");
 
@@ -71,9 +72,15 @@ class LibSVMParser : public TextParserBase<IndexType> {
 #endif
 
  protected:
-  virtual void ParseBlock(const char *begin,
+#ifdef __ENCLAVE__ // Parse blocks in encrypted files
+  virtual void ParseEncryptedBlock(const char *begin,
                           const char *end,
                           RowBlockContainer<IndexType, DType> *out);
+#endif
+
+  virtual void ParseBlock(const char *begin,
+          const char *end,
+          RowBlockContainer<IndexType, DType> *out);
 
  private:
   LibSVMParserParam param_;
@@ -106,7 +113,7 @@ std::ptrdiff_t IgnoreCommentAndBlank(char const* beg,
 // TODO(rishabh): allow files to be unencrypted
 template <typename IndexType, typename DType>
 void LibSVMParser<IndexType, DType>::
-ParseBlock(const char *begin,
+ParseEncryptedBlock(const char *begin,
     const char *end,
     RowBlockContainer<IndexType, DType> *out) {
   out->Clear();
@@ -203,7 +210,7 @@ ParseBlock(const char *begin,
     }
   }
 }
-#else
+#endif // __ENCLAVE__
 template <typename IndexType, typename DType>
 void LibSVMParser<IndexType, DType>::
 ParseBlock(const char *begin,
@@ -288,7 +295,6 @@ ParseBlock(const char *begin,
     }
   }
 }
-#endif
 
 }  // namespace data
 }  // namespace dmlc

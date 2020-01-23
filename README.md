@@ -1,4 +1,8 @@
 
+You will need at least two machines: one for the enclave server (on which the model will be trained and executed), and another for the client (i.e., the data owner).
+
+To start, follow the installation instructions below and set up both machines identically. For simplicity, the instructions currently assume that both machines support SGX. (We plan to do away with this requirement in the future.)
+
 # Installation
 
 ## Install the Open Enclave SDK (version 0.7) on Ubuntu 18.04

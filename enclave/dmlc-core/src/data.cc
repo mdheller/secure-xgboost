@@ -25,6 +25,7 @@ CreateLibSVMParser(const std::string& path,
     const std::map<std::string, std::string>& args,
     unsigned part_index,
     unsigned num_parts,
+    bool is_encrypted,
     const char* key) {
 #else
 CreateLibSVMParser(const std::string& path,
@@ -35,7 +36,7 @@ CreateLibSVMParser(const std::string& path,
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
 #ifdef __ENCLAVE__ // Init with encryption key
-  ParserImpl<IndexType> *parser = new LibSVMParser<IndexType>(source, args, 2, key);
+  ParserImpl<IndexType> *parser = new LibSVMParser<IndexType>(source, args, 2, is_encrypted, key);
 #else
   ParserImpl<IndexType> *parser = new LibSVMParser<IndexType>(source, args, 2);
 #endif
@@ -52,6 +53,7 @@ CreateLibFMParser(const std::string& path,
     const std::map<std::string, std::string>& args,
     unsigned part_index,
     unsigned num_parts,
+    bool is_encrypted,
     const char* key) {
 #else
 CreateLibFMParser(const std::string& path,
@@ -62,7 +64,7 @@ CreateLibFMParser(const std::string& path,
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
 #ifdef __ENCLAVE__ // Init with encryption key
-  ParserImpl<IndexType> *parser = new LibFMParser<IndexType>(source, args, 2, key);
+  ParserImpl<IndexType> *parser = new LibFMParser<IndexType>(source, args, 2, is_encrypted, key);
 #else
   ParserImpl<IndexType> *parser = new LibFMParser<IndexType>(source, args, 2);
 #endif
@@ -79,6 +81,7 @@ CreateCSVParser(const std::string& path,
     const std::map<std::string, std::string>& args,
     unsigned part_index,
     unsigned num_parts,
+    bool is_encrypted,
     const char* key) {
 #else
 CreateCSVParser(const std::string& path,
@@ -89,7 +92,7 @@ CreateCSVParser(const std::string& path,
   InputSplit* source = InputSplit::Create(
       path.c_str(), part_index, num_parts, "text");
 #ifdef __ENCLAVE__ // Init with encryption key
-  return new CSVParser<IndexType, DType>(source, args, 2, key);
+  return new CSVParser<IndexType, DType>(source, args, 2, is_encrypted, key);
 #else
   return new CSVParser<IndexType, DType>(source, args, 2);
 #endif
@@ -102,6 +105,7 @@ CreateParser_(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
 #else
 CreateParser_(const char *uri_,
@@ -126,7 +130,7 @@ CreateParser_(const char *uri_,
   }
   // create parser
 #ifdef __ENCLAVE__ // Init with encryption key
-  return (*e->body)(spec.uri, spec.args, part_index, num_parts, key);
+  return (*e->body)(spec.uri, spec.args, part_index, num_parts, is_encrypted, key);
 #else
   return (*e->body)(spec.uri, spec.args, part_index, num_parts);
 #endif
@@ -270,16 +274,16 @@ Parser<uint64_t, int64_t>::Create(const char *uri_,
                                   const char *type) {
   return data::CreateParser_<uint64_t, int64_t>(uri_, part_index, num_parts, type);
 }
-#endif
-
+#else // __ENCLAVE__
 template<>
 Parser<uint32_t, real_t> *
 Parser<uint32_t, real_t>::Create(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
-  return data::CreateParser_<uint32_t, real_t>(uri_, part_index, num_parts, type, key);
+  return data::CreateParser_<uint32_t, real_t>(uri_, part_index, num_parts, type, is_encrypted, key);
 }
 
 template<>
@@ -288,8 +292,9 @@ Parser<uint64_t, real_t>::Create(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
-  return data::CreateParser_<uint64_t, real_t>(uri_, part_index, num_parts, type, key);
+  return data::CreateParser_<uint64_t, real_t>(uri_, part_index, num_parts, type, is_encrypted, key);
 }
 
 template<>
@@ -298,8 +303,9 @@ Parser<uint32_t, int32_t>::Create(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
-  return data::CreateParser_<uint32_t, int32_t>(uri_, part_index, num_parts, type, key);
+  return data::CreateParser_<uint32_t, int32_t>(uri_, part_index, num_parts, type, is_encrypted, key);
 }
 
 template<>
@@ -308,8 +314,9 @@ Parser<uint64_t, int32_t>::Create(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
-  return data::CreateParser_<uint64_t, int32_t>(uri_, part_index, num_parts, type, key);
+  return data::CreateParser_<uint64_t, int32_t>(uri_, part_index, num_parts, type, is_encrypted, key);
 }
 
 template<>
@@ -318,8 +325,9 @@ Parser<uint32_t, int64_t>::Create(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
-  return data::CreateParser_<uint32_t, int64_t>(uri_, part_index, num_parts, type, key);
+  return data::CreateParser_<uint32_t, int64_t>(uri_, part_index, num_parts, type, is_encrypted, key);
 }
 
 template<>
@@ -328,9 +336,11 @@ Parser<uint64_t, int64_t>::Create(const char *uri_,
     unsigned part_index,
     unsigned num_parts,
     const char *type,
+    bool is_encrypted,
     const char* key) {
-  return data::CreateParser_<uint64_t, int64_t>(uri_, part_index, num_parts, type, key);
+  return data::CreateParser_<uint64_t, int64_t>(uri_, part_index, num_parts, type, is_encrypted, key);
 }
+#endif // __ENCLAVE__
 
 // registry
 typedef ParserFactoryReg<uint32_t, real_t> Reg32flt;

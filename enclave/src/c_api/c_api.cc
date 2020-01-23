@@ -688,7 +688,7 @@ int XGBRegisterLogCallback(void (*callback)(const char*)) {
   API_END();
 }
 
-int XGDMatrixCreateFromFile(const char *fname,
+int XGDMatrixCreateFromEncryptedFile(const char *fname,
         int silent,
         DMatrixHandle *out) {
     API_BEGIN();
@@ -702,10 +702,25 @@ int XGDMatrixCreateFromFile(const char *fname,
     // FIXME consistently use uint8_t* for key bytes
     char key[CIPHER_KEY_SIZE];
     EnclaveContext::getInstance().get_client_key(fname, (uint8_t*) key);
-    //for (int i = 0; i < CIPHER_KEY_SIZE; i++)
-    //  fprintf(stdout, "%d\t", key[i]);
-    //fprintf(stdout, "\n");
-    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split, key));
+    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split, true, key));
+#else
+    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
+#endif
+    API_END();
+}
+
+int XGDMatrixCreateFromFile(const char *fname,
+        int silent,
+        DMatrixHandle *out) {
+    API_BEGIN();
+    bool load_row_split = false;
+    if (rabit::IsDistributed()) {
+        LOG(CONSOLE) << "XGBoost distributed mode detected, "
+            << "will split data among workers";
+        load_row_split = true;
+    }
+#ifdef __ENCLAVE__ // pass decryption key
+    *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split, false, NULL));
 #else
     *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
 #endif

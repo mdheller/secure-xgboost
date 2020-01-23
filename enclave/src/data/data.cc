@@ -153,6 +153,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
                        bool silent,
                        bool load_row_split,
 #ifdef __ENCLAVE__ // pass decryption key
+                       bool is_encrypted,
                        char* key,
 #endif
                        const std::string& file_format,
@@ -224,7 +225,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
 
 #ifdef __ENCLAVE__ // pass decryption key
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
-      dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str(), key));
+      dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str(), is_encrypted, key));
 #else
   std::unique_ptr<dmlc::Parser<uint32_t> > parser(
       dmlc::Parser<uint32_t>::Create(fname.c_str(), partid, npart, file_format.c_str()));

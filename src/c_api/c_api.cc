@@ -272,6 +272,14 @@ int XGDMatrixCreateFromFile(const char *fname,
 #endif 
 }
 
+#ifdef __SGX__
+int XGDMatrixCreateFromEncryptedFile(const char *fname,
+        int silent,
+        DMatrixHandle *out) {
+    enclave_XGDMatrixCreateFromEncryptedFile(enclave, &enclave_ret, fname, silent, out);
+}
+#endif
+
 int XGDMatrixCreateFromDataIter(
     void* data_handle,
     XGBCallbackDataIterNext* callback,
@@ -884,12 +892,13 @@ XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags) {
     if (result != OE_OK) {
       fprintf(
           stderr,
-          "oe_create_helloworld_enclave(): result=%u (%s)\n",
+          "oe_create_enclave(): result=%u (%s)\n",
           result,
           oe_result_str(result));
       oe_terminate_enclave(enclave);
       return enclave_ret;
     }
+    enclave_init(enclave);
   }
   return 0;
 }
