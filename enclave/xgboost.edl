@@ -4,39 +4,39 @@ enclave {
         public void enclave_init();
 
         public int enclave_XGDMatrixCreateFromFile(
-                [user_check] const char *fname,
+                [in, string] const char *fname,
                 int silent,
                 [out] DMatrixHandle *out);
 
         public int enclave_XGDMatrixCreateFromEncryptedFile(
-                [user_check] const char *fname,
+                [in, string] const char *fname,
                 int silent,
                 [out] DMatrixHandle *out);
 
         public int enclave_XGBoosterCreate(
                 [user_check] const DMatrixHandle* dmats, 
                 bst_ulong len, 
-                [user_check] BoosterHandle* out);
+                [out] BoosterHandle* out);
 
         public int enclave_XGBoosterSetParam(
-                [user_check, isptr] BoosterHandle handle,
-                [user_check] const char *name,
-                [user_check] const char *value); 
+                BoosterHandle handle,
+                [in, string] const char *name,
+                [in, string] const char *value); 
 
         public int enclave_XGBoosterUpdateOneIter(
-                [user_check, isptr] BoosterHandle handle,
+                BoosterHandle handle,
                 int iter,
-                [user_check, isptr] DMatrixHandle dtrain);
+                DMatrixHandle dtrain);
 
         public int enclave_XGBoosterBoostOneIter(
-                [user_check, isptr] BoosterHandle handle,
-                [user_check, isptr] DMatrixHandle dtrain,
+                BoosterHandle handle,
+                DMatrixHandle dtrain,
                 [user_check] bst_float *grad,
                 [user_check] bst_float *hess,
                 bst_ulong len);
 
         public int enclave_XGBoosterEvalOneIter(
-                [user_check, isptr] BoosterHandle handle,
+                BoosterHandle handle,
                 int iter,
                 [user_check] DMatrixHandle* dmats,
                 [user_check] const char** evnames,
@@ -44,32 +44,32 @@ enclave {
                 [user_check] const char** out_str);
 
         public int enclave_XGBoosterPredict(
-                [user_check, isptr] BoosterHandle handle,
-                [user_check, isptr] DMatrixHandle dmat,
+                BoosterHandle handle,
+                DMatrixHandle dmat,
                 int option_mask,
                 unsigned ntree_limit,
-                [user_check] bst_ulong *out_len,
+                [out] bst_ulong *out_len,
                 [user_check] const bst_float **out_result);
         
         public int enclave_XGDMatrixGetFloatInfo(
-                [user_check, isptr] DMatrixHandle handle,
-                [user_check] const char* field,
-                [user_check] bst_ulong *out_len,
+                DMatrixHandle handle,
+                [in, string] const char* field,
+                [out] bst_ulong *out_len,
                 [user_check] const bst_float **out_dptr);
 
         public int enclave_XGBoosterLoadModel(
-                [user_check, isptr] BoosterHandle handle,
-                [user_check] const char* fname);
+                BoosterHandle handle,
+                [in, string] const char* fname);
         
         public int enclave_XGBoosterSaveModel(
-                [user_check, isptr] BoosterHandle handle,
-                [user_check] const char* fname);
+                BoosterHandle handle,
+                [in, string] const char* fname);
 
         public int enclave_XGDMatrixFree(
-                [user_check, isptr] DMatrixHandle handle);
+                DMatrixHandle handle);
 
         public int enclave_XGBoosterFree(
-                [user_check, isptr] BoosterHandle handle);
+                BoosterHandle handle);
 
         public int enclave_get_remote_report_with_pubkey(
                 [out] uint8_t **pem_key, 
@@ -84,7 +84,7 @@ enclave {
                 size_t remote_report_size);
 
         public int enclave_add_client_key(
-                [user_check] char* fname, 
+                [in, string] char* fname, 
                 [user_check] uint8_t* data, 
                 size_t data_len, 
                 [user_check] uint8_t* signature,
