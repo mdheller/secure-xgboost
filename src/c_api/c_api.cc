@@ -821,7 +821,7 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
                                   xgboost::bst_ulong* out_len,
                                   const bst_float** out_dptr) {
 #ifdef __SGX__
-    enclave_XGDMatrixGetFloatInfo(enclave, &enclave_ret, handle, field, out_len, out_dptr);
+    enclave_XGDMatrixGetFloatInfo(enclave, &enclave_ret, handle, field, out_len, (bst_float**) out_dptr);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -996,7 +996,7 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  xgboost::bst_ulong len,
                                  const char** out_str) {
 #ifdef __SGX__ 
-    enclave_XGBoosterEvalOneIter(enclave, &enclave_ret, handle, iter, dmats, evnames, len, out_str);
+    enclave_XGBoosterEvalOneIter(enclave, &enclave_ret, handle, iter, dmats, evnames, len, (char**) out_str);
 #else
     std::string& eval_str = XGBAPIThreadLocalStore::Get()->ret_str;
     API_BEGIN();
@@ -1024,7 +1024,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              xgboost::bst_ulong *len,
                              const bst_float **out_result) {
 #ifdef __SGX__
-    enclave_XGBoosterPredict(enclave, &enclave_ret, handle, dmat, option_mask, ntree_limit, len, out_result);
+    enclave_XGBoosterPredict(enclave, &enclave_ret, handle, dmat, option_mask, ntree_limit, len, (bst_float**) out_result);
 #else 
     std::vector<bst_float>&preds =
       XGBAPIThreadLocalStore::Get()->ret_vec_float;

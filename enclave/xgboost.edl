@@ -14,7 +14,7 @@ enclave {
                 [out] DMatrixHandle *out);
 
         public int enclave_XGBoosterCreate(
-                [user_check] const DMatrixHandle* dmats, 
+                [in, count=len] const DMatrixHandle* dmats, 
                 bst_ulong len, 
                 [out] BoosterHandle* out);
 
@@ -38,10 +38,10 @@ enclave {
         public int enclave_XGBoosterEvalOneIter(
                 BoosterHandle handle,
                 int iter,
-                [user_check] DMatrixHandle* dmats,
-                [user_check] const char** evnames,
+                [in, count=len] DMatrixHandle* dmats,
+                [in, count=len] const char** evnames,
                 bst_ulong len,
-                [user_check] const char** out_str);
+                [out] char** out_str);
 
         public int enclave_XGBoosterPredict(
                 BoosterHandle handle,
@@ -49,13 +49,13 @@ enclave {
                 int option_mask,
                 unsigned ntree_limit,
                 [out] bst_ulong *out_len,
-                [user_check] const bst_float **out_result);
+                [out] bst_float **out_result);
         
         public int enclave_XGDMatrixGetFloatInfo(
                 DMatrixHandle handle,
                 [in, string] const char* field,
                 [out] bst_ulong *out_len,
-                [user_check] const bst_float **out_dptr);
+                [out] bst_float **out_dptr);
 
         public int enclave_XGBoosterLoadModel(
                 BoosterHandle handle,
@@ -85,9 +85,9 @@ enclave {
 
         public int enclave_add_client_key(
                 [in, string] char* fname, 
-                [user_check] uint8_t* data, 
+                [in, size=data_len] uint8_t* data, 
                 size_t data_len, 
-                [user_check] uint8_t* signature,
+                [in, size=sig_len] uint8_t* signature,
                 size_t sig_len);
     };
 };

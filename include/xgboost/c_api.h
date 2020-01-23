@@ -44,6 +44,24 @@ if (!oe_is_within_enclave((ptr), sizeof((ptr)))) {        \
   exit(1);                                                \
 }                                                         \
 }
+
+#define check_enclave_buffer(ptr, size) {                 \
+if (!oe_is_within_enclave((ptr), size)) {                 \
+    fprintf(stderr,                                       \
+            "%s:%d: Buffer bounds check faileds\n",       \
+            __FILE__, __LINE__);                          \
+    exit(1);                                              \
+}                                                         \
+}
+
+#define check_host_buffer(ptr, size) {                    \
+if (!oe_is_outside_enclave((ptr), size)) {                \
+    fprintf(stderr,                                       \
+            "%s:%d: Buffer bounds check faileds\n",       \
+            __FILE__, __LINE__);                          \
+    exit(1);                                              \
+}                                                         \
+}
 #endif
 
 // manually define unsigned long
