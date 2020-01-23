@@ -53,6 +53,13 @@ int enclave_XGBoosterUpdateOneIter(BoosterHandle handle, int iter, DMatrixHandle
   return XGBoosterUpdateOneIter(handle, iter, dtrain);
 }
 
+int enclave_XGBoosterBoostOneIter(BoosterHandle handle, DMatrixHandle dtrain, bst_float *grad, bst_float *hess, xgboost::bst_ulong len) {
+  LOG(DEBUG) << "Ecall: XGBoosterBoostOneIter";
+  check_enclave_ptr(handle);
+  check_enclave_ptr(dtrain);
+  return XGBoosterBoostOneIter(handle, dtrain, grad, hess, len);
+}
+
 int enclave_XGBoosterEvalOneIter(BoosterHandle handle, int iter, DMatrixHandle dmats[], const char* evnames[], bst_ulong len, const char** out_str) {
   LOG(DEBUG) << "Ecall: XGBoosterEvalOneIter";
   check_enclave_ptr(handle);

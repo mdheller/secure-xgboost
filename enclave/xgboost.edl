@@ -28,11 +28,18 @@ enclave {
                 int iter,
                 [user_check, isptr] DMatrixHandle dtrain);
 
+        public int enclave_XGBoosterBoostOneIter(
+                [user_check, isptr] BoosterHandle handle,
+                [user_check, isptr] DMatrixHandle dtrain,
+                [user_check] bst_float *grad,
+                [user_check] bst_float *hess,
+                bst_ulong len);
+
         public int enclave_XGBoosterEvalOneIter(
                 [user_check, isptr] BoosterHandle handle,
                 int iter,
                 [user_check] DMatrixHandle* dmats,
-                [user_check]const char** evnames,
+                [user_check] const char** evnames,
                 bst_ulong len,
                 [user_check] const char** out_str);
 

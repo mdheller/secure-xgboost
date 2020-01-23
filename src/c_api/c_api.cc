@@ -967,6 +967,10 @@ XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
                                   bst_float *grad,
                                   bst_float *hess,
                                   xgboost::bst_ulong len) {
+#ifdef __SGX__
+    //TODO: test this API
+  enclave_XGBoosterBoostOneIter(enclave, &enclave_ret, handle, dtrain, grad, hess, len);
+#else
   HostDeviceVector<GradientPair> tmp_gpair;
   API_BEGIN();
   CHECK_HANDLE();
@@ -982,6 +986,7 @@ XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
   bst->LazyInit();
   bst->learner()->BoostOneIter(0, dtr->get(), &tmp_gpair);
   API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,

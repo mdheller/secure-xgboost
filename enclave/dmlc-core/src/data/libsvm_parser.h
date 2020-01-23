@@ -110,7 +110,6 @@ std::ptrdiff_t IgnoreCommentAndBlank(char const* beg,
 }
 
 #ifdef __ENCLAVE__ // Decrypt and parse file
-// TODO(rishabh): allow files to be unencrypted
 template <typename IndexType, typename DType>
 void LibSVMParser<IndexType, DType>::
 ParseEncryptedBlock(const char *begin,

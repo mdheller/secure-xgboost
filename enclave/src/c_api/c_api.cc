@@ -1371,7 +1371,6 @@ XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
   API_END();
 }
 
-#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
                                   DMatrixHandle dtrain,
                                   bst_float *grad,
@@ -1393,7 +1392,6 @@ XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
   bst->learner()->BoostOneIter(0, dtr->get(), &tmp_gpair);
   API_END();
 }
-#endif // __ENCLAVE__
 
 XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  int iter,
