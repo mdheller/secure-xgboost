@@ -367,7 +367,7 @@ class DMatrix(object):
     _feature_names = None  # for previous version's pickle
     _feature_types = None
 
-    def __init__(self, data, label=None, missing=None,
+    def __init__(self, data, encrypted=False, label=None, missing=None,
                  weight=None, silent=False,
                  feature_names=None, feature_types=None,
                  nthread=None):
@@ -440,9 +440,14 @@ class DMatrix(object):
 
         if isinstance(data, STRING_TYPES):
             handle = ctypes.c_void_p()
-            _check_call(_LIB.XGDMatrixCreateFromFile(c_str(data),
-                                                     ctypes.c_int(silent),
-                                                     ctypes.byref(handle)))
+            if encrypted:
+                _check_call(_LIB.XGDMatrixCreateFromEncryptedFile(c_str(data),
+                    ctypes.c_int(silent),
+                    ctypes.byref(handle)))
+            else:
+                _check_call(_LIB.XGDMatrixCreateFromFile(c_str(data),
+                    ctypes.c_int(silent),
+                    ctypes.byref(handle)))
             self.handle = handle
         elif isinstance(data, scipy.sparse.csr_matrix):
             self._init_from_csr(data)
