@@ -32,8 +32,8 @@ enclave {
         public int enclave_XGBoosterBoostOneIter(
                 BoosterHandle handle,
                 DMatrixHandle dtrain,
-                [user_check] bst_float *grad,
-                [user_check] bst_float *hess,
+                [in, count=len] bst_float *grad,
+                [in, count=len] bst_float *hess,
                 bst_ulong len);
 
         public int enclave_XGBoosterEvalOneIter(

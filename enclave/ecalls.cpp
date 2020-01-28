@@ -9,7 +9,6 @@
 #include <string>
 
 void enclave_init(int log_verbosity) {
-
   std::vector<std::pair<std::string, std::string> > args;
   args.emplace_back("verbosity", std::to_string(log_verbosity));
   xgboost::ConsoleLogger::Configure(args.cbegin(), args.cend());
@@ -63,7 +62,6 @@ int enclave_XGBoosterUpdateOneIter(BoosterHandle handle, int iter, DMatrixHandle
   return XGBoosterUpdateOneIter(handle, iter, dtrain);
 }
 
-//FIXME add checks (also remove user_check from EDL)
 int enclave_XGBoosterBoostOneIter(BoosterHandle handle, DMatrixHandle dtrain, bst_float *grad, bst_float *hess, xgboost::bst_ulong len) {
   LOG(DEBUG) << "Ecall: XGBoosterBoostOneIter";
   check_enclave_ptr(handle);
