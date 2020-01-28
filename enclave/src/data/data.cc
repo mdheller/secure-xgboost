@@ -240,6 +240,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
    * since partitioned data not knowing the real number of features. */
   rabit::Allreduce<rabit::op::Max>(&dmat->Info().num_col_, 1);
   // backward compatiblity code.
+#ifndef __ENCLAVE__ // FIXME: currently disabled to prevent OE errors if file not found
   if (!load_row_split) {
     MetaInfo& info = dmat->Info();
     if (MetaTryLoadGroup(fname + ".group", &info.group_ptr_) && !silent) {
@@ -257,7 +258,7 @@ DMatrix* DMatrix::Load(const std::string& uri,
                    << " weights are loaded from " << fname << ".weight";
     }
   }
-
+#endif
   return dmat;
 }
 
