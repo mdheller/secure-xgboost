@@ -846,6 +846,9 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
                                  const char *field,
                                  xgboost::bst_ulong *out_len,
                                  const unsigned **out_dptr) {
+#ifdef __SGX__
+  enclave_XGDMatrixGetUintInfo(enclave, &enclave_ret, handle, field, out_len, (unsigned**) out_dptr);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   const MetaInfo& info = static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info();
@@ -858,6 +861,7 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
     LOG(FATAL) << "Unknown uint field name " << field;
   }
   API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixNumRow(const DMatrixHandle handle,

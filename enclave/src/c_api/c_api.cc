@@ -1291,7 +1291,6 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
   API_END();
 }
 
-#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
                                  const char *field,
                                  xgboost::bst_ulong *out_len,
@@ -1303,13 +1302,20 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
   if (!std::strcmp(field, "root_index")) {
     vec = &info.root_index_;
     *out_len = static_cast<xgboost::bst_ulong>(vec->size());
+#ifdef __ENCLAVE__ // write results to host memory
+    unsigned* result = (unsigned*) oe_host_malloc(vec->size() * sizeof(unsigned));
+    memcpy(result, dmlc::BeginPtr(*vec), *out_len * sizeof(unsigned));
+    *out_dptr = result;
+#else
     *out_dptr = dmlc::BeginPtr(*vec);
+#endif
   } else {
     LOG(FATAL) << "Unknown uint field name " << field;
   }
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixNumRow(const DMatrixHandle handle,
                             xgboost::bst_ulong *out) {
   API_BEGIN();

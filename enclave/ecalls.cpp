@@ -110,6 +110,12 @@ int enclave_XGDMatrixGetFloatInfo(const DMatrixHandle handle, const char* field,
   return XGDMatrixGetFloatInfo(handle, field, out_len, (const bst_float**) out_dptr);
 }
 
+int enclave_XGDMatrixGetUintInfo(const DMatrixHandle handle, const char* field, bst_ulong *out_len, unsigned **out_dptr) {
+  LOG(DEBUG) << "Ecall: XGDMatrixGetFloatInfo";
+  check_enclave_ptr(handle);
+  return XGDMatrixGetUIntInfo(handle, field, out_len, (const unsigned**) out_dptr);
+}
+
 int enclave_XGDMatrixFree(DMatrixHandle handle) {
   LOG(DEBUG) << "Ecall: XGDMatrixFree";
   return XGDMatrixFree(handle);

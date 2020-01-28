@@ -58,6 +58,12 @@ enclave {
                 [out] bst_ulong *out_len,
                 [out] bst_float **out_dptr);
 
+        public int enclave_XGDMatrixGetUintInfo(
+                DMatrixHandle handle,
+                [in, string] const char* field,
+                [out] bst_ulong *out_len,
+                [out] unsigned **out_dptr);
+
         public int enclave_XGBoosterLoadModel(
                 BoosterHandle handle,
                 [in, string] const char* fname);
