@@ -8,7 +8,7 @@ print("Creating enclave")
 HOME_DIR="/root/mc2/code/secure-xgboost/"
 
 # Uncomment below for enclave simulation mode
-enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE), log_verbosity=3)
 # enclave = xgb.Enclave("/root/mc2/code/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 
 # Remote Attestation

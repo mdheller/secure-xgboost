@@ -52,7 +52,8 @@ int main(int argc, char** argv) {
     flags |= OE_ENCLAVE_FLAG_SIMULATE;
   }
 
-  XGBCreateEnclave(argv[1], flags);
+  int log_verbosity = 3;
+  XGBCreateEnclave(argv[1], flags, log_verbosity);
   oe_result_t result;
   int ret = 1;
   oe_enclave_t* enclave = NULL;

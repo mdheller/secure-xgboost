@@ -1,7 +1,8 @@
 enclave {
     include "xgboost/c_api.h"
     trusted {
-        public void enclave_init();
+        public void enclave_init(
+                int log_verbosity);
 
         public int enclave_XGDMatrixCreateFromFile(
                 [in, string] const char *fname,

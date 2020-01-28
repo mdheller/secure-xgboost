@@ -6,7 +6,14 @@
 #include "xgboost_t.h"
 #include "src/common/common.h"
 
-void enclave_init() {
+#include <string>
+
+void enclave_init(int log_verbosity) {
+
+  std::vector<std::pair<std::string, std::string> > args;
+  args.emplace_back("verbosity", std::to_string(log_verbosity));
+  xgboost::ConsoleLogger::Configure(args.cbegin(), args.cend());
+
   LOG(DEBUG) << "Ecall: init\n";
   oe_result_t result;
   if ((result = oe_load_module_host_resolver()) != OE_OK) {

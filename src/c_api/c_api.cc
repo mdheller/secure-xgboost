@@ -882,7 +882,7 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
 
 
 #if defined(__SGX__) && defined (__HOST__)
-XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags) {
+XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags, int log_verbosity) {
   if (!enclave) {
     oe_result_t result;
 
@@ -898,7 +898,7 @@ XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags) {
       oe_terminate_enclave(enclave);
       return enclave_ret;
     }
-    enclave_init(enclave);
+    enclave_init(enclave, log_verbosity);
   }
   return 0;
 }
