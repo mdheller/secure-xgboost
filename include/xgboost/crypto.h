@@ -1,5 +1,5 @@
-#ifndef CRYPTO_H
-#define CRYPTO_H
+#ifndef CRYPTO_H_
+#define CRYPTO_H_
 
 #include "mbedtls/gcm.h"
 #include <mbedtls/entropy.h>    // mbedtls_entropy_context
@@ -9,13 +9,16 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 #include <mbedtls/sha256.h>
+#include <mbedtls/error.h>
+
+#include "mbedtls/gcm.h"
 
 #define CIPHER_KEY_SIZE 32
 #define CIPHER_IV_SIZE  12
 #define CIPHER_TAG_SIZE 16
 #define SHA_DIGEST_SIZE 32
 
-int cipher_init(mbedtls_gcm_context* gcm, unsigned char* key) {
+static int cipher_init(mbedtls_gcm_context* gcm, unsigned char* key) {
   // Initialize GCM context (just makes references valid) - makes the context ready for mbedtls_gcm_setkey()
   mbedtls_gcm_init(gcm);
   int ret = mbedtls_gcm_setkey(
@@ -24,12 +27,12 @@ int cipher_init(mbedtls_gcm_context* gcm, unsigned char* key) {
       key,                       // encryption key
       CIPHER_KEY_SIZE * 8);      // key bits (must be 128, 192, or 256)
   if( ret != 0 ) {
-    printf( "mbedtls_gcm_setkey failed to set the key for AES cipher - returned -0x%04x\n", -ret );
+    printf( "mbedtls_gcm_setkey failed to set the key for AES cipher - returned -0x%04x\n", -ret);
   }
   return ret;
 }
 
-int encrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len, unsigned char* aad, size_t aad_len, unsigned char* output, unsigned char* iv, unsigned char* tag) {
+static int encrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len, unsigned char* aad, size_t aad_len, unsigned char* output, unsigned char* iv, unsigned char* tag) {
   mbedtls_ctr_drbg_context ctr_drbg;
   mbedtls_entropy_context entropy;
   mbedtls_gcm_context gcm;
@@ -43,14 +46,8 @@ int encrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len,
   // CTR_DRBG initial seeding Seed and setup entropy source for future reseeds
   int ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy, (unsigned char *)pers, strlen(pers) );
   if( ret != 0 ) {
-    printf( "mbedtls_ctr_drbg_seed() failed - returned -0x%04x\n", -ret );
+    printf( "mbedtls_ctr_drbg_seed() failed - returned --x%04x\n", -ret);
     exit(1);
-  }
-  // Extract data for your key, in this case we generate 32 bytes (256 bits) of random data
-  ret = mbedtls_ctr_drbg_random( &ctr_drbg, key, CIPHER_KEY_SIZE );
-  if( ret != 0 ) {
-    printf( "mbedtls_ctr_drbg_random failed to extract key - returned -0x%04x\n", -ret );
-    return ret;
   }
 
   // Initialize the GCM context with our key and desired cipher
@@ -71,13 +68,8 @@ int encrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len,
       data_len,                                   // length of input data
       iv,                                         // initialization vector
       CIPHER_IV_SIZE,                             // length of IV
-#if true // temporary macro for testing
       aad,                                        // additional data
       aad_len,                                    // length of additional data
-#else
-      NULL,                                       // additional data
-      0,                                          // length of additional data
-#endif 
       data,                                       // buffer holding the input data
       output,                                     // buffer for holding the output data
       CIPHER_TAG_SIZE,                            // length of the tag to generate
@@ -88,7 +80,7 @@ int encrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len,
   return ret;
 }
 
-int decrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len, unsigned char* iv, unsigned char* tag, unsigned char* aad, size_t aad_len, unsigned char* output) {
+static int decrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len, unsigned char* iv, unsigned char* tag, unsigned char* aad, size_t aad_len, unsigned char* output) {
   mbedtls_gcm_context gcm;
 
   // Initialize the GCM context with our key and desired cipher
@@ -115,12 +107,12 @@ int decrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len,
       data,                                     // buffer holding the input ciphertext data
       output);                                  // buffer for holding the output decrypted data
   if (ret != 0) {
-    LOG(INFO) << "mbedtls_gcm_auth_decrypt failed with error " << -ret;
+    printf( "mbedtls_gcm_auth_decrypt failed with error -0x%04x\n", -ret);
   }
   return ret;
 }
 
-int decrypt_symm(mbedtls_gcm_context* gcm, const unsigned char* data, size_t data_len, unsigned char* iv, unsigned char* tag, unsigned char* aad, size_t aad_len, unsigned char* output) {
+static int decrypt_symm(mbedtls_gcm_context* gcm, const unsigned char* data, size_t data_len, unsigned char* iv, unsigned char* tag, unsigned char* aad, size_t aad_len, unsigned char* output) {
 
   int ret = mbedtls_gcm_auth_decrypt(
       gcm,                                      // GCM context
@@ -139,12 +131,12 @@ int decrypt_symm(mbedtls_gcm_context* gcm, const unsigned char* data, size_t dat
       data,                                     // buffer holding the input ciphertext data
       output);                                  // buffer for holding the output decrypted data
   if (ret != 0) {
-    LOG(INFO) << "mbedtls_gcm_auth_decrypt failed with error " << -ret;
+    printf( "mbedtls_gcm_auth_decrypt failed with error -0x%04x\n ", -ret);
   }
   return ret;
 }
 
-int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[SHA_DIGEST_SIZE]) {
+static int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[SHA_DIGEST_SIZE]) {
   int ret = 0;
   mbedtls_sha256_context ctx;
 
@@ -196,4 +188,4 @@ int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[SHA_DIG
 //
 //  mbedtls_pk_free( &pk );
 //}
-#endif // CRYPTO_H
+#endif // CRYPTO_H_

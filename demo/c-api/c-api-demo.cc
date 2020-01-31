@@ -147,7 +147,6 @@ int main(int argc, char** argv) {
   safe_xgboost(XGBoosterLoadModel(booster, fname));
   std::cout << "Loaded model from demo_model.model" << std::endl;
 
-
   //// save model
   //bst_ulong len;
   //const char* buf;
