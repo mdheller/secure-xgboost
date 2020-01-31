@@ -2,6 +2,7 @@
 #include <xgboost/base.h>
 #include <xgboost/logging.h>
 #include <sys/mount.h>
+#include <rabit/c_api.h>
 
 #include "xgboost_t.h"
 #include "src/common/common.h"
@@ -164,4 +165,25 @@ int enclave_add_client_key(
     size_t sig_len) {
   fprintf(stdout, "Ecall: add_client_key\n");
   return add_client_key(fname, data, data_len, signature, sig_len);
+}
+
+// FIXME: check bounds
+void enclave_RabitInit(int argc, char **argv) {
+  fprintf(stdout, "Ecall: RabitInit\n");
+  RabitInit(argc, argv);
+}
+
+void enclave_RabitFinalize() {
+  fprintf(stdout, "Ecall: RabitFinalize\n");
+  RabitFinalize();
+}
+
+int enclave_RabitIsDistributed() {
+  fprintf(stdout, "Ecall: RabitIsDistributed\n");
+  return RabitIsDistributed();
+}
+
+void enclave_RabitTrackerPrint(const char *msg) {
+  fprintf(stdout, "Ecall: TrackerPrint\n");
+  RabitTrackerPrint(msg);
 }

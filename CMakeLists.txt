@@ -5,6 +5,7 @@ find_package(OpenEnclave CONFIG REQUIRED)
 include(cmake/Utils.cmake)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 cmake_policy(SET CMP0022 NEW)
+add_definitions(-D__SGX__)
 
 message(STATUS "CMake version ${CMAKE_VERSION}")
 if (MSVC)
@@ -73,6 +74,10 @@ endif (USE_CUDA)
 # find_package(OpenEnclave CONFIG REQUIRED)
 # target_link_libraries(file-encryptor_host openenclave::oehostapp)
 
+add_custom_command(OUTPUT xgboost_u.h xgboost_u.c xgboost_args.h 
+    DEPENDS ${PROJECT_SOURCE_DIR}/enclave/xgboost.edl
+    COMMAND openenclave::oeedger8r --untrusted ${CMAKE_SOURCE_DIR}/enclave/xgboost.edl)
+
 # dmlc-core
 msvc_use_static_runtime()
 add_subdirectory(${PROJECT_SOURCE_DIR}/dmlc-core)
@@ -95,10 +100,13 @@ else ()
     rabit/src/engine.cc
     rabit/src/c_api.cc)
 endif (MINGW OR R_LIB)
-add_library(rabit STATIC ${RABIT_SOURCES})
+add_library(rabit STATIC ${RABIT_SOURCES} ${PROJECT_BINARY_DIR}/xgboost_u.c)
 target_include_directories(rabit PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/dmlc-core/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include/rabit>)
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include/rabit>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include>)
+  # ${PROJECT_BINARY_DIR}/src)
 target_link_libraries(rabit PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::oehostapp mbedcrypto mbedtls)
 set_target_properties(rabit
   PROPERTIES
@@ -173,7 +181,7 @@ set_output_directory(xgboost ${PROJECT_SOURCE_DIR}/lib)
   # run_doxygen()
 # endif (BUILD_C_DOC)
 # 
-# include(GNUInstallDirs)
+include(GNUInstallDirs)
 # # Exposing only C APIs.
 # install(FILES
   # "${PROJECT_SOURCE_DIR}/include/xgboost/c_api.h"

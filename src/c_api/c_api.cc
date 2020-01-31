@@ -27,6 +27,7 @@
 #include <openenclave/host.h>
 #include "xgboost_u.h"
 #include <xgboost/crypto.h>
+#include "../../enclave/enclave.h"
 #endif
 
 // TODO(rishabh): Ecall error handling
@@ -245,14 +246,11 @@ int XGBRegisterLogCallback(void (*callback)(const char*)) {
   API_END();
 }
 
-static int enclave_ret = 1;
-static oe_enclave_t* enclave = NULL;
-
 int XGDMatrixCreateFromFile(const char *fname,
                             int silent,
                             DMatrixHandle *out) {
 #ifdef __SGX__
-    enclave_XGDMatrixCreateFromFile(enclave, &enclave_ret, fname, silent, out);
+    enclave_XGDMatrixCreateFromFile(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, silent, out);
 #else
     API_BEGIN();
     bool load_row_split = false;
@@ -270,7 +268,7 @@ int XGDMatrixCreateFromFile(const char *fname,
 int XGDMatrixCreateFromEncryptedFile(const char *fname,
         int silent,
         DMatrixHandle *out) {
-    enclave_XGDMatrixCreateFromEncryptedFile(enclave, &enclave_ret, fname, silent, out);
+    enclave_XGDMatrixCreateFromEncryptedFile(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, silent, out);
 }
 #endif
 
@@ -755,7 +753,7 @@ XGB_DLL int XGDMatrixSliceDMatrix(DMatrixHandle handle,
 
 XGB_DLL int XGDMatrixFree(DMatrixHandle handle) {
 #ifdef __SGX__
-    enclave_XGDMatrixFree(enclave, &enclave_ret, handle);
+    enclave_XGDMatrixFree(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -815,7 +813,7 @@ XGB_DLL int XGDMatrixGetFloatInfo(const DMatrixHandle handle,
                                   xgboost::bst_ulong* out_len,
                                   const bst_float** out_dptr) {
 #ifdef __SGX__
-    enclave_XGDMatrixGetFloatInfo(enclave, &enclave_ret, handle, field, out_len, (bst_float**) out_dptr);
+    enclave_XGDMatrixGetFloatInfo(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, field, out_len, (bst_float**) out_dptr);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -841,7 +839,7 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
                                  xgboost::bst_ulong *out_len,
                                  const unsigned **out_dptr) {
 #ifdef __SGX__
-  enclave_XGDMatrixGetUintInfo(enclave, &enclave_ret, handle, field, out_len, (unsigned**) out_dptr);
+  enclave_XGDMatrixGetUintInfo(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, field, out_len, (unsigned**) out_dptr);
 #else
   API_BEGIN();
   CHECK_HANDLE();
@@ -881,22 +879,23 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
 
 #if defined(__SGX__) && defined (__HOST__)
 XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags, int log_verbosity) {
-  if (!enclave) {
+  if (!Enclave::getInstance().getEnclave()) {
     oe_result_t result;
 
+    oe_enclave_t** enclave = Enclave::getInstance().getEnclaveRef();
     // Create the enclave
     result = oe_create_xgboost_enclave(
-        enclave_image, OE_ENCLAVE_TYPE_AUTO, flags, NULL, 0, &enclave);
+        enclave_image, OE_ENCLAVE_TYPE_AUTO, flags, NULL, 0, enclave);
     if (result != OE_OK) {
       fprintf(
           stderr,
           "oe_create_enclave(): result=%u (%s)\n",
           result,
           oe_result_str(result));
-      oe_terminate_enclave(enclave);
-      return enclave_ret;
+      oe_terminate_enclave(Enclave::getInstance().getEnclave());
+      return Enclave::getInstance().enclave_ret;
     }
-    enclave_init(enclave, log_verbosity);
+    enclave_init(Enclave::getInstance().getEnclave(), log_verbosity);
   }
   return 0;
 }
@@ -906,7 +905,7 @@ XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                     xgboost::bst_ulong len,
                     BoosterHandle *out) {
 #ifdef __SGX__
-    enclave_XGBoosterCreate(enclave, &enclave_ret, dmats, len, out);
+    enclave_XGBoosterCreate(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, dmats, len, out);
 #else
     API_BEGIN();
     std::vector<std::shared_ptr<DMatrix> > mats;
@@ -920,7 +919,7 @@ XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
 
 XGB_DLL int XGBoosterFree(BoosterHandle handle) {
 #ifdef __SGX__
-    enclave_XGBoosterFree(enclave, &enclave_ret, handle);
+    enclave_XGBoosterFree(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle);
 #else 
     API_BEGIN();
     CHECK_HANDLE();
@@ -933,7 +932,7 @@ XGB_DLL int XGBoosterSetParam(BoosterHandle handle,
                               const char *name,
                               const char *value) {
 #ifdef __SGX__
-    enclave_XGBoosterSetParam(enclave, &enclave_ret, handle, name, value);
+    enclave_XGBoosterSetParam(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, name, value);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -946,7 +945,7 @@ XGB_DLL int XGBoosterUpdateOneIter(BoosterHandle handle,
                                    int iter,
                                    DMatrixHandle dtrain) {
 #ifdef __SGX__
-    enclave_XGBoosterUpdateOneIter(enclave, &enclave_ret, handle, iter, dtrain);
+    enclave_XGBoosterUpdateOneIter(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, iter, dtrain);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -967,7 +966,7 @@ XGB_DLL int XGBoosterBoostOneIter(BoosterHandle handle,
                                   xgboost::bst_ulong len) {
 #ifdef __SGX__
     //TODO: test this API
-  enclave_XGBoosterBoostOneIter(enclave, &enclave_ret, handle, dtrain, grad, hess, len);
+  enclave_XGBoosterBoostOneIter(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, dtrain, grad, hess, len);
 #else
   HostDeviceVector<GradientPair> tmp_gpair;
   API_BEGIN();
@@ -994,7 +993,7 @@ XGB_DLL int XGBoosterEvalOneIter(BoosterHandle handle,
                                  xgboost::bst_ulong len,
                                  const char** out_str) {
 #ifdef __SGX__ 
-    enclave_XGBoosterEvalOneIter(enclave, &enclave_ret, handle, iter, dmats, evnames, len, (char**) out_str);
+    enclave_XGBoosterEvalOneIter(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, iter, dmats, evnames, len, (char**) out_str);
 #else
     std::string& eval_str = XGBAPIThreadLocalStore::Get()->ret_str;
     API_BEGIN();
@@ -1022,7 +1021,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              xgboost::bst_ulong *len,
                              const bst_float **out_result) {
 #ifdef __SGX__
-    enclave_XGBoosterPredict(enclave, &enclave_ret, handle, dmat, option_mask, ntree_limit, len, (bst_float**) out_result);
+    enclave_XGBoosterPredict(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, dmat, option_mask, ntree_limit, len, (bst_float**) out_result);
 #else 
     std::vector<bst_float>&preds =
       XGBAPIThreadLocalStore::Get()->ret_vec_float;
@@ -1048,7 +1047,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
 
 XGB_DLL int XGBoosterLoadModel(BoosterHandle handle, const char* fname) {
 #ifdef __SGX__ 
-    enclave_XGBoosterLoadModel(enclave, &enclave_ret, handle, fname);
+    enclave_XGBoosterLoadModel(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, fname);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -1060,7 +1059,7 @@ XGB_DLL int XGBoosterLoadModel(BoosterHandle handle, const char* fname) {
 
 XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
 #ifdef __SGX__
-    enclave_XGBoosterSaveModel(enclave, &enclave_ret, handle, fname);
+    enclave_XGBoosterSaveModel(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, fname);
 #else
     API_BEGIN();
     CHECK_HANDLE();
@@ -1077,7 +1076,7 @@ XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  const void* buf,
                                  xgboost::bst_ulong len) {
 #ifdef __SGX__
-  enclave_XGBoosterLoadModelFromBuffer(enclave, &enclave_ret, handle, buf, len);
+  enclave_XGBoosterLoadModelFromBuffer(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, buf, len);
 #else
   API_BEGIN();
   CHECK_HANDLE();
@@ -1091,7 +1090,7 @@ XGB_DLL int XGBoosterGetModelRaw(BoosterHandle handle,
                          xgboost::bst_ulong* out_len,
                          const char** out_dptr) {
 #ifdef __SGX__
-  enclave_XGBoosterGetModelRaw(enclave, &enclave_ret, handle, out_len, (char**)out_dptr);
+  enclave_XGBoosterGetModelRaw(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, out_len, (char**)out_dptr);
 #else
   std::string& raw_str = XGBAPIThreadLocalStore::Get()->ret_str;
   raw_str.resize(0);
@@ -1288,8 +1287,8 @@ XGB_DLL int get_remote_report_with_pubkey(
     size_t* key_size,
     uint8_t** remote_report,
     size_t* remote_report_size) {
-  enclave_get_remote_report_with_pubkey(enclave, &enclave_ret, pem_key, key_size, remote_report, remote_report_size);
-  return enclave_ret;
+  enclave_get_remote_report_with_pubkey(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, pem_key, key_size, remote_report, remote_report_size);
+  return Enclave::getInstance().enclave_ret;
 }
 /**
  * Attest the given remote report and accompanying data. It consists of the
@@ -1397,8 +1396,8 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
 
 XGB_DLL int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
     // FIXME return value / error handling
-  enclave_add_client_key(enclave, &enclave_ret, fname, data, data_len, signature, sig_len);
-  return enclave_ret;
+  enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, data, data_len, signature, sig_len);
+  return Enclave::getInstance().enclave_ret;
 }
 
 XGB_DLL int encrypt_data_with_pk(char* data, size_t len, uint8_t* pem_key, size_t key_size, uint8_t* encrypted_data, size_t* encrypted_data_size) {

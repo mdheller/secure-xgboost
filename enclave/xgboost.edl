@@ -1,5 +1,6 @@
 enclave {
     include "xgboost/c_api.h"
+    include "rabit/c_api.h"
     trusted {
         public void enclave_init(
                 int log_verbosity);
@@ -106,6 +107,17 @@ enclave {
                 size_t data_len, 
                 [in, size=sig_len] uint8_t* signature,
                 size_t sig_len);
+
+        public void enclave_RabitInit(
+                int argc,
+                [user_check] char **argv);
+
+        public void enclave_RabitFinalize();
+
+        public int enclave_RabitIsDistributed();
+
+        public void enclave_RabitTrackerPrint(
+                [user_check] const char *msg);
     };
 };
 

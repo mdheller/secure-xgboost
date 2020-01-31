@@ -52,8 +52,10 @@ int main(int argc, char** argv) {
     flags |= OE_ENCLAVE_FLAG_SIMULATE;
   }
 
+  std::cout << "Creating enclave\n";
   int log_verbosity = 3;
   XGBCreateEnclave(argv[1], flags, log_verbosity);
+  
   oe_result_t result;
   int ret = 1;
   oe_enclave_t* enclave = NULL;
@@ -75,10 +77,11 @@ int main(int argc, char** argv) {
   //safe_xgboost(sign_data("keypair.pem", encrypted_data, encrypted_data_size, signature, &sig_len));
   //verifySignature("publickey.crt", encrypted_data, encrypted_data_size, signature, sig_len);
 
-  //std::string fname1("train.encrypted");
-  //safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
-  //std::string fname2("test.encrypted");
-  //safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+  std::string fname1("/home/xgb/secure-xgboost/demo/c-api/train.encrypted");
+  safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+  std::string fname2("/home/xgb/secure-xgboost/demo/c-api/test.encrypted");
+  safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+
 #endif
 
   int silent = 0;
@@ -87,12 +90,10 @@ int main(int argc, char** argv) {
   // load the data
   DMatrixHandle dtrain, dtest;
 #ifdef __SGX__
-  safe_xgboost(XGDMatrixCreateFromEncryptedFile("/root/mc2/code/secure-xgboost/demo/c-api/train.encrypted", silent, &dtrain));
-  safe_xgboost(XGDMatrixCreateFromEncryptedFile("/root/mc2/code/secure-xgboost/demo/c-api/test.encrypted", silent, &dtest));
-  //safe_xgboost(XGDMatrixCreateFromFile("train.encrypted", silent, &dtrain));
-  //safe_xgboost(XGDMatrixCreateFromFile("test.encrypted", silent, &dtest));
-  //safe_xgboost(XGDMatrixCreateFromFile("/root/mc2/code/secure-xgboost/demo/data/agaricus.txt.train", silent, &dtrain));
-  //safe_xgboost(XGDMatrixCreateFromFile("/root/mc2/code/secure-xgboost/demo/data/agaricus.txt.test", silent, &dtest));
+  std::cout << "Loading train data\n";
+  safe_xgboost(XGDMatrixCreateFromEncryptedFile((const char*)fname1.c_str(), silent, &dtrain));
+  std::cout << "Loading test data\n";
+  safe_xgboost(XGDMatrixCreateFromEncryptedFile((const char*)fname2.c_str(), silent, &dtest));
 #else
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.train", silent, &dtrain));
   safe_xgboost(XGDMatrixCreateFromFile("../data/agaricus.txt.test", silent, &dtest));
@@ -135,7 +136,7 @@ int main(int argc, char** argv) {
     safe_xgboost(XGBoosterEvalOneIter(booster, i, eval_dmats, eval_names, 2, &eval_result));
     printf("%s\n", eval_result);
   }
-
+  
   //// save model
   //const char* fname = "/root/mc2/code/secure-xgboost/demo/c-api/demo_model.model";
   //safe_xgboost(XGBoosterSaveModel(booster, fname));

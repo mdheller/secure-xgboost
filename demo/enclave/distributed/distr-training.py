@@ -1,4 +1,5 @@
 import xgboost as xgb
+import os
 
 OE_ENCLAVE_FLAG_DEBUG = 1
 OE_ENCLAVE_FLAG_SIMULATE = 2
@@ -16,6 +17,20 @@ enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.si
 # print("Remote attestation")
 # enclave.get_remote_report_with_pubkey()
 # enclave.verify_remote_report_and_set_pubkey()
+
+rabit_args = {
+        "DMLC_NUM_WORKER": os.environ.get("DMLC_NUM_WORKER"),
+        "DMLC_NUM_SERVER": os.environ.get("DMLC_NUM_SERVER"),
+        "DMLC_TRACKER_URI": os.environ.get("DMLC_TRACKER_URI"),
+        "DMLC_TRACKER_PORT": os.environ.get("DMLC_TRACKER_PORT"),
+        "DMLC_ROLE": os.environ.get("DMLC_ROLE"),
+        "DMLC_NODE_HOST": os.environ.get("DMLC_NODE_HOST")
+}
+
+rargs = [str.encode(str(k) + "=" + str(v)) for k, v in rabit_args.items()]
+
+xgb.rabit.init(rargs)
+xgb.rabit.tracker_print("We should see this message")
 
 print("Creating training matrix")
 dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
@@ -53,3 +68,5 @@ print("\n\nModel Predictions: ")
 print(booster.predict(dtest)[:20])
 print("\n\nTrue Labels: ")
 print(dtest.get_label()[:20])
+
+xgb.rabit.finalize()

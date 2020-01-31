@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.11)
 project(securexgboost LANGUAGES CXX C)
-file(GLOB_RECURSE CPU_SOURCES *.cc)
+
+set(RABIT_SOURCES
+    rabit/src/allreduce_base.cc
+    rabit/src/allreduce_robust.cc 
+    rabit/src/engine.cc
+    rabit/src/c_api.cc)
+file(GLOB_RECURSE CPU_SOURCES dmlc-core/*.cc src/*.cc)
 list(REMOVE_ITEM CPU_SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -91,7 +97,7 @@ add_custom_command(OUTPUT xgboost_t.h xgboost_t.c xgboost_args.h
     DEPENDS ${CMAKE_SOURCE_DIR}/xgboost.edl
     COMMAND openenclave::oeedger8r --trusted ${CMAKE_SOURCE_DIR}/xgboost.edl)
 
-  add_executable(xgboost_enclave ${CMAKE_SOURCE_DIR}/ecalls.cpp ${CPU_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/xgboost_t.c)
+add_executable(xgboost_enclave ${CMAKE_SOURCE_DIR}/ecalls.cpp ${CPU_SOURCES} ${RABIT_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/xgboost_t.c)
 
 
 target_include_directories(xgboost_enclave
