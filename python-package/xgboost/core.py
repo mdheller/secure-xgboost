@@ -402,16 +402,6 @@ class DMatrix(object):
         nthread : integer, optional
             Number of threads to use for loading data from numpy array. If -1,
             uses maximum threads available on the system.
-        open_enclave : boolean, optional
-            Whether to initialize the DMatrix in an enclave
-            If true, enclave_image must be set
-        enclave_image : string, optional
-            If running in an enclave mode, a path to the signed enclave
-        flags : int, optional
-            Flags for enclave initialization
-                1 : debug mode
-                2 : simulation mode
-                3 : debug + simulation mode
         """
         # force into void_p, mac need to pass things in as void_p
         if data is None:
@@ -1159,16 +1149,6 @@ class Booster(object):
             List of cache items.
         model_file : string
             Path to the model file.
-        open_enclave : boolean, optional
-            Whether to initialize the DMatrix in an enclave
-            If true, enclave_image must be set
-        enclave_image : string, optional
-            If running in an enclave mode, a path to the signed enclave
-        flags : int, optional
-            Flags for enclave initialization
-                1 : debug mode
-                2 : simulation mode
-                3 : debug + simulation mode
         """
 
         for d in cache:
