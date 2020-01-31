@@ -25,13 +25,8 @@
 
 #ifdef __ENCLAVE__ // includes
 #include "../common/common.h"
-#include "mbedtls/sha256.h"
-#include <mbedtls/pk.h>
-#include <mbedtls/rsa.h>
-#include <mbedtls/config.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/entropy.h>
 #include "xgboost_t.h"
+#include "xgboost/crypto.h"
 #endif
 
 namespace xgboost {
@@ -279,6 +274,11 @@ class EnclaveContext {
         std::copy(iter->second.begin(), iter->second.end(), key);
         return true;
       }
+    }
+
+    //FIXME temporary function for testing
+    bool get_client_key(uint8_t* key) {
+      memset(key, 0, CIPHER_KEY_SIZE);
     }
 
     // FIXME verify client identity using root CA
@@ -1467,18 +1467,65 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
 XGB_DLL int XGBoosterLoadModel(BoosterHandle handle, const char* fname) {
   API_BEGIN();
   CHECK_HANDLE();
+#ifdef __ENCLAVE__ // load encrypted model from file
+  std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(fname, "r"));
+  size_t buf_len;
+  fi->Read(&buf_len, sizeof(size_t));
+
+  std::string& raw_str = XGBAPIThreadLocalStore::Get()->ret_str;
+  raw_str.resize(buf_len);
+  char* buf = dmlc::BeginPtr(raw_str);
+  fi->Read(buf, buf_len);
+
+  XGBoosterLoadModelFromBuffer(handle, buf, buf_len);
+#else
   std::unique_ptr<dmlc::Stream> fi(dmlc::Stream::Create(fname, "r"));
   static_cast<Booster*>(handle)->LoadModel(fi.get());
+#endif
   API_END();
 }
 
 XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
   API_BEGIN();
   CHECK_HANDLE();
+#ifdef __ENCLAVE__ // save encrypted model to file
+  std::string& raw_str = XGBAPIThreadLocalStore::Get()->ret_str;
+  raw_str.resize(0);
+
+  common::MemoryBufferStream fo(&raw_str);
+  auto *bst = static_cast<Booster*>(handle);
+  bst->LazyInit();
+  bst->learner()->Save(&fo);
+
+  size_t buf_len = CIPHER_IV_SIZE + CIPHER_TAG_SIZE + raw_str.length();
+  unsigned char* buf  = (unsigned char*) malloc(buf_len);
+
+  unsigned char* iv = buf;
+  unsigned char* tag = buf + CIPHER_IV_SIZE;
+  unsigned char* output = tag + CIPHER_TAG_SIZE;
+  unsigned char key[CIPHER_KEY_SIZE];
+  EnclaveContext::getInstance().get_client_key((uint8_t*)key);
+
+  encrypt_symm(
+      key,
+      (const unsigned char*)dmlc::BeginPtr(raw_str),
+      raw_str.length(),
+      NULL,
+      0,
+      output,
+      iv,
+      tag);
+
+  std::unique_ptr<dmlc::Stream> fs(dmlc::Stream::Create(fname, "w"));
+  fs->Write(&buf_len, sizeof(size_t));
+  fs->Write(buf, buf_len);
+  free(buf);
+#else
   std::unique_ptr<dmlc::Stream> fo(dmlc::Stream::Create(fname, "w"));
   auto *bst = static_cast<Booster*>(handle);
   bst->LazyInit();
   bst->learner()->Save(fo.get());
+#endif
   API_END();
 }
 
@@ -1487,8 +1534,33 @@ XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  xgboost::bst_ulong len) {
   API_BEGIN();
   CHECK_HANDLE();
+#ifdef __ENCLAVE__ // write results to host memory
+  len -= (CIPHER_IV_SIZE + CIPHER_TAG_SIZE);
+
+  unsigned char* iv = const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(buf));
+  unsigned char* tag = iv + CIPHER_IV_SIZE;
+  unsigned char* data = tag + CIPHER_TAG_SIZE;
+  unsigned char* output = (unsigned char*) malloc (len);
+  unsigned char key[CIPHER_KEY_SIZE];
+  EnclaveContext::getInstance().get_client_key((uint8_t*)key);
+
+  decrypt_symm(
+      key,
+      data,
+      len,
+      iv,
+      tag,
+      NULL,
+      0,
+      output);
+
+  common::MemoryFixSizeBuffer fs((void*)output, len);  // NOLINT(*)
+  static_cast<Booster*>(handle)->LoadModel(&fs);
+  free(output);
+#else
   common::MemoryFixSizeBuffer fs((void*)buf, len);  // NOLINT(*)
   static_cast<Booster*>(handle)->LoadModel(&fs);
+#endif
   API_END();
 }
 
@@ -1505,13 +1577,33 @@ XGB_DLL int XGBoosterGetModelRaw(BoosterHandle handle,
   bst->LazyInit();
   bst->learner()->Save(&fo);
 #ifdef __ENCLAVE__ // write results to host memory
-  char* buf  = (char*) oe_host_malloc(raw_str.length());
-  memcpy(buf, dmlc::BeginPtr(raw_str), raw_str.length());
-  *out_dptr = buf;
+  int buf_len = CIPHER_IV_SIZE + CIPHER_TAG_SIZE + raw_str.length();
+  unsigned char* buf  = (unsigned char*) malloc(buf_len);
+
+  unsigned char* iv = buf;
+  unsigned char* tag = buf + CIPHER_IV_SIZE;
+  unsigned char* output = tag + CIPHER_TAG_SIZE;
+  unsigned char key[CIPHER_KEY_SIZE];
+  EnclaveContext::getInstance().get_client_key((uint8_t*)key);
+
+  encrypt_symm(
+      key,
+      (const unsigned char*)dmlc::BeginPtr(raw_str),
+      raw_str.length(),
+      NULL,
+      0,
+      output,
+      iv,
+      tag);
+
+  unsigned char* host_buf  = (unsigned char*) oe_host_malloc(buf_len);
+  memcpy(host_buf, buf, buf_len);
+  free(buf);
+  *out_dptr = (const char*)host_buf;
 #else
   *out_dptr = dmlc::BeginPtr(raw_str);
 #endif
-  *out_len = static_cast<xgboost::bst_ulong>(raw_str.length());
+  *out_len = static_cast<xgboost::bst_ulong>(raw_str.length()) + CIPHER_IV_SIZE + CIPHER_TAG_SIZE;
   API_END();
 }
 

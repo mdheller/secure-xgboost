@@ -136,29 +136,29 @@ int main(int argc, char** argv) {
     printf("%s\n", eval_result);
   }
 
-  //// save model
-  //const char* fname = "/root/mc2/code/secure-xgboost/demo/c-api/demo_model.model";
-  //safe_xgboost(XGBoosterSaveModel(booster, fname));
-  //std::cout << "Saved model to demo_model.model" << std::endl;
-  //// load model
-  //booster = NULL;
-  //safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
-  //safe_xgboost(XGBoosterLoadModel(booster, fname));
-  //std::cout << "Loaded model from demo_model.model" << std::endl;
-
-
   // save model
-  bst_ulong len;
-  const char* buf;
-  safe_xgboost(XGBoosterGetModelRaw(booster, &len, &buf));
-  std::cout << "Saved model to buffer" << std::endl;
+  const char* fname = "/root/mc2/code/secure-xgboost/demo/c-api/demo_model.model";
+  safe_xgboost(XGBoosterSaveModel(booster, fname));
+  std::cout << "Saved model to demo_model.model" << std::endl;
   // load model
   booster = NULL;
   safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
-  //FIXME doesn't work with `safe_xgboost`
-  XGBoosterLoadModelFromBuffer(booster, buf, len);
-  //safe_xgboost(XGBoosterLoadModel(booster, fname));
-  std::cout << "Loaded model from buffer" << std::endl;
+  safe_xgboost(XGBoosterLoadModel(booster, fname));
+  std::cout << "Loaded model from demo_model.model" << std::endl;
+
+
+  //// save model
+  //bst_ulong len;
+  //const char* buf;
+  //safe_xgboost(XGBoosterGetModelRaw(booster, &len, &buf));
+  //std::cout << "Saved model to buffer" << std::endl;
+  //// load model
+  //booster = NULL;
+  //safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
+  ////FIXME doesn't work with `safe_xgboost`
+  //XGBoosterLoadModelFromBuffer(booster, buf, len);
+  ////safe_xgboost(XGBoosterLoadModel(booster, fname));
+  //std::cout << "Loaded model from buffer" << std::endl;
 
   // predict
   bst_ulong out_len = 0;
