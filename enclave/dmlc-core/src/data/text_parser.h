@@ -20,11 +20,7 @@
 
 #ifdef __ENCLAVE__ // encryption
 #include <dmlc/base64.h>
-#include "mbedtls/gcm.h"
-
-#define CIPHER_KEY_SIZE 32
-#define CIPHER_IV_SIZE  12
-#define CIPHER_TAG_SIZE 16
+#include <xgboost/crypto.h>
 #endif
 
 
@@ -53,13 +49,8 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
 #ifdef __ENCLAVE__ // cipher init
     is_encrypted = _is_encrypted;
     if (is_encrypted) {
-        mbedtls_gcm_init(&gcm);
         memcpy(key, _key, CIPHER_KEY_SIZE);
-        int ret = mbedtls_gcm_setkey(
-                &gcm,                      // GCM context to be initialized
-                MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
-                (const unsigned char*) key,// encryption key
-                sizeof(key) * 8);          // key bits (must be 128, 192, or 256)
+        int ret = cipher_init(&gcm, (unsigned char*)key);
         if( ret != 0 ) {
             LOG(FATAL) << "mbedtls_gcm_setkey failed with error " << -ret;
         }
@@ -149,23 +140,15 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
 
     const unsigned char* add_data = (const unsigned char*) &index;
     // FIXME use index as additional data
-    int ret = mbedtls_gcm_auth_decrypt(
-        &gcm,                                     // GCM context
-        out_len,                                  // length of the input ciphertext data (always same as plain)
-        (const unsigned char*) iv,                // initialization vector
-        CIPHER_IV_SIZE,                           // length of IV
-#if true // FIXME temporary macro for testing
-        add_data,                                 // additional data
-        // FIXME make this independent of platform
-        sizeof(size_t),                           // length of additional data
-#else
-        NULL,                                     // additional data
-        0,                                        // length of additional data
-#endif
-        (const unsigned char*) tag,               // buffer holding the tag
-        CIPHER_TAG_SIZE,                          // length of the tag
-        (const unsigned char*) ct,                // buffer holding the input ciphertext data
-        (unsigned char*) output);                 // buffer for holding the output decrypted data
+    int ret = decrypt_symm(
+        &gcm,
+        (const unsigned char*)ct,
+        out_len,
+        (unsigned char*)iv,
+        (unsigned char*)tag,
+        (unsigned char*)add_data,
+        sizeof(size_t),
+        (unsigned char*)output);
     output[out_len] = '\0';
     free(ct);
     if (ret != 0) {

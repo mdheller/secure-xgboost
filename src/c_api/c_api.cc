@@ -26,13 +26,7 @@
 #ifdef __SGX__
 #include <openenclave/host.h>
 #include "xgboost_u.h"
-#include <mbedtls/entropy.h>    // mbedtls_entropy_context
-#include <mbedtls/ctr_drbg.h>   // mbedtls_ctr_drbg_context
-#include <mbedtls/cipher.h>     // MBEDTLS_CIPHER_ID_AES
-#include <mbedtls/gcm.h>        // mbedtls_gcm_context
-#include <mbedtls/pk.h>
-#include <mbedtls/rsa.h>
-#include <mbedtls/sha256.h>
+#include <xgboost/crypto.h>
 #endif
 
 // TODO(rishabh): Ecall error handling
@@ -1289,27 +1283,6 @@ int ocall_rabit__IsDistributed() {
 #endif // __SGX__
 
 #ifdef __SGX__
-int compute_sha256(const uint8_t* data, size_t data_size, uint8_t sha256[32]) {
-  int ret = 0;
-  mbedtls_sha256_context ctx;
-
-#define safe_sha(call) {                \
-int ret = (call);                       \
-if (ret) {                              \
-  mbedtls_sha256_free(&ctx);            \
-  return -1;                            \
-}                                       \
-}
-
-  mbedtls_sha256_init(&ctx);
-  safe_sha(mbedtls_sha256_starts_ret(&ctx, 0));
-  safe_sha(mbedtls_sha256_update_ret(&ctx, data, data_size));
-  safe_sha(mbedtls_sha256_finish_ret(&ctx, sha256));
-
-  mbedtls_sha256_free(&ctx);
-  return ret;
-}
-
 XGB_DLL int get_remote_report_with_pubkey(
     uint8_t** pem_key,
     size_t* key_size,
