@@ -1482,7 +1482,6 @@ XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
   API_END();
 }
 
-#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  const void* buf,
                                  xgboost::bst_ulong len) {
@@ -1505,11 +1504,18 @@ XGB_DLL int XGBoosterGetModelRaw(BoosterHandle handle,
   auto *bst = static_cast<Booster*>(handle);
   bst->LazyInit();
   bst->learner()->Save(&fo);
+#ifdef __ENCLAVE__ // write results to host memory
+  char* buf  = (char*) oe_host_malloc(raw_str.length());
+  memcpy(buf, dmlc::BeginPtr(raw_str), raw_str.length());
+  *out_dptr = buf;
+#else
   *out_dptr = dmlc::BeginPtr(raw_str);
+#endif
   *out_len = static_cast<xgboost::bst_ulong>(raw_str.length());
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 inline void XGBoostDumpModelImpl(
     BoosterHandle handle,
     const FeatureMap& fmap,

@@ -136,36 +136,50 @@ int main(int argc, char** argv) {
     printf("%s\n", eval_result);
   }
 
-  // save model
-  const char* fname = "/root/mc2/code/secure-xgboost/demo/c-api/demo_model.model";
-  safe_xgboost(XGBoosterSaveModel(booster, fname));
-  std::cout << "Saved model to demo_model.model" << std::endl;
+  //// save model
+  //const char* fname = "/root/mc2/code/secure-xgboost/demo/c-api/demo_model.model";
+  //safe_xgboost(XGBoosterSaveModel(booster, fname));
+  //std::cout << "Saved model to demo_model.model" << std::endl;
+  //// load model
+  //booster = NULL;
+  //safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
+  //safe_xgboost(XGBoosterLoadModel(booster, fname));
+  //std::cout << "Loaded model from demo_model.model" << std::endl;
 
+
+  // save model
+  bst_ulong len;
+  const char* buf;
+  safe_xgboost(XGBoosterGetModelRaw(booster, &len, &buf));
+  std::cout << "Saved model to buffer" << std::endl;
   // load model
   booster = NULL;
   safe_xgboost(XGBoosterCreate(eval_dmats, 2, &booster));
-  safe_xgboost(XGBoosterLoadModel(booster, fname));
-  std::cout << "Loaded model" << std::endl;
+  //FIXME doesn't work with `safe_xgboost`
+  XGBoosterLoadModelFromBuffer(booster, buf, len);
+  //safe_xgboost(XGBoosterLoadModel(booster, fname));
+  std::cout << "Loaded model from buffer" << std::endl;
 
   // predict
   bst_ulong out_len = 0;
   const float* out_result = NULL;
   int n_print = 10;
   
-  safe_xgboost(XGBoosterPredict(booster, dtest, 0, 0, &out_len, &out_result));
+  safe_xgboost(XGBoosterPredict(booster, dtrain, 0, 0, &out_len, &out_result));
+  printf("DONE PREDICTING\n");
   printf("y_pred: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
   
-  safe_xgboost(XGDMatrixGetFloatInfo(dtest, "label", &out_len, &out_result));
+  safe_xgboost(XGDMatrixGetFloatInfo(dtrain, "label", &out_len, &out_result));
   printf("y_test: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
-
+  
   safe_xgboost(XGBoosterFree(booster));
   safe_xgboost(XGDMatrixFree(dtrain));
   safe_xgboost(XGDMatrixFree(dtest));

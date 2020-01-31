@@ -109,6 +109,7 @@ target_compile_options(xgboost_enclave
   -D_GLIBCXX_USE_CXX11_ABI=0 
   -g
   -ftls-model=local-exec
+  #-D__thread='^-^'
   #$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CXX>>:/MP>
   #$<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<COMPILE_LANGUAGE:CXX>>:-funroll-loops>)
   )

@@ -1082,16 +1082,23 @@ XGB_DLL int XGBoosterSaveModel(BoosterHandle handle, const char* fname) {
 XGB_DLL int XGBoosterLoadModelFromBuffer(BoosterHandle handle,
                                  const void* buf,
                                  xgboost::bst_ulong len) {
+#ifdef __SGX__
+  enclave_XGBoosterLoadModelFromBuffer(enclave, &enclave_ret, handle, buf, len);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   common::MemoryFixSizeBuffer fs((void*)buf, len);  // NOLINT(*)
   static_cast<Booster*>(handle)->LoadModel(&fs);
   API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterGetModelRaw(BoosterHandle handle,
                          xgboost::bst_ulong* out_len,
                          const char** out_dptr) {
+#ifdef __SGX__
+  enclave_XGBoosterGetModelRaw(enclave, &enclave_ret, handle, out_len, (char**)out_dptr);
+#else
   std::string& raw_str = XGBAPIThreadLocalStore::Get()->ret_str;
   raw_str.resize(0);
 
@@ -1104,6 +1111,7 @@ XGB_DLL int XGBoosterGetModelRaw(BoosterHandle handle,
   *out_dptr = dmlc::BeginPtr(raw_str);
   *out_len = static_cast<xgboost::bst_ulong>(raw_str.length());
   API_END();
+#endif
 }
 
 inline void XGBoostDumpModelImpl(

@@ -97,6 +97,18 @@ int enclave_XGBoosterSaveModel(BoosterHandle handle, const char *fname) {
   return XGBoosterSaveModel(handle, fname);
 }
 
+int enclave_XGBoosterGetModelRaw(BoosterHandle handle, xgboost::bst_ulong *out_len, char **out_dptr) {
+  LOG(DEBUG) << "Ecall: XGBoosterSerializeToBuffer";
+  check_enclave_ptr(handle);
+  return XGBoosterGetModelRaw(handle, out_len, (const char**)out_dptr);
+}
+
+int enclave_XGBoosterLoadModelFromBuffer(BoosterHandle handle, const void* buf, xgboost::bst_ulong len) {
+  LOG(DEBUG) << "Ecall: XGBoosterLoadModelFromBuffer";
+  check_enclave_ptr(handle);
+  return XGBoosterLoadModelFromBuffer(handle, buf, len);
+}
+
 int enclave_XGBoosterPredict(BoosterHandle handle, DMatrixHandle dmat, int option_mask, unsigned ntree_limit, bst_ulong *len, bst_float **out_result) {
   LOG(DEBUG) << "Ecall: XGBoosterPredict";
   check_enclave_ptr(handle);

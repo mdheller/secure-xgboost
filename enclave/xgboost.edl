@@ -72,6 +72,16 @@ enclave {
                 BoosterHandle handle,
                 [in, string] const char* fname);
 
+        public int enclave_XGBoosterGetModelRaw(
+                BoosterHandle handle,
+                [out] bst_ulong *out_len,
+                [out] char **out_dptr);
+
+        public int enclave_XGBoosterLoadModelFromBuffer(
+                BoosterHandle handle,
+                [in, size=len] const void* buf,
+                bst_ulong len);
+
         public int enclave_XGDMatrixFree(
                 DMatrixHandle handle);
 
