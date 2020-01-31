@@ -96,7 +96,7 @@ True Labels:
 ```
 
 # Quickstart
-We provide an example that mirrors a potential real life situation. The first example is for users who are working on the same machine as the enclave, i.e. they have access to the enclave host. All computation will happen on this one machine. The second example is for users who want to remotely start a XGBoost job, i.e. there's a distinction between the server (the machine running training) and the client (a machine to which the user has direct access, but on which no computation is actually happening).
+We provide an example that mirrors a potential real life situation. This is for users who want to remotely start a XGBoost job, i.e. there's a distinction between the server (the machine running training) and the client (a machine to which the user has direct access, but on which no computation is actually happening).
 
 
 ## Example 1
