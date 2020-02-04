@@ -1315,7 +1315,6 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
   API_END();
 }
 
-#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixNumRow(const DMatrixHandle handle,
                             xgboost::bst_ulong *out) {
   API_BEGIN();
@@ -1333,7 +1332,6 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
       static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info().num_col_);
   API_END();
 }
-#endif // __ENCLAVE__
 
 // xgboost implementation
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],

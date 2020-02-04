@@ -19,6 +19,7 @@ enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.si
 
 print("Creating training matrix")
 dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
+print(dtrain.num_col())
 
 print("Creating test matrix")
 dtest = xgb.DMatrix(HOME_DIR + "demo/c-api/test.encrypted", encrypted=True) 

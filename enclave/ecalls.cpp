@@ -129,6 +129,18 @@ int enclave_XGDMatrixGetUintInfo(const DMatrixHandle handle, const char* field, 
   return XGDMatrixGetUIntInfo(handle, field, out_len, (const unsigned**) out_dptr);
 }
 
+int enclave_XGDMatrixNumRow(const DMatrixHandle handle, bst_ulong *out) {
+  LOG(DEBUG) << "Ecall: XGDMatrixNumRow";
+  check_enclave_ptr(handle);
+  return XGDMatrixNumRow(handle, out);
+}
+
+int enclave_XGDMatrixNumCol(const DMatrixHandle handle, bst_ulong *out) {
+    LOG(DEBUG) << "Ecall: XGDMatrixNumCol";
+    check_enclave_ptr(handle);
+    return XGDMatrixNumCol(handle, out);
+}
+
 int enclave_XGDMatrixFree(DMatrixHandle handle) {
   LOG(DEBUG) << "Ecall: XGDMatrixFree";
   return XGDMatrixFree(handle);
