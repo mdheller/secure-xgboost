@@ -19,7 +19,6 @@ Contents
   tutorials/index
   faq
   XGBoost User Forum <https://discuss.xgboost.ai>
-  GPU support <gpu/index>
   parameter
   Python package <python/index>
   CLI interface <cli>
