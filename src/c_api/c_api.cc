@@ -775,22 +775,31 @@ XGB_DLL int XGDMatrixSetFloatInfo(DMatrixHandle handle,
                           const char* field,
                           const bst_float* info,
                           xgboost::bst_ulong len) {
+
+#ifdef __SGX__
+  enclave_XGDMatrixSetFloatInfo(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, field, info, len);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   static_cast<std::shared_ptr<DMatrix>*>(handle)
       ->get()->Info().SetInfo(field, info, kFloat32, len);
   API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixSetUIntInfo(DMatrixHandle handle,
                          const char* field,
                          const unsigned* info,
                          xgboost::bst_ulong len) {
+#ifdef __SGX__
+  enclave_XGDMatrixSetUIntInfo(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, field, info, len);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   static_cast<std::shared_ptr<DMatrix>*>(handle)
       ->get()->Info().SetInfo(field, info, kUInt32, len);
   API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixSetGroup(DMatrixHandle handle,

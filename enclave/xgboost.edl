@@ -65,6 +65,18 @@ enclave {
                 [out] bst_ulong *out_len,
                 [out] unsigned **out_dptr);
 
+        public int enclave_XGDMatrixSetFloatInfo(
+                DMatrixHandle handle,
+                [in, string] const char* field,
+                [in] const bst_float* info,
+                bst_ulong len);
+
+        public int enclave_XGDMatrixSetUIntInfo(
+                DMatrixHandle handle,
+                [in, string] const char* field,
+                [in] const unsigned* info,
+                bst_ulong len);
+
         public int enclave_XGDMatrixNumRow(
                 DMatrixHandle handle,
                 [out] bst_ulong *out);

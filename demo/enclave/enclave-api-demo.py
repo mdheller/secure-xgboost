@@ -1,4 +1,5 @@
 import xgboost as xgb
+import numpy as np
 
 OE_ENCLAVE_FLAG_DEBUG = 1
 OE_ENCLAVE_FLAG_SIMULATE = 2

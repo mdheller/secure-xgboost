@@ -129,6 +129,18 @@ int enclave_XGDMatrixGetUintInfo(const DMatrixHandle handle, const char* field, 
   return XGDMatrixGetUIntInfo(handle, field, out_len, (const unsigned**) out_dptr);
 }
 
+int enclave_XGDMatrixSetFloatInfo(DMatrixHandle handle, const char* field, const bst_float* info, bst_ulong len) {
+  fprintf(stdout, "Ecall: XGDMatrixSetFloatInfo\n");
+  check_enclave_ptr(handle);
+;  return XGDMatrixSetFloatInfo(handle, field, info, len);
+}
+
+int enclave_XGDMatrixSetUIntInfo(DMatrixHandle handle, const char* field, const unsigned* info, bst_ulong len) {
+  LOG(DEBUG) << "Ecall: XGDMatrixSetUIntInfo";
+  check_enclave_ptr(handle);
+  return XGDMatrixSetUIntInfo(handle, field, info, len);
+}
+
 int enclave_XGDMatrixNumRow(const DMatrixHandle handle, bst_ulong *out) {
   LOG(DEBUG) << "Ecall: XGDMatrixNumRow";
   check_enclave_ptr(handle);
@@ -136,9 +148,9 @@ int enclave_XGDMatrixNumRow(const DMatrixHandle handle, bst_ulong *out) {
 }
 
 int enclave_XGDMatrixNumCol(const DMatrixHandle handle, bst_ulong *out) {
-    LOG(DEBUG) << "Ecall: XGDMatrixNumCol";
-    check_enclave_ptr(handle);
-    return XGDMatrixNumCol(handle, out);
+  LOG(DEBUG) << "Ecall: XGDMatrixNumCol";
+  check_enclave_ptr(handle);
+  return XGDMatrixNumCol(handle, out);
 }
 
 int enclave_XGDMatrixFree(DMatrixHandle handle) {

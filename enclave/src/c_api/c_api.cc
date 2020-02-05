@@ -1224,6 +1224,7 @@ XGB_DLL int XGDMatrixSaveBinary(DMatrixHandle handle,
   static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->SaveToLocalFile(fname);
   API_END();
 }
+#endif
 
 XGB_DLL int XGDMatrixSetFloatInfo(DMatrixHandle handle,
                           const char* field,
@@ -1247,6 +1248,7 @@ XGB_DLL int XGDMatrixSetUIntInfo(DMatrixHandle handle,
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixSetGroup(DMatrixHandle handle,
                               const unsigned* group,
                               xgboost::bst_ulong len) {
