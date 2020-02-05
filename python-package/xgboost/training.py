@@ -48,6 +48,7 @@ def _train_internal(params, dtrain,
         nboost //= _params['num_class']
 
     # Distributed code: Load the checkpoint from rabit.
+    # TODO: port load_rabit_checkpoint and relevant rabit calls
     version = bst.load_rabit_checkpoint()
     assert rabit.get_world_size() != 1 or version == 0
     rank = rabit.get_rank()

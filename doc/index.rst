@@ -6,6 +6,8 @@ Secure XGBoost Documentation
 
 This project is currently under development as part of the broader `Multiparty Collaboration and Coopetition effort <https://github.com/mc2-project/mc2>`_ by the UC Berkeley `RISE Lab <https://rise.cs.berkeley.edu/>`_. 
 
+We welcome contributions to our work `here <https://github.com/mc2-project/secure-xgboost/tree/sgx-dev>`_.
+
 ********
 Contents
 ********
@@ -17,10 +19,6 @@ Contents
   build
   get_started
   tutorials/index
-  faq
   XGBoost User Forum <https://discuss.xgboost.ai>
-  GPU support <gpu/index>
   parameter
   Python package <python/index>
-  CLI interface <cli>
-  contribute
