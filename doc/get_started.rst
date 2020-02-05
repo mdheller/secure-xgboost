@@ -17,7 +17,7 @@ Links to Other Helpful Resources
 Python
 ******
 
-Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo/enclave/enclave-api-demo.py`.
+Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo/enclave/enclave-api-demo.py`. Note that you may have to change the paths to the built enclave or the :code:`$HOME_DIR`.
 
 .. code-block:: python
 

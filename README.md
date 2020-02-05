@@ -53,7 +53,7 @@ popd
 ## Sanity Check
 This sanity check ensures that setup was done properly. There is a script, `enclave-api-demo.py`, that loads data, trains a model, and serves predictions at `demo/enclave/`. The example uses encrypted versions of the `agaricus.txt.train` and `agaricus.txt.test` data files from `demo/data/`. The encrypted data was generated using `demo/c-api/encrypt.cc`, with a key of all zeros.
 
-You can run the script with the following:
+Note that you may have to change the paths to the built enclave or to the data files in the script. You can run the script with the following:
 ```
 python3 demo/enclave/enclave-api-demo.py
 ```
