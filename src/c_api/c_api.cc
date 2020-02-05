@@ -1201,6 +1201,9 @@ XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
                      const char* key,
                      const char** out,
                      int* success) {
+#ifdef __SGX__
+  enclave_XGBoosterGetAttr(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, key, (char**)out, success);
+#else
   auto* bst = static_cast<Booster*>(handle);
   std::string& ret_str = XGBAPIThreadLocalStore::Get()->ret_str;
   API_BEGIN();
@@ -1213,6 +1216,7 @@ XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
     *success = 0;
   }
   API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
@@ -1232,6 +1236,9 @@ XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
 XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
                      xgboost::bst_ulong* out_len,
                      const char*** out) {
+#ifdef __SGX__
+  enclave_XGBoosterGetAttrNames(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, out_len, (char***)out);
+#else
   std::vector<std::string>& str_vecs = XGBAPIThreadLocalStore::Get()->ret_vec_str;
   std::vector<const char*>& charp_vecs = XGBAPIThreadLocalStore::Get()->ret_vec_charp;
   auto *bst = static_cast<Booster*>(handle);
@@ -1245,6 +1252,7 @@ XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
   *out = dmlc::BeginPtr(charp_vecs);
   *out_len = static_cast<xgboost::bst_ulong>(charp_vecs.size());
   API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterLoadRabitCheckpoint(BoosterHandle handle,

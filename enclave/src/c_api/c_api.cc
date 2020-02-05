@@ -1680,6 +1680,7 @@ XGB_DLL int XGBoosterDumpModelExWithFeatures(BoosterHandle handle,
   XGBoostDumpModelImpl(handle, featmap, with_stats, format, len, out_models);
   API_END();
 }
+#endif
 
 XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
                      const char* key,
@@ -1699,6 +1700,7 @@ XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
                      const char* key,
                      const char* value) {
@@ -1712,6 +1714,7 @@ XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
   }
   API_END();
 }
+#endif
 
 XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
                      xgboost::bst_ulong* out_len,
@@ -1731,6 +1734,7 @@ XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterLoadRabitCheckpoint(BoosterHandle handle,
                                  int* version) {
   API_BEGIN();

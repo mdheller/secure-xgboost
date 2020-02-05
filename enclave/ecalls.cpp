@@ -153,6 +153,18 @@ int enclave_XGDMatrixNumCol(const DMatrixHandle handle, bst_ulong *out) {
   return XGDMatrixNumCol(handle, out);
 }
 
+int enclave_XGBoosterGetAttr(BoosterHandle handle, const char* key, char** out, int* success) {
+    LOG(DEBUG) << "Ecall: XGBoosterGetAttr";
+    check_enclave_ptr(handle);
+    return XGBoosterGetAttr(handle, key, (const char** )out, success);
+}
+
+int enclave_XGBoosterGetAttrNames(BoosterHandle handle, bst_ulong* out_len, char*** out) {
+    LOG(DEBUG) << "Ecall: XGBoosterGetAttrNames";
+    check_enclave_ptr(handle);
+    return XGBoosterGetAttrNames(handle, out_len, (const char***) out);
+}
+
 int enclave_XGDMatrixFree(DMatrixHandle handle) {
   LOG(DEBUG) << "Ecall: XGDMatrixFree";
   return XGDMatrixFree(handle);

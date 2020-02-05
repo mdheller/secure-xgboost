@@ -53,3 +53,5 @@ print("\n\nModel Predictions: ")
 print(booster.predict(dtest)[:20])
 print("\n\nTrue Labels: ")
 print(dtest.get_label()[:20])
+
+print(booster.attributes())
