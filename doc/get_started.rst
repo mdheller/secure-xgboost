@@ -21,7 +21,7 @@ Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo
 
 .. code-block:: python
 
-   import xgboost as xgb
+   import securexgboost as xgb
 
    OE_ENCLAVE_FLAG_DEBUG = 1
    HOME_DIR = "/home/xgb/secure-xgboost/"

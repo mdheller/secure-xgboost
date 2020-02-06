@@ -16,7 +16,7 @@ To verify your installation, run the following in Python:
 
 .. code-block:: python
 
-  import xgboost as xgb
+  import securexgboost as xgb
 
 Data Interface
 --------------
