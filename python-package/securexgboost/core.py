@@ -1004,7 +1004,12 @@ class Enclave(object):
 
         Must be called after get_remote_report_with_pubkey() is called
 
-        Returns pem_key (proto), key_size (int), remote_report (proto), remote_report_size (int)
+        Returns 
+        -------
+        pem_key : proto.NDArray
+        key_size : int
+        remote_report : proto.NDArray
+        remote_report_size : int
         """
         # Convert pem_key to serialized numpy array
         pem_key = ctypes2numpy(self.pem_key, self.key_size.value, np.uint32)
@@ -1036,9 +1041,10 @@ class CryptoUtils(object):
         pem_key : proto 
         key_size : int
 
-        Returns:
-            encrypted_data : proto.NDArray 
-            encrypted_data_size_as_int : int
+        Returns
+        -------
+        encrypted_data : proto.NDArray 
+        encrypted_data_size_as_int : int
         """
         # Cast data to char*
         data = ctypes.c_char_p(data)
@@ -1071,9 +1077,10 @@ class CryptoUtils(object):
         pem_key : byte array 
         key_size : int
 
-        Returns:
-            encrypted_data : byte array 
-            encrypted_data_size_as_int : int
+        Returns
+        -------
+        encrypted_data : byte array 
+        encrypted_data_size_as_int : int
         """
         # Cast data to char*
         data = ctypes.c_char_p(data)
@@ -1106,9 +1113,10 @@ class CryptoUtils(object):
         data : proto.NDArray 
         data_size : int 
 
-        Returns:
-            signature : proto.NDArray 
-            sig_len_as_int : int
+        Returns
+        -------
+        signature : proto.NDArray 
+        sig_len_as_int : int
         """
         # Cast the keyfile to a char* 
         keyfile = ctypes.c_char_p(str.encode(keyfile)) 
@@ -1138,9 +1146,10 @@ class CryptoUtils(object):
         data : byte array 
         data_size : int 
 
-        Returns:
-            signature : byte array
-            sig_len_as_int : int
+        Returns
+        -------
+        signature : byte array
+        sig_len_as_int : int
         """
         # Cast the keyfile to a char* 
         keyfile = ctypes.c_char_p(str.encode(keyfile)) 
@@ -1179,8 +1188,9 @@ class CryptoUtils(object):
         sig_len : int
             length of signature
 
-        Returns:
-            Exit status of add_client_key()
+        Returns
+        -------
+        Exit status of add_client_key()
         """
         # Cast fname to a char*
         fname = ctypes.c_char_p(str.encode(fname))
@@ -1214,8 +1224,9 @@ class CryptoUtils(object):
         sig_len : int
             length of signature
 
-        Returns:
-            Exit status of add_client_key()
+        Returns
+        -------
+        Exit status of add_client_key()
         """
         # Cast fname to a char*
         fname = ctypes.c_char_p(str.encode(fname))

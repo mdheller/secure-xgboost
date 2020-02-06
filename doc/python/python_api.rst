@@ -28,9 +28,9 @@ Core Data Structure
 
 Learning API
 ------------
-.. automodule:: xgboost.training
+.. automodule:: securexgboost.training
 
-.. autofunction:: xgboost.train
+.. autofunction:: securexgboost.train
 .. 
 .. .. autofunction:: xgboost.cv
 .. 
