@@ -19,11 +19,11 @@ Core Data Structure
     :show-inheritance:
 
 
-.. Learning API
-.. ------------
-.. .. automodule:: xgboost.training
-.. 
-.. .. autofunction:: xgboost.train
+Learning API
+------------
+.. automodule:: xgboost.training
+
+.. autofunction:: xgboost.train
 .. 
 .. .. autofunction:: xgboost.cv
 .. 
