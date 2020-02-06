@@ -775,22 +775,31 @@ XGB_DLL int XGDMatrixSetFloatInfo(DMatrixHandle handle,
                           const char* field,
                           const bst_float* info,
                           xgboost::bst_ulong len) {
+
+#ifdef __SGX__
+  enclave_XGDMatrixSetFloatInfo(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, field, info, len);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   static_cast<std::shared_ptr<DMatrix>*>(handle)
       ->get()->Info().SetInfo(field, info, kFloat32, len);
   API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixSetUIntInfo(DMatrixHandle handle,
                          const char* field,
                          const unsigned* info,
                          xgboost::bst_ulong len) {
+#ifdef __SGX__
+  enclave_XGDMatrixSetUIntInfo(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, field, info, len);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   static_cast<std::shared_ptr<DMatrix>*>(handle)
       ->get()->Info().SetInfo(field, info, kUInt32, len);
   API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixSetGroup(DMatrixHandle handle,
@@ -858,20 +867,28 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
 
 XGB_DLL int XGDMatrixNumRow(const DMatrixHandle handle,
                             xgboost::bst_ulong *out) {
+#ifdef __SGX__
+  enclave_XGDMatrixNumRow(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, out);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   *out = static_cast<xgboost::bst_ulong>(
       static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info().num_row_);
   API_END();
+#endif
 }
 
 XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
                             xgboost::bst_ulong *out) {
+#ifdef __SGX__
+  enclave_XGDMatrixNumCol(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, out);
+#else
   API_BEGIN();
   CHECK_HANDLE();
   *out = static_cast<size_t>(
       static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info().num_col_);
   API_END();
+#endif
 }
 
 // xgboost implementation
@@ -1184,6 +1201,9 @@ XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
                      const char* key,
                      const char** out,
                      int* success) {
+#ifdef __SGX__
+  enclave_XGBoosterGetAttr(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, key, (char**)out, success);
+#else
   auto* bst = static_cast<Booster*>(handle);
   std::string& ret_str = XGBAPIThreadLocalStore::Get()->ret_str;
   API_BEGIN();
@@ -1196,6 +1216,7 @@ XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
     *success = 0;
   }
   API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
@@ -1215,6 +1236,9 @@ XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
 XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
                      xgboost::bst_ulong* out_len,
                      const char*** out) {
+#ifdef __SGX__
+  enclave_XGBoosterGetAttrNames(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, out_len, (char***)out);
+#else
   std::vector<std::string>& str_vecs = XGBAPIThreadLocalStore::Get()->ret_vec_str;
   std::vector<const char*>& charp_vecs = XGBAPIThreadLocalStore::Get()->ret_vec_charp;
   auto *bst = static_cast<Booster*>(handle);
@@ -1228,6 +1252,7 @@ XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
   *out = dmlc::BeginPtr(charp_vecs);
   *out_len = static_cast<xgboost::bst_ulong>(charp_vecs.size());
   API_END();
+#endif
 }
 
 XGB_DLL int XGBoosterLoadRabitCheckpoint(BoosterHandle handle,

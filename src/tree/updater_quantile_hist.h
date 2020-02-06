@@ -207,6 +207,10 @@ class QuantileHistMaker: public TreeUpdater {
                               bst_int split_cond,
                               bool default_left);
 
+    void ApplySplitLevelWise(const GHistIndexMatrix& gmat,
+                             const ColumnMatrix& column_matrix,
+                             const RegTree* p_tree, int depth);
+
     void InitNewNode(int nid,
                      const GHistIndexMatrix& gmat,
                      const std::vector<GradientPair>& gpair,
@@ -236,6 +240,11 @@ class QuantileHistMaker: public TreeUpdater {
                               const GHistIndexBlockMatrix &gmatb,
                               RegTree *p_tree,
                               const std::vector<GradientPair> &gpair_h);
+
+    void BuildLocalHistogramsLevelWise(
+        int* starting_index, int* sync_count, const GHistIndexMatrix& gmat,
+        const GHistIndexBlockMatrix& gmatb, RegTree* p_tree,
+        const std::vector<GradientPair>& gpair_h);
 
     void SyncHistograms(int starting_index,
                         int sync_count,
@@ -277,6 +286,8 @@ class QuantileHistMaker: public TreeUpdater {
     common::ColumnSampler column_sampler_;
     // the internal row sets
     RowSetCollection row_set_collection_;
+    // For obliviousness.
+    common::RowNodeMap row_node_map_;
     // the temp space for split
     std::vector<RowSetCollection::Split> row_split_tloc_;
     std::vector<SplitEntry> best_split_tloc_;

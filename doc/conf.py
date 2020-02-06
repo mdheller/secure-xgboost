@@ -56,7 +56,7 @@ for mod_name in MOCK_MODULES:
 # -- General configuration ------------------------------------------------
 
 # General information about the project.
-project = u'xgboost'
+project = u'Secure XGBoost'
 author = u'%s developers' % project
 copyright = u'2016, %s' % author
 github_doc_root = 'https://github.com/dmlc/xgboost/tree/master/doc/'
@@ -164,7 +164,7 @@ extensions.append("guzzle_sphinx_theme")
 # Guzzle theme options (see theme.conf for more information)
 html_theme_options = {
     # Set the name of the project to appear in the sidebar
-    "project_nav_name": "XGBoost"
+    "project_nav_name": "Secure XGBoost"
 }
 
 html_sidebars = {

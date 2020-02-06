@@ -1224,6 +1224,7 @@ XGB_DLL int XGDMatrixSaveBinary(DMatrixHandle handle,
   static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->SaveToLocalFile(fname);
   API_END();
 }
+#endif
 
 XGB_DLL int XGDMatrixSetFloatInfo(DMatrixHandle handle,
                           const char* field,
@@ -1247,6 +1248,7 @@ XGB_DLL int XGDMatrixSetUIntInfo(DMatrixHandle handle,
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixSetGroup(DMatrixHandle handle,
                               const unsigned* group,
                               xgboost::bst_ulong len) {
@@ -1315,7 +1317,6 @@ XGB_DLL int XGDMatrixGetUIntInfo(const DMatrixHandle handle,
   API_END();
 }
 
-#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGDMatrixNumRow(const DMatrixHandle handle,
                             xgboost::bst_ulong *out) {
   API_BEGIN();
@@ -1333,7 +1334,6 @@ XGB_DLL int XGDMatrixNumCol(const DMatrixHandle handle,
       static_cast<std::shared_ptr<DMatrix>*>(handle)->get()->Info().num_col_);
   API_END();
 }
-#endif // __ENCLAVE__
 
 // xgboost implementation
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
@@ -1680,6 +1680,7 @@ XGB_DLL int XGBoosterDumpModelExWithFeatures(BoosterHandle handle,
   XGBoostDumpModelImpl(handle, featmap, with_stats, format, len, out_models);
   API_END();
 }
+#endif
 
 XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
                      const char* key,
@@ -1699,6 +1700,7 @@ XGB_DLL int XGBoosterGetAttr(BoosterHandle handle,
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
                      const char* key,
                      const char* value) {
@@ -1712,6 +1714,7 @@ XGB_DLL int XGBoosterSetAttr(BoosterHandle handle,
   }
   API_END();
 }
+#endif
 
 XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
                      xgboost::bst_ulong* out_len,
@@ -1731,6 +1734,7 @@ XGB_DLL int XGBoosterGetAttrNames(BoosterHandle handle,
   API_END();
 }
 
+#ifndef __ENCLAVE__ // FIXME enable functions
 XGB_DLL int XGBoosterLoadRabitCheckpoint(BoosterHandle handle,
                                  int* version) {
   API_BEGIN();

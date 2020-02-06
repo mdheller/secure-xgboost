@@ -98,3 +98,7 @@ plugin/updater_gpu/test/cpp/data
 R-package/src/Makevars
 
 xgboost.egg-info
+
+# data
+demo/c-api/*.encrypted
+demo/enclave/distributed/hosts.config
