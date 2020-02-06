@@ -1,11 +1,66 @@
 #include "ssl_socket.h"
 #include "../include/dmlc/logging.h"
 #include "ssl_context_manager.h"
+#include "enclave_context.h"
 
 namespace rabit {
 namespace utils {
 
 namespace {}  // namespace
+bool generate_certificate_and_pkey(
+    mbedtls_x509_crt* cert,
+    mbedtls_pk_context* private_key) {
+
+  oe_result_t result = OE_FAILURE;
+  uint8_t* output_cert = NULL;
+  size_t output_cert_size = 0;
+  uint8_t* private_key_buf = NULL;
+  uint8_t* public_key_buf = NULL;
+  int ret = 0;
+
+  private_key_buf = EnclaveContext::getInstance().get_private_key();
+  public_key_buf = EnclaveContext::getInstance().get_public_key();
+
+  // both ec key such ASYMMETRIC_KEY_EC_SECP256P1 or RSA key work
+  result = oe_generate_attestation_certificate(
+      (const unsigned char*)"CN=Open Enclave SDK,O=OESDK TLS,C=US",
+      private_key_buf,
+      CIPHER_PK_SIZE,
+      public_key_buf,
+      CIPHER_PK_SIZE,
+      &output_cert,
+      &output_cert_size);
+  if (result != OE_OK) {
+    printf(" failed with %s\n", oe_result_str(result));
+    oe_free_attestation_certificate(output_cert);
+    return false;
+  }
+
+  // create mbedtls_x509_crt from output_cert
+  ret = mbedtls_x509_crt_parse_der(cert, output_cert, output_cert_size);
+  if (ret != 0) {
+    printf(" failed with ret = %d\n", ret);
+    oe_free_attestation_certificate(output_cert);
+    return false;
+  }
+
+  // create mbedtls_pk_context from private key data
+  ret = mbedtls_pk_parse_key(
+      private_key,
+      (const unsigned char*)private_key_buf,
+      CIPHER_PK_SIZE,
+      NULL,
+      0);
+  if (ret != 0) {
+    printf(" failed with ret = %d\n", ret);
+    oe_free_attestation_certificate(output_cert);
+    return false;
+  }
+
+  oe_free_attestation_certificate(output_cert);
+  return true;
+}
+
 bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
   //mbedtls_net_init(&net);
   mbedtls_ssl_config_init(&conf);
@@ -21,6 +76,13 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
   if (Connect(addr)) {
     mbedtls_ssl_init(&ssl_);
 
+    //mbedtls_x509_crt* client_cert;
+    //mbedtls_pk_context* private_key;
+    //if (!generate_certificate_and_pkey(client_cert, private_key)) {
+    //    printf("Client failed to generate certificate and pkey\n");
+    //    return false;
+    //}
+
     // configure TLS layer
     if ((ret = mbedtls_ssl_config_defaults(&conf,
         MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
@@ -31,6 +93,12 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
     mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     // configure RNG
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+
+    //if ((ret = mbedtls_ssl_conf_own_cert(&conf, client_cert, private_key)) != 0) {
+    //  print_err(ret);
+    //  return false;
+    //}
+
     // set up SSL context
     if ((ret = mbedtls_ssl_setup(ssl(), &conf)) != 0) {
       print_err(ret);
@@ -93,6 +161,13 @@ SSLTcpSocket SSLTcpSocket::SSLAccept() {
   if( ret != 0 ) {
     print_err(ret);
   }
+  //
+  //
+  //if (!generate_certificate_and_pkey(&srvcert, &pkey)) {
+  //  printf("Server failed to generate certificate and pkey\n");
+  //  return false;
+  //}
+  //
   mbedtls_ssl_conf_ca_chain( &client_sock.conf, &cachain, NULL );
   if( ( ret = mbedtls_ssl_conf_own_cert( &client_sock.conf, &srvcert, &pkey ) ) != 0 ) {
     print_err(ret);
@@ -106,6 +181,15 @@ SSLTcpSocket SSLTcpSocket::SSLAccept() {
   }
 
   mbedtls_ssl_conf_rng( &client_sock.conf, mbedtls_ctr_drbg_random, &ctr_drbg );
+  //
+  //
+  //mbedtls_ssl_conf_ca_chain(&client_sock.conf, srvcert.next, NULL);
+  //if ((ret = mbedtls_ssl_conf_own_cert(&client_sock.conf, &srvcert, &pkey)) != 0) {
+  //  print_err(ret);
+  //  return false;
+  //}
+  //
+  //
   // Make sure memory refs are valid
   mbedtls_ssl_init( &client_sock.ssl_);
 

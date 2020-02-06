@@ -105,6 +105,7 @@ add_executable(xgboost_enclave ${CMAKE_SOURCE_DIR}/ecalls.cpp ${CPU_SOURCES} ${R
 target_include_directories(xgboost_enclave
   PRIVATE
   ${PROJECT_SOURCE_DIR}/../include
+  ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/../dmlc-core/include
   ${PROJECT_SOURCE_DIR}/../rabit/include
   ${CMAKE_CURRENT_BINARY_DIR})

@@ -4,10 +4,10 @@ namespace xgboost {
 namespace common {
 namespace {
 
-constexpr bool kEnableObliviousCombine = true;
-constexpr bool kEnableObliviousPrune = true;
-constexpr bool kEnableObliviousDebugCheck = true;
-constexpr bool kEnableOblivious = true;
+constexpr bool kEnableObliviousCombine = false;
+constexpr bool kEnableObliviousPrune = false;
+constexpr bool kEnableObliviousDebugCheck = false;
+constexpr bool kEnableOblivious = false;
 
 } // namespace
 
