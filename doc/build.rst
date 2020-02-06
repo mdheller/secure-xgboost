@@ -18,7 +18,7 @@ This page gives instructions on how to build and install Secure XGBoost from scr
 
   .. code-block:: bash
 
-   git clone -b r0.01s --recursive https://github.com/mc2-project/secure-xgboost.git
+   git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git
 
 Please refer to `Trouble Shooting`_ section first if you have any problem
 during installation. If the instructions do not work for you, please feel free
@@ -125,6 +125,7 @@ The Python package is located at ``python-package/``.
    ``~``. then we can added the following line in ``~/.bashrc``.
 
 .. code-block:: bash
+
    export PYTHONPATH=~/secure-xgboost/rpc
 
 
@@ -152,4 +153,4 @@ Trouble Shooting
 
    .. code-block:: bash
       
-      git clone -b r0.01s --recursive https://github.com/mc2-project/secure-xgboost.git
+      git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git

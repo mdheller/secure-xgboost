@@ -58,8 +58,8 @@ for mod_name in MOCK_MODULES:
 # General information about the project.
 project = u'Secure XGBoost'
 author = u'%s developers' % project
-copyright = u'2016, %s' % author
-github_doc_root = 'https://github.com/dmlc/xgboost/tree/master/doc/'
+copyright = u'2020, %s' % author
+github_doc_root = 'https://github.com/mc2-project/secure-xgboost/tree/hackathon/doc'
 
 os.environ['XGBOOST_BUILD_DOC'] = '1'
 # Version information.
