@@ -187,8 +187,10 @@ class ColumnMatrix {
   }
 
   inline uint32_t OGetRowFeatureBinIndex(size_t row_idx, int fid) const {
-    // TODO: `oaccess` between [row_idx * nfeature, (row_idx + 1) * nfeature]
-    return row_wise_index_[row_idx * nfeature_ + fid];
+    // NOTE: `oaccess` between [row_idx * nfeature, (row_idx + 1) * nfeature]
+    // return row_wise_index_[row_idx * nfeature_ + fid];
+    return ObliviousArrayAccess(row_wise_index_.data() + row_idx * nfeature_,
+                                fid, nfeature_);
   }
 
  private:

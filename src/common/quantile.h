@@ -9,12 +9,12 @@
 
 #include <dmlc/base.h>
 #include <xgboost/logging.h>
-#include <cmath>
-#include <vector>
-#include <cstring>
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 #include <iostream>
-#include "oblivious_primitives.h"
+#include <vector>
+#include "obl_primitives.h"
 
 namespace xgboost {
 namespace common {
@@ -24,10 +24,206 @@ bool ObliviousSetPruneEnabled();
 bool ObliviousDebugCheckEnabled();
 bool ObliviousEnabled();
 
-template<typename DType, typename RType>
+template <typename DType, typename RType>
+struct WQSummaryEntry {
+  /*! \brief minimum rank */
+  RType rmin;
+  /*! \brief maximum rank */
+  RType rmax;
+  /*! \brief maximum weight */
+  RType wmin;
+  /*! \brief the value of data */
+  DType value;
+  // constructor
+  XGBOOST_DEVICE WQSummaryEntry() {}  // NOLINT
+  // constructor
+  XGBOOST_DEVICE WQSummaryEntry(RType rmin, RType rmax, RType wmin, DType value)
+      : rmin(rmin), rmax(rmax), wmin(wmin), value(value) {}
+  /*!
+   * \brief debug function,  check Valid
+   * \param eps the tolerate level for violating the relation
+   */
+  inline void CheckValid(RType eps = 0) const {
+    CHECK(rmin >= 0 && rmax >= 0 && wmin >= 0) << "nonneg constraint";
+    CHECK(rmax - rmin - wmin > -eps) << "relation constraint: min/max";
+  }
+
+  // For bitonic sort/merge.
+  inline bool operator<(const WQSummaryEntry &b) const {
+    return value < b.value;
+  }
+
+  inline bool operator==(const WQSummaryEntry &b) const {
+    return value == b.value && rmin == b.rmin && rmax == b.rmax &&
+           wmin == b.wmin;
+  }
+
+  inline bool operator!=(const WQSummaryEntry &b) const {
+    return !(*this == b);
+  }
+
+  /*! \return rmin estimation for v strictly bigger than value */
+  XGBOOST_DEVICE inline RType RMinNext() const { return rmin + wmin; }
+  /*! \return rmax estimation for v strictly smaller than value */
+  XGBOOST_DEVICE inline RType RMaxPrev() const { return rmax - wmin; }
+};
+
+template <typename DType, typename RType>
+std::ostream &operator<<(std::ostream &out,
+                         const WQSummaryEntry<DType, RType> &entry) {
+  out << "[ v=" << entry.value << ", w=" << entry.wmin
+      << ", rmin,rmax=" << entry.rmin << "," << entry.rmax << " ]";
+  return out;
+}
+
+template <typename DType, typename RType>
+struct WQSummaryQEntry {
+  // value of the instance
+  DType value;
+  // weight of instance
+  RType weight;
+  // default constructor
+  WQSummaryQEntry() = default;
+  // constructor
+  WQSummaryQEntry(DType value, RType weight) : value(value), weight(weight) {}
+  // comparator on value
+  inline bool operator<(const WQSummaryQEntry &b) const {
+    return value < b.value;
+  }
+};
+
+template <typename DType, typename RType>
+std::ostream &operator<<(std::ostream &out,
+                         const WQSummaryQEntry<DType, RType> &entry) {
+  out << "[ v=" << entry.value << ", w=" << entry.weight << " ]";
+  return out;
+}
+
+template <typename DType, typename RType>
+struct WQSummaryQEntryHelper {
+  using QEntry = WQSummaryQEntry<DType, RType>;
+  // Entry
+  QEntry entry;
+  // New
+  bool is_new;
+  // default constructor
+  WQSummaryQEntryHelper() = default;
+  // constructor
+  WQSummaryQEntryHelper(DType value, RType weight)
+      : entry(value, weight), is_new(false) {}
+  // ctor from entry
+  WQSummaryQEntryHelper(const QEntry &entry) : entry(entry), is_new(false) {}
+  // comparator
+  inline bool operator<(const WQSummaryQEntryHelper &b) const {
+    return entry < b.entry;
+  }
+};
+
+template <typename DType, typename RType>
+std::ostream &operator<<(std::ostream &out,
+                         const WQSummaryQEntryHelper<DType, RType> &entry) {
+  out << "[ entry=" << entry << ", is_new=" << entry.is_new
+      << ", wsum=" << entry.wsum << " ]";
+  return out;
+}
+
+template <typename DType, typename RType>
+struct PruneItem {
+  using Entry = WQSummaryEntry<DType, RType>;
+  Entry entry;
+  RType rank;
+  bool has_entry;
+
+  inline bool operator<(const PruneItem &rhs) const {
+    return rank < rhs.rank ||
+           (rank == rhs.rank && entry.value < rhs.entry.value);
+  }
+};
+
+template <typename DType, typename RType>
+std::ostream &operator<<(std::ostream &out,
+                         const PruneItem<DType, RType> &item) {
+  out << item.entry << ", rank=" << item.rank
+      << ", has_entry=" << item.has_entry;
+  return out;
+}
+
+template <typename DType, typename RType>
+struct EntryWithPartyInfo {
+  using Entry = WQSummaryEntry<DType, RType>;
+  Entry entry;
+  bool is_party_a;
+
+  inline bool operator<(const EntryWithPartyInfo &b) const {
+    return entry < b.entry;
+  }
+};
+
+template <typename DType, typename RType>
+std::ostream &operator<<(std::ostream &out,
+                         const EntryWithPartyInfo<DType, RType> &item) {
+  out << item.entry << ", is_party_a=" << item.is_party_a;
+  return out;
+}
+
+}  // namespace common
+}  // namespace xgboost
+
+namespace obl {
+
+// Implement oblivious less.
+
+using SummaryEntry = ::xgboost::common::WQSummaryEntry<float, float>;
+using SummaryQEntry = ::xgboost::common::WQSummaryQEntry<float, float>;
+using SummaryPruneItem = ::xgboost::common::PruneItem<float, float>;
+using SummaryEntryWithPartyInfo =
+    ::xgboost::common::EntryWithPartyInfo<float, float>;
+
+template <>
+struct less<SummaryEntry> {
+  bool operator()(const SummaryEntry &x, const SummaryEntry &y) {
+    return ObliviousLess(x.value, y.value);
+  }
+};
+
+template <>
+struct less<SummaryQEntry> {
+  bool operator()(const SummaryQEntry &x, const SummaryQEntry &y) {
+    return ObliviousLess(x.value, y.value);
+  }
+};
+
+template <>
+struct less<SummaryPruneItem> {
+  bool operator()(const SummaryPruneItem &a, const SummaryPruneItem &b) {
+    bool b0 = ObliviousLess(a.rank, b.rank);
+    bool same_rank = ObliviousEqual(a.rank, b.rank);
+    bool b1 = ObliviousChoose(
+        same_rank, ::obl::less<SummaryPruneItem::Entry>()(a.entry, b.entry),
+        false);
+    bool ret = ObliviousChoose(b0, true, b1);
+    CHECK_EQ(ret, a < b) << "a=" << a << ", b=" << b;
+    return ret;
+  }
+};
+
+template <>
+struct less<SummaryEntryWithPartyInfo> {
+  bool operator()(const SummaryEntryWithPartyInfo &a,
+                  const SummaryEntryWithPartyInfo &b) {
+    return ObliviousLess(a.entry, b.entry);
+  }
+};
+
+}  // namespace obl
+
+namespace xgboost {
+namespace common {
+
+template <typename DType, typename RType>
 struct WQSummary;
 
-template<typename DType, typename RType>
+template <typename DType, typename RType>
 void CheckEqualSummary(const WQSummary<DType, RType> &lhs,
                        const WQSummary<DType, RType> &rhs) {
   auto trace = [&]() {
@@ -54,71 +250,16 @@ void CheckEqualSummary(const WQSummary<DType, RType> &lhs,
  * \tparam DType type of data content
  * \tparam RType type of rank
  */
-template<typename DType, typename RType>
+template <typename DType, typename RType>
 struct WQSummary {
   /*! \brief an entry in the sketch summary */
-  struct Entry {
-    /*! \brief minimum rank */
-    RType rmin;
-    /*! \brief maximum rank */
-    RType rmax;
-    /*! \brief maximum weight */
-    RType wmin;
-    /*! \brief the value of data */
-    DType value;
-    // constructor
-    XGBOOST_DEVICE Entry() {}  // NOLINT
-    // constructor
-    XGBOOST_DEVICE Entry(RType rmin, RType rmax, RType wmin, DType value)
-        : rmin(rmin), rmax(rmax), wmin(wmin), value(value) {}
-    /*!
-     * \brief debug function,  check Valid
-     * \param eps the tolerate level for violating the relation
-     */
-    inline void CheckValid(RType eps = 0) const {
-      CHECK(rmin >= 0 && rmax >= 0 && wmin >= 0) << "nonneg constraint";
-      CHECK(rmax- rmin - wmin > -eps) <<  "relation constraint: min/max";
-    }
+  using Entry = WQSummaryEntry<DType, RType>;
 
-    // For bitonic sort/merge.
-    inline bool operator<(const Entry &b) const {
-      return value < b.value;
-    }
-
-    inline bool operator==(const Entry &b) const {
-      return value == b.value && rmin == b.rmin && rmax == b.rmax &&
-             wmin == b.wmin;
-    }
-
-    inline bool operator!=(const Entry &b) const { return !(*this == b); }
-
-    /*! \return rmin estimation for v strictly bigger than value */
-    XGBOOST_DEVICE inline RType RMinNext() const {
-      return rmin + wmin;
-    }
-    /*! \return rmax estimation for v strictly smaller than value */
-    XGBOOST_DEVICE inline RType RMaxPrev() const {
-      return rmax - wmin;
-    }
-  };
   /*! \brief input data queue before entering the summary */
   struct Queue {
     // entry in the queue
-    struct QEntry {
-      // value of the instance
-      DType value;
-      // weight of instance
-      RType weight;
-      // default constructor
-      QEntry() = default;
-      // constructor
-      QEntry(DType value, RType weight)
-          : value(value), weight(weight) {}
-      // comparator on value
-      inline bool operator<(const QEntry &b) const {
-        return value < b.value;
-      }
-    };
+    using QEntry = WQSummaryQEntry<DType, RType>;
+    using QEntryHelper = WQSummaryQEntryHelper<DType, RType>;
     // the input queue
     std::vector<QEntry> queue;
     // end of the queue
@@ -131,11 +272,18 @@ struct WQSummary {
         queue[qtail - 1].weight += w;
       }
     }
-    inline void MakeSummary(WQSummary *out) {
-      // std::sort(queue.begin(), queue.begin() + qtail);
-      BitonicSort(queue.begin(), queue.begin() + qtail);
 
-      // TODO: do we need to make below merge oblivious ?
+    inline void MakeSummary(WQSummary *out) {
+      if (ObliviousEnabled()) {
+        return MakeSummaryOblivious(out);
+      } else {
+        return MakeSummaryRaw(out);
+      }
+    }
+
+    inline void MakeSummaryRaw(WQSummary *out) {
+      std::sort(queue.begin(), queue.begin() + qtail);
+
       out->size = 0;
       // start update sketch
       RType wsum = 0;
@@ -144,10 +292,76 @@ struct WQSummary {
         size_t j = i + 1;
         RType w = queue[i].weight;
         while (j < qtail && queue[j].value == queue[i].value) {
-          w += queue[j].weight; ++j;
+          w += queue[j].weight;
+          ++j;
         }
         out->data[out->size++] = Entry(wsum, wsum + w, w, queue[i].value);
-        wsum += w; i = j;
+        wsum += w;
+        i = j;
+      }
+    }
+
+    inline void MakeSummaryOblivious(WQSummary *out) {
+      ObliviousSort(queue.begin(), queue.begin() + qtail);
+
+      std::vector<QEntryHelper> qhelper(queue.begin(), queue.begin() + qtail);
+
+      for (auto &helper_entry : qhelper) {
+        // zero weights
+        helper_entry.entry.weight = 0;
+      }
+
+      size_t unique_count = 0;
+      for (size_t idx = 0; idx < qhelper.size(); ++idx) {
+        // sum weight for same value
+        qhelper[idx].entry.weight += queue[idx].weight;
+        // next is not same as me
+        bool is_new = idx == qhelper.size() - 1
+                          ? true
+                          : !ObliviousEqual(qhelper[idx + 1].entry.value,
+                                            qhelper[idx].entry.value);
+        qhelper[idx].is_new = is_new;
+        unique_count += is_new;
+        if (idx != qhelper.size() - 1) {
+          // Accumulate when next is same with me, otherwise reset to zero.
+          qhelper[idx + 1].entry.weight =
+              ObliviousChoose(is_new, 0.f, qhelper[idx].entry.weight);
+        }
+      }
+
+      struct IsNewDescendingSorter {
+        bool operator()(const QEntryHelper &a, const QEntryHelper &b) {
+          return ObliviousGreater(a.is_new, b.is_new);
+        }
+      };
+
+      struct ValueSorter {
+        bool operator()(const QEntryHelper &a, const QEntryHelper &b) {
+          return ObliviousLess(a.entry.value, b.entry.value);
+        }
+      };
+
+      // Remove duplicates.
+      ObliviousSort(qhelper.begin(), qhelper.end(), IsNewDescendingSorter());
+
+      // Resort by value.
+      ObliviousSort(qhelper.begin(), qhelper.begin() + unique_count,
+                    ValueSorter());
+
+      out->size = 0;
+      RType wsum = 0;
+      for (size_t idx = 0; idx < unique_count; ++idx) {
+        const RType w = qhelper[idx].entry.weight;
+        out->data[out->size++] =
+            Entry(wsum, wsum + w, w, qhelper[idx].entry.value);
+        wsum += w;
+      }
+
+      if (ObliviousDebugCheckEnabled()) {
+        std::vector<Entry> oblivious_results(out->data, out->data + out->size);
+        this->MakeSummaryRaw(out);
+        CheckEqualSummary(*out, WQSummary(oblivious_results.data(),
+                                          oblivious_results.size()));
       }
     }
   };
@@ -156,8 +370,7 @@ struct WQSummary {
   /*! \brief number of elements in the summary */
   size_t size;
   // constructor
-  WQSummary(Entry *data, size_t size)
-      : data(data), size(size) {}
+  WQSummary(Entry *data, size_t size) : data(data), size(size) {}
   /*!
    * \return the maximum error of the Summary
    */
@@ -174,7 +387,7 @@ struct WQSummary {
    * \param qvalue the value we query for
    * \param istart starting position
    */
-  inline Entry Query(DType qvalue, size_t &istart) const { // NOLINT(*)
+  inline Entry Query(DType qvalue, size_t &istart) const {  // NOLINT(*)
     while (istart < size && qvalue > data[istart].value) {
       ++istart;
     }
@@ -188,16 +401,13 @@ struct WQSummary {
       if (istart == 0) {
         return Entry(0.0f, 0.0f, 0.0f, qvalue);
       } else {
-        return Entry(data[istart - 1].RMinNext(),
-                     data[istart].RMaxPrev(),
-                     0.0f, qvalue);
+        return Entry(data[istart - 1].RMinNext(), data[istart].RMaxPrev(), 0.0f,
+                     qvalue);
       }
     }
   }
   /*! \return maximum rank in the summary */
-  inline RType MaxRank() const {
-    return data[size - 1].rmax;
-  }
+  inline RType MaxRank() const { return data[size - 1].rmax; }
   /*!
    * \brief copy content from src
    * \param src source sketch
@@ -206,12 +416,13 @@ struct WQSummary {
     size = src.size;
     std::memcpy(data, src.data, sizeof(Entry) * size);
   }
-  inline void MakeFromSorted(const Entry* entries, size_t n) {
+  inline void MakeFromSorted(const Entry *entries, size_t n) {
     size = 0;
     for (size_t i = 0; i < n;) {
       size_t j = i + 1;
       // ignore repeated values
-      for (; j < n && entries[j].value == entries[i].value; ++j) {}
+      for (; j < n && entries[j].value == entries[i].value; ++j) {
+      }
       data[size++] = Entry(entries[i].rmin, entries[i].rmax, entries[i].wmin,
                            entries[i].value);
       i = j;
@@ -227,8 +438,10 @@ struct WQSummary {
     for (size_t i = 0; i < size; ++i) {
       data[i].CheckValid(eps);
       if (i != 0) {
-        CHECK(data[i].rmin >= data[i - 1].rmin + data[i - 1].wmin) << "rmin range constraint";
-        CHECK(data[i].rmax >= data[i - 1].rmax + data[i].wmin) << "rmax range constraint";
+        CHECK(data[i].rmin >= data[i - 1].rmin + data[i - 1].wmin)
+            << "rmin range constraint";
+        CHECK(data[i].rmax >= data[i - 1].rmax + data[i].wmin)
+            << "rmax range constraint";
       }
     }
   }
@@ -245,16 +458,6 @@ struct WQSummary {
       return;
     }
 
-    struct Item {
-      Entry entry;
-      RType rank;
-      bool has_entry;
-      inline bool operator<(const Item &rhs) const {
-        return rank < rhs.rank ||
-               (rank == rhs.rank && entry.value < rhs.entry.value);
-      }
-    };
-
     // Make sure dx2 items are last one when `d == (rmax + rmin) / 2`.
     const Entry kDummyEntryWithMaxValue{0, 0, 1,
                                         std::numeric_limits<DType>::max()};
@@ -264,6 +467,7 @@ struct WQSummary {
     const size_t n = maxsize - 1;
 
     // Construct sort vector.
+    using Item = PruneItem<DType, RType>;
     std::vector<Item> items;
     items.reserve(2 * src.size + n);
     for (size_t k = 1; k < n; ++k) {
@@ -281,7 +485,9 @@ struct WQSummary {
     }
 
     // Bitonic Sort.
-    BitonicSort(items.begin(), items.end());
+    LOG(DEBUG) << __func__ << " BEGIN 1" << std::endl;
+    ObliviousSort(items.begin(), items.end());
+    LOG(DEBUG) << __func__ << " PASSED 1" << std::endl;
 
     // Choose entrys.
     RType last_selected_entry_value = std::numeric_limits<RType>::min();
@@ -296,7 +502,9 @@ struct WQSummary {
       select_count += ObliviousChoose(do_select, 1, 0);
     }
     // Bitonic Sort.
-    BitonicSort(items.begin(), items.end());
+    LOG(DEBUG) << __func__ << " BEGIN 2" << std::endl;
+    ObliviousSort(items.begin(), items.end());
+    LOG(DEBUG) << __func__ << " PASSED 2" << std::endl;
 
     this->data[0] = src.data[0];
     this->size = 1 + select_count;
@@ -329,7 +537,8 @@ struct WQSummary {
    */
   inline void RawSetPrune(const WQSummary &src, size_t maxsize) {
     if (src.size <= maxsize) {
-      this->CopyFrom(src); return;
+      this->CopyFrom(src);
+      return;
     }
     const RType begin = src.data[0].rmax;
     const RType range = src.data[src.size - 1].rmin - src.data[0].rmax;
@@ -339,18 +548,21 @@ struct WQSummary {
     // lastidx is used to avoid duplicated records
     size_t i = 1, lastidx = 0;
     for (size_t k = 1; k < n; ++k) {
-      RType dx2 =  2 * ((k * range) / n + begin);
+      RType dx2 = 2 * ((k * range) / n + begin);
       // find first i such that  d < (rmax[i+1] + rmin[i+1]) / 2
-      while (i < src.size - 1
-          && dx2 >= src.data[i + 1].rmax + src.data[i + 1].rmin) ++i;
+      while (i < src.size - 1 &&
+             dx2 >= src.data[i + 1].rmax + src.data[i + 1].rmin)
+        ++i;
       CHECK(i != src.size - 1);
       if (dx2 < src.data[i].RMinNext() + src.data[i + 1].RMaxPrev()) {
         if (i != lastidx) {
-          data[size++] = src.data[i]; lastidx = i;
+          data[size++] = src.data[i];
+          lastidx = i;
         }
       } else {
         if (i + 1 != lastidx) {
-          data[size++] = src.data[i + 1]; lastidx = i + 1;
+          data[size++] = src.data[i + 1];
+          lastidx = i + 1;
         }
       }
     }
@@ -385,20 +597,15 @@ struct WQSummary {
 
     // TODO: need confirm.
     if (sa.size == 0) {
-      this->CopyFrom(sb); return;
+      this->CopyFrom(sb);
+      return;
     }
     if (sb.size == 0) {
-      this->CopyFrom(sa); return;
+      this->CopyFrom(sa);
+      return;
     }
 
-    struct EntryWithPartyInfo {
-      Entry entry;
-      bool is_party_a;
-
-      inline bool operator<(const EntryWithPartyInfo& b) const {
-        return entry < b.entry;
-      }
-    };
+    using EntryWithPartyInfo = EntryWithPartyInfo<DType, RType>;
 
     std::vector<EntryWithPartyInfo> merged_party_entrys(this->size);
     // Fill party info and build bitonic sequence.
@@ -412,10 +619,11 @@ struct WQSummary {
                      return EntryWithPartyInfo{entry, false};
                    });
     // Build bitonic sequence.
-    std::reverse(merged_party_entrys.begin() + sa.size,
-                 merged_party_entrys.end());
+    std::reverse(merged_party_entrys.begin(),
+                 merged_party_entrys.begin() + sa.size);
     // Bitonic merge.
-    BitonicMerge(merged_party_entrys.begin(), merged_party_entrys.end());
+    // ObliviousSort(merged_party_entrys.begin(), merged_party_entrys.end());
+    ObliviousMerge(merged_party_entrys.begin(), merged_party_entrys.end());
 
     // Forward pass to compute rmin.
     RType a_prev_rmin = 0;
@@ -497,7 +705,7 @@ struct WQSummary {
       // Copy rmin, rmax, wmin from previous if values are equal.
       // Value is ok to be infinite now since this is two party merge, at most
       // two items are the same given a specific value.
-      ObliviousAssign(equal_next, merged_party_entrys[idx+1].entry,
+      ObliviousAssign(equal_next, merged_party_entrys[idx + 1].entry,
                       merged_party_entrys[idx].entry,
                       &merged_party_entrys[idx].entry);
       ObliviousAssign(equal_next, std::numeric_limits<DType>::max(),
@@ -513,7 +721,11 @@ struct WQSummary {
                    this->data, [](const EntryWithPartyInfo &party_entry) {
                      return party_entry.entry;
                    });
-    BitonicSort(this->data, this->data + this->size);
+    LOG(DEBUG) << __func__ << " BEGIN 3" << std::endl;
+    ObliviousSort(this->data, this->data + this->size);
+    // std::sort(this->data, this->data + this->size);
+    LOG(DEBUG) << __func__ << " PASSED 3" << std::endl;
+
     // Need to confirm shrink.
     this->size -= duplicate_count;
 
@@ -530,13 +742,14 @@ struct WQSummary {
    * \param sa first input summary to be merged
    * \param sb second input summary to be merged
    */
-  inline void RawSetCombine(const WQSummary &sa,
-                         const WQSummary &sb) {
+  inline void RawSetCombine(const WQSummary &sa, const WQSummary &sb) {
     if (sa.size == 0) {
-      this->CopyFrom(sb); return;
+      this->CopyFrom(sb);
+      return;
     }
     if (sb.size == 0) {
-      this->CopyFrom(sa); return;
+      this->CopyFrom(sa);
+      return;
     }
     CHECK(sa.size > 0 && sb.size > 0);
     const Entry *a = sa.data, *a_end = sa.data + sa.size;
@@ -547,38 +760,41 @@ struct WQSummary {
     while (a != a_end && b != b_end) {
       // duplicated value entry
       if (a->value == b->value) {
-        *dst = Entry(a->rmin + b->rmin,
-                     a->rmax + b->rmax,
-                     a->wmin + b->wmin, a->value);
+        *dst = Entry(a->rmin + b->rmin, a->rmax + b->rmax, a->wmin + b->wmin,
+                     a->value);
         aprev_rmin = a->RMinNext();
         bprev_rmin = b->RMinNext();
-        ++dst; ++a; ++b;
+        ++dst;
+        ++a;
+        ++b;
       } else if (a->value < b->value) {
-        *dst = Entry(a->rmin + bprev_rmin,
-                     a->rmax + b->RMaxPrev(),
-                     a->wmin, a->value);
+        *dst = Entry(a->rmin + bprev_rmin, a->rmax + b->RMaxPrev(), a->wmin,
+                     a->value);
         aprev_rmin = a->RMinNext();
-        ++dst; ++a;
+        ++dst;
+        ++a;
       } else {
-        *dst = Entry(b->rmin + aprev_rmin,
-                     b->rmax + a->RMaxPrev(),
-                     b->wmin, b->value);
+        *dst = Entry(b->rmin + aprev_rmin, b->rmax + a->RMaxPrev(), b->wmin,
+                     b->value);
         bprev_rmin = b->RMinNext();
-        ++dst; ++b;
+        ++dst;
+        ++b;
       }
     }
     if (a != a_end) {
       RType brmax = (b_end - 1)->rmax;
       do {
         *dst = Entry(a->rmin + bprev_rmin, a->rmax + brmax, a->wmin, a->value);
-        ++dst; ++a;
+        ++dst;
+        ++a;
       } while (a != a_end);
     }
     if (b != b_end) {
       RType armax = (a_end - 1)->rmax;
       do {
         *dst = Entry(b->rmin + aprev_rmin, b->rmax + armax, b->wmin, b->value);
-        ++dst; ++b;
+        ++dst;
+        ++b;
       } while (b != b_end);
     }
     this->size = dst - data;
@@ -586,8 +802,7 @@ struct WQSummary {
     RType err_mingap, err_maxgap, err_wgap;
     this->FixError(&err_mingap, &err_maxgap, &err_wgap);
     if (err_mingap > tol || err_maxgap > tol || err_wgap > tol) {
-      LOG(INFO) << "mingap=" << err_mingap
-                << ", maxgap=" << err_maxgap
+      LOG(INFO) << "mingap=" << err_mingap << ", maxgap=" << err_maxgap
                 << ", wgap=" << err_wgap;
     }
     CHECK(size <= sa.size + sb.size) << "bug in combine";
@@ -597,8 +812,7 @@ struct WQSummary {
    * \param sa first input summary to be merged
    * \param sb second input summary to be merged
    */
-  inline void SetCombine(const WQSummary &sa,
-                         const WQSummary &sb) {
+  inline void SetCombine(const WQSummary &sa, const WQSummary &sb) {
     if (ObliviousSetCombineEnabled())
       return ObliviousSetCombine(sa, sb);
     else
@@ -608,21 +822,19 @@ struct WQSummary {
   inline void Print() const {
     for (size_t i = 0; i < this->size; ++i) {
       LOG(CONSOLE) << "[" << i << "] rmin=" << data[i].rmin
-                   << ", rmax=" << data[i].rmax
-                   << ", wmin=" << data[i].wmin
+                   << ", rmax=" << data[i].rmax << ", wmin=" << data[i].wmin
                    << ", v=" << data[i].value;
     }
   }
 
   inline void CheckAndPrint() const {
-      CheckValid(kRtEps);
-      Print();
+    CheckValid(kRtEps);
+    Print();
   }
 
   // try to fix rounding error
   // and re-establish invariance
-  inline void FixError(RType *err_mingap,
-                       RType *err_maxgap,
+  inline void FixError(RType *err_mingap, RType *err_maxgap,
                        RType *err_wgap) const {
     *err_mingap = 0;
     *err_maxgap = 0;
@@ -663,16 +875,15 @@ struct WQSummary {
 };
 
 /*! \brief try to do efficient pruning */
-template<typename DType, typename RType>
+template <typename DType, typename RType>
 struct WXQSummary : public WQSummary<DType, RType> {
   // redefine entry type
   using Entry = typename WQSummary<DType, RType>::Entry;
   // constructor
-  WXQSummary(Entry *data, size_t size)
-      : WQSummary<DType, RType>(data, size) {}
+  WXQSummary(Entry *data, size_t size) : WQSummary<DType, RType>(data, size) {}
   // check if the block is large chunk
   inline static bool CheckLarge(const Entry &e, RType chunk) {
-    return  e.RMinNext() > e.RMaxPrev() + chunk;
+    return e.RMinNext() > e.RMaxPrev() + chunk;
   }
   // set prune
   inline void SetPrune(const WQSummary<DType, RType> &src, size_t maxsize) {
@@ -680,7 +891,8 @@ struct WXQSummary : public WQSummary<DType, RType> {
       return WQSummary<DType, RType>::ObliviousSetPrune(src, maxsize);
     }
     if (src.size <= maxsize) {
-      this->CopyFrom(src); return;
+      this->CopyFrom(src);
+      return;
     }
     RType begin = src.data[0].rmax;
     // n is number of points exclude the min/max points
@@ -714,11 +926,12 @@ struct WXQSummary : public WQSummary<DType, RType> {
             // accumulate the range of the rest points
             mrange += src.data[i].RMaxPrev() - src.data[bid].RMinNext();
           }
-          bid = i; ++nbig;
+          bid = i;
+          ++nbig;
         }
       }
       if (bid != src.size - 2) {
-        mrange += src.data[src.size-1].RMaxPrev() - src.data[bid].RMinNext();
+        mrange += src.data[src.size - 1].RMaxPrev() - src.data[bid].RMinNext();
       }
     }
     // assert: there cannot be more than n big data points
@@ -732,7 +945,8 @@ struct WXQSummary : public WQSummary<DType, RType> {
     }
     this->data[0] = src.data[0];
     this->size = 1;
-    // The counter on the rest of points, to be selected equally from small chunks.
+    // The counter on the rest of points, to be selected equally from small
+    // chunks.
     n = n - nbig;
     // find the rest of point
     size_t bid = 0, k = 1, lastidx = 0;
@@ -742,18 +956,21 @@ struct WXQSummary : public WQSummary<DType, RType> {
           size_t i = bid;
           RType maxdx2 = src.data[end].RMaxPrev() * 2;
           for (; k < n; ++k) {
-            RType dx2 =  2 * ((k * mrange) / n + begin);
+            RType dx2 = 2 * ((k * mrange) / n + begin);
             if (dx2 >= maxdx2) break;
             while (i < end &&
-                   dx2 >= src.data[i + 1].rmax + src.data[i + 1].rmin) ++i;
+                   dx2 >= src.data[i + 1].rmax + src.data[i + 1].rmin)
+              ++i;
             if (i == end) break;
             if (dx2 < src.data[i].RMinNext() + src.data[i + 1].RMaxPrev()) {
               if (i != lastidx) {
-                this->data[this->size++] = src.data[i]; lastidx = i;
+                this->data[this->size++] = src.data[i];
+                lastidx = i;
               }
             } else {
               if (i + 1 != lastidx) {
-                this->data[this->size++] = src.data[i + 1]; lastidx = i + 1;
+                this->data[this->size++] = src.data[i + 1];
+                lastidx = i + 1;
               }
             }
           }
@@ -772,7 +989,7 @@ struct WXQSummary : public WQSummary<DType, RType> {
 /*!
  * \brief traditional GK summary
  */
-template<typename DType, typename RType>
+template <typename DType, typename RType>
 struct GKSummary {
   /*! \brief an entry in the sketch summary */
   struct Entry {
@@ -795,9 +1012,7 @@ struct GKSummary {
     // end of the queue
     size_t qtail;
     // push data to the queue
-    inline void Push(DType x, RType w) {
-      queue[qtail++] = x;
-    }
+    inline void Push(DType x, RType w) { queue[qtail++] = x; }
     inline void MakeSummary(GKSummary *out) {
       std::sort(queue.begin(), queue.begin() + qtail);
       out->size = qtail;
@@ -810,20 +1025,17 @@ struct GKSummary {
   Entry *data;
   /*! \brief number of elements in the summary */
   size_t size;
-  GKSummary(Entry *data, size_t size)
-      : data(data), size(size) {}
+  GKSummary(Entry *data, size_t size) : data(data), size(size) {}
   /*! \brief the maximum error of the summary */
   inline RType MaxError() const {
     RType res = 0;
     for (size_t i = 1; i < size; ++i) {
-      res = std::max(data[i].rmax - data[i-1].rmin, res);
+      res = std::max(data[i].rmax - data[i - 1].rmin, res);
     }
     return res;
   }
   /*! \return maximum rank in the summary */
-  inline RType MaxRank() const {
-    return data[size - 1].rmax;
-  }
+  inline RType MaxRank() const { return data[size - 1].rmax; }
   /*!
    * \brief copy content from src
    * \param src source sketch
@@ -850,7 +1062,8 @@ struct GKSummary {
    */
   inline void SetPrune(const GKSummary &src, size_t maxsize) {
     if (src.size <= maxsize) {
-      this->CopyFrom(src); return;
+      this->CopyFrom(src);
+      return;
     }
     const RType max_rank = src.MaxRank();
     this->size = maxsize;
@@ -862,7 +1075,7 @@ struct GKSummary {
       while (k > src.data[top + 1].rmax) ++top;
       // assert src.data[top].rmin <= k
       // because k > src.data[top].rmax >= src.data[top].rmin
-      if ((k - src.data[top].rmin) < (src.data[top+1].rmax - k)) {
+      if ((k - src.data[top].rmin) < (src.data[top + 1].rmax - k)) {
         data[i] = src.data[top];
       } else {
         data[i] = src.data[top + 1];
@@ -870,13 +1083,14 @@ struct GKSummary {
     }
     data[n] = src.data[src.size - 1];
   }
-  inline void SetCombine(const GKSummary &sa,
-                         const GKSummary &sb) {
+  inline void SetCombine(const GKSummary &sa, const GKSummary &sb) {
     if (sa.size == 0) {
-      this->CopyFrom(sb); return;
+      this->CopyFrom(sb);
+      return;
     }
     if (sb.size == 0) {
-      this->CopyFrom(sa); return;
+      this->CopyFrom(sa);
+      return;
     }
     CHECK(sa.size > 0 && sb.size > 0) << "invalid input for merge";
     const Entry *a = sa.data, *a_end = sa.data + sa.size;
@@ -886,29 +1100,31 @@ struct GKSummary {
     Entry *dst = this->data;
     while (a != a_end && b != b_end) {
       if (a->value < b->value) {
-        *dst = Entry(bprev_rmin + a->rmin,
-                     a->rmax + b->rmax - 1, a->value);
+        *dst = Entry(bprev_rmin + a->rmin, a->rmax + b->rmax - 1, a->value);
         aprev_rmin = a->rmin;
-        ++dst; ++a;
+        ++dst;
+        ++a;
       } else {
-        *dst = Entry(aprev_rmin + b->rmin,
-                     b->rmax + a->rmax - 1, b->value);
+        *dst = Entry(aprev_rmin + b->rmin, b->rmax + a->rmax - 1, b->value);
         bprev_rmin = b->rmin;
-        ++dst; ++b;
+        ++dst;
+        ++b;
       }
     }
     if (a != a_end) {
       RType bprev_rmax = (b_end - 1)->rmax;
       do {
         *dst = Entry(bprev_rmin + a->rmin, bprev_rmax + a->rmax, a->value);
-        ++dst; ++a;
+        ++dst;
+        ++a;
       } while (a != a_end);
     }
     if (b != b_end) {
       RType aprev_rmax = (a_end - 1)->rmax;
       do {
         *dst = Entry(aprev_rmin + b->rmin, aprev_rmax + b->rmax, b->value);
-        ++dst; ++b;
+        ++dst;
+        ++b;
       } while (b != b_end);
     }
     CHECK(dst == data + size) << "bug in combine";
@@ -922,7 +1138,7 @@ struct GKSummary {
  * \tparam RType type of rank
  * \tparam TSummary actual summary data structure it uses
  */
-template<typename DType, typename RType, class TSummary>
+template <typename DType, typename RType, class TSummary>
 class QuantileSketchTemplate {
  public:
   /*! \brief type of summary type */
@@ -936,8 +1152,7 @@ class QuantileSketchTemplate {
       this->space = src.space;
       this->data = dmlc::BeginPtr(this->space);
     }
-    SummaryContainer() : Summary(nullptr, 0) {
-    }
+    SummaryContainer() : Summary(nullptr, 0) {}
     /*! \brief reserve space for summary */
     inline void Reserve(size_t size) {
       if (size > space.size()) {
@@ -950,8 +1165,7 @@ class QuantileSketchTemplate {
      * \param begin beginning position in the summary array
      * \param end ending position in the Summary array
      */
-    inline void SetMerge(const Summary *begin,
-                         const Summary *end) {
+    inline void SetMerge(const Summary *begin, const Summary *end) {
       CHECK(begin < end) << "can not set combine to empty instance";
       size_t len = end - begin;
       if (len == 1) {
@@ -982,12 +1196,13 @@ class QuantileSketchTemplate {
       temp.SetCombine(*this, src);
       this->SetPrune(temp, space.size());
     }
-    /*! \brief return the number of bytes this data structure cost in serialization */
+    /*! \brief return the number of bytes this data structure cost in
+     * serialization */
     inline static size_t CalcMemCost(size_t nentry) {
       return sizeof(size_t) + sizeof(Entry) * nentry;
     }
     /*! \brief save the data structure into stream */
-    template<typename TStream>
+    template <typename TStream>
     inline void Save(TStream &fo) const {  // NOLINT(*)
       fo.Write(&(this->size), sizeof(this->size));
       if (this->size != 0) {
@@ -995,7 +1210,7 @@ class QuantileSketchTemplate {
       }
     }
     /*! \brief load data structure from input stream */
-    template<typename TStream>
+    template <typename TStream>
     inline void Load(TStream &fi) {  // NOLINT(*)
       CHECK_EQ(fi.Read(&this->size, sizeof(this->size)), sizeof(this->size));
       this->Reserve(this->size);
@@ -1012,17 +1227,18 @@ class QuantileSketchTemplate {
    */
   inline void Init(size_t maxn, double eps) {
     LimitSizeLevel(maxn, eps, &nlevel, &limit_size);
-    // lazy reserve the space, if there is only one value, no need to allocate space
+    // lazy reserve the space, if there is only one value, no need to allocate
+    // space
     inqueue.queue.resize(1);
     inqueue.qtail = 0;
     data.clear();
     level.clear();
   }
 
-  inline static void LimitSizeLevel
-    (size_t maxn, double eps, size_t* out_nlevel, size_t* out_limit_size) {
-    size_t& nlevel = *out_nlevel;
-    size_t& limit_size = *out_limit_size;
+  inline static void LimitSizeLevel(size_t maxn, double eps, size_t *out_nlevel,
+                                    size_t *out_limit_size) {
+    size_t &nlevel = *out_nlevel;
+    size_t &limit_size = *out_limit_size;
     nlevel = 1;
     while (true) {
       limit_size = static_cast<size_t>(ceil(nlevel / eps)) + 1;
@@ -1058,7 +1274,7 @@ class QuantileSketchTemplate {
     inqueue.Push(x, w);
   }
 
-  inline void PushSummary(const Summary& summary) {
+  inline void PushSummary(const Summary &summary) {
     temp.Reserve(limit_size * 2);
     temp.SetPrune(summary, limit_size * 2);
     PushTemp();
@@ -1082,7 +1298,8 @@ class QuantileSketchTemplate {
           level[l].size = 0;
         } else {
           // if merged record is still smaller, no need to send to next level
-          level[l].CopyFrom(temp); break;
+          level[l].CopyFrom(temp);
+          break;
         }
       }
     }
@@ -1149,29 +1366,26 @@ class QuantileSketchTemplate {
  * \tparam DType type of data content
  * \tparam RType type of rank
  */
-template<typename DType, typename RType = unsigned>
-class WQuantileSketch :
-      public QuantileSketchTemplate<DType, RType, WQSummary<DType, RType> > {
-};
+template <typename DType, typename RType = unsigned>
+class WQuantileSketch
+    : public QuantileSketchTemplate<DType, RType, WQSummary<DType, RType> > {};
 
 /*!
  * \brief Quantile sketch use WXQSummary
  * \tparam DType type of data content
  * \tparam RType type of rank
  */
-template<typename DType, typename RType = unsigned>
-class WXQuantileSketch :
-      public QuantileSketchTemplate<DType, RType, WXQSummary<DType, RType> > {
-};
+template <typename DType, typename RType = unsigned>
+class WXQuantileSketch
+    : public QuantileSketchTemplate<DType, RType, WXQSummary<DType, RType> > {};
 /*!
  * \brief Quantile sketch use WQSummary
  * \tparam DType type of data content
  * \tparam RType type of rank
  */
-template<typename DType, typename RType = unsigned>
-class GKQuantileSketch :
-      public QuantileSketchTemplate<DType, RType, GKSummary<DType, RType> > {
-};
+template <typename DType, typename RType = unsigned>
+class GKQuantileSketch
+    : public QuantileSketchTemplate<DType, RType, GKSummary<DType, RType> > {};
 }  // namespace common
 }  // namespace xgboost
 #endif  // XGBOOST_COMMON_QUANTILE_H_

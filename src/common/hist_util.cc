@@ -245,7 +245,7 @@ uint32_t HistCutMatrix::OGetBinIdx(const Entry& e) {
   }
   CHECK(idx != row_ptr[fid + 1]);
   if (ObliviousDebugCheckEnabled()) {
-    CHECK(idx == RawGetBinIdx(e));
+    CHECK(idx == RawGetBinIdx(e)) << idx << ", expected=" << RawGetBinIdx(e);
   }
   return idx;
 }

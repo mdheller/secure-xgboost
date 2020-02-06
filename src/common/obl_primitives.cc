@@ -1,410 +1,28 @@
-#include <iostream>
 #include "obl_primitives.h"
 
-/***************************************************************************************
- * Helper functions
- **************************************************************************************/
+#include <iostream>
 
-inline uint32_t greatest_power_of_two_less_than(uint32_t n) {
-    uint32_t k = 1;
-    while (k < n)
-        k = k << 1;
-    return k >> 1;
+// #define SIMULATED_OBL_ASSIGN
+// #define SIMULATED_OBL_ASSIGN_HELPER
+
+namespace obl {
+
+// TODO: define this as inline cause segment fault. Need to know why. Is it due
+// to |inline| does not work well with |assembly| impl?
+bool LessImplDouble(double x, double y) {
+  bool result;
+  __asm__ volatile(
+      "movsd %1, %%xmm0;"
+      "movsd %2, %%xmm1;"
+      "comisd %%xmm1, %%xmm0;"
+      "setb %0;"
+      : "=r"(result)
+      : "m"(x), "m"(y)
+      : "cc");
+  return result;
 }
 
-inline uint32_t log2_ceil(uint32_t n) {
-    uint32_t k = 0;
-    uint32_t _n = n;
-    while (n > 1) {
-        k++;
-        n /= 2;
-    }
-    if ((1 << k) < _n)
-        k++;
-    return k;
-}
-
-/***************************************************************************************
- * Oblivious primitives 
- **************************************************************************************/
-
-// Return x > y
-template <typename T>
-uint8_t ObliviousGreater(T x, T y) {
-    uint8_t result;
-    __asm__ volatile (
-            "cmp %2, %1;"
-            "setg %0;"
-            : "=r" (result)
-            : "r" (x), "r" (y)
-            : "cc"
-            );
-    return result;
-}
-uint8_t ObliviousGreater(double x, double y) {
-    uint8_t result;
-    __asm__ volatile (
-            "movsd %1, %%xmm0;"
-            "movsd %2, %%xmm1;"
-            "comisd %%xmm1, %%xmm0;"
-            "seta %0;"
-            : "=r" (result)
-            : "m" (x), "m" (y)
-            : "cc"
-            );
-    return result; 
-}
-
-// Return x >= y
-template <typename T>
-uint8_t ObliviousGreaterOrEqual(T x, T y) {
-    uint8_t result;
-    __asm__ volatile (
-            "cmp %2, %1;"
-            "setge %0;"
-            : "=r" (result)
-            : "r" (x), "r" (y)
-            : "cc"
-            );
-    return result;
-}
-uint8_t ObliviousGreaterOrEqual(double x, double y) {
-    uint8_t result;
-    __asm__ volatile (
-            "movsd %1, %%xmm0;"
-            "movsd %2, %%xmm1;"
-            "comisd %%xmm1, %%xmm0;"
-            "setae %0;"
-            : "=r" (result)
-            : "m" (x), "m" (y)
-            : "cc"
-            );
-    return result; 
-}
-
-// Return x == y
-template<typename T>
-uint8_t ObliviousEqual(T x, T y) {
-    uint8_t result;
-    __asm__ volatile (
-            "cmp %2, %1;"
-            "sete %0;"
-            : "=r" (result)
-            : "r" (x), "r" (y)
-            : "cc"
-            );
-    return result;
-}
-
-// Return x < y
-template<typename T>
-uint8_t ObliviousLess(T x, T y) {
-    uint8_t result;
-    __asm__ volatile (
-            "cmp %2, %1;"
-            "setl %0;"
-            : "=r" (result)
-            : "r" (x), "r" (y)
-            : "cc"
-            );
-    return result;
-}
-uint8_t ObliviousLess(double x, double y) {
-    uint8_t result;
-    __asm__ volatile (
-            "movsd %1, %%xmm0;"
-            "movsd %2, %%xmm1;"
-            "comisd %%xmm1, %%xmm0;"
-            "setb %0;"
-            : "=r" (result)
-            : "m" (x), "m" (y)
-            : "cc"
-            );
-    return result; 
-}
-
-// Return x <= y
-template <typename T>
-uint8_t ObliviousLessOrEqual(T x, T y) {
-    uint8_t result;
-    __asm__ volatile (
-            "cmp %2, %1;"
-            "setle %0;"
-            : "=r" (result)
-            : "r" (x), "r" (y)
-            : "cc"
-            );
-    return result;
-}
-uint8_t ObliviousLessOrEqual(double x, double y) {
-    uint8_t result;
-    __asm__ volatile (
-            "movsd %1, %%xmm0;"
-            "movsd %2, %%xmm1;"
-            "comisd %%xmm1, %%xmm0;"
-            "setbe %0;"
-            : "=r" (result)
-            : "m" (x), "m" (y)
-            : "cc"
-            );
-    return result; 
-}
-
-// Fill `out` with (pred ? t_val : f_val). Supports 16, 32, and 64 bit types
-template <typename T>
-void ObliviousAssign(bool pred, const T& t_val, const T& f_val, T* out) {
-    T result;
-    __asm__ volatile (
-            "mov %2, %0;"
-            "test %1, %1;"
-            "cmovz %3, %0;"
-            : "=&r" (result)
-            : "r" (pred), "r" (t_val), "r" (f_val), "m" (out)
-            : "cc"
-            );
-    *out = result;
-}
-void ObliviousAssign(bool pred, uint8_t t_val, uint8_t f_val, uint8_t* out) {
-    uint16_t result;
-    ObliviousAssign(pred, (uint16_t) t_val, (uint16_t) f_val, &result);
-    *out = (uint8_t) result;
-}
-
-// Iteratively apply `ObliviousAssign` to fill generic types
-template <typename T>
-void ObliviousAssignEx(bool pred, T t_val, T f_val, size_t bytes, T* out) {
-    char *res = (char*) out;
-    char *t = (char*) &t_val;
-    char *f = (char*) &f_val;
-
-    // Obliviously assign 8 bytes at a time
-    size_t num_8_iter = bytes / 8;
-    #pragma omp simd
-    for (int i = 0; i < num_8_iter; i++) {
-        ObliviousAssign(pred, *((uint64_t*)t), *((uint64_t*)f), (uint64_t*)res);
-        res += 8;
-        t += 8;
-        f += 8;
-    }
-
-    // Obliviously assign 4 bytes
-    if ((bytes % 8) / 4) {
-        ObliviousAssign(pred, *((uint32_t*)t), *((uint32_t*)f), (uint32_t*)res);
-        res += 4;
-        t += 4;
-        f += 4;
-    }
-
-    // Obliviously assign 2 bytes
-    if ((bytes % 4) / 2) {
-        ObliviousAssign(pred, *((uint16_t*)t), *((uint16_t*)f), (uint16_t*)res);
-        res += 2;
-        t += 2;
-        f += 2;
-    }
-
-    // Obliviously assign 1 byte
-    if ((bytes % 2)) {
-        ObliviousAssign(pred, *((uint8_t*)t), *((uint8_t*)f), (uint8_t*)res);
-    }
-}
-
-// Return (pred ? t_val : f_val). Supports types of size > 1 byte
-template <typename T>
-T ObliviousChoose(bool pred, const T& t_val, const T& f_val) {
-    T result;
-    ObliviousAssignEx(pred, t_val, f_val, sizeof result, &result);
-    return result;
-}
-
-// Return arr[i]
-template <typename T>
-T ObliviousArrayAccess(T *arr, int i, size_t n) {
-    T result = arr[0];
-    int step = sizeof(T) < CACHE_LINE_SIZE ? CACHE_LINE_SIZE / sizeof(T) : 1;
-    for (int j = 0; j < n; j += step) {
-        bool cond = ObliviousEqual(j/step, i/step);
-        int pos = ObliviousChoose(cond, i, j);
-        result = ObliviousChoose(cond, arr[pos], result);
-    }
-    return result;
-}
-
-// Set arr[i] = val
-template <typename T>
-void ObliviousArrayAssign(T *arr, int i, size_t n, T val) {
-    int step = sizeof(T) < CACHE_LINE_SIZE ? CACHE_LINE_SIZE / sizeof(T) : 1;
-    for (int j = 0; j < n; j += step) {
-        bool cond = ObliviousEqual(j/step, i/step);
-        int pos = ObliviousChoose(cond, i, j);
-        arr[pos] = ObliviousChoose(cond, val, arr[pos]);
-    }
-}
-
-/***************************************************************************************
- * Oblivious bitonic sort (imperative version)
- **************************************************************************************/
-
-// Imperative implementation of bitonic merge network
-template <typename T>
-inline void imperative_o_merge(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    uint32_t i, j, k;
-    uint32_t l = log2_ceil(len);
-    uint32_t n = 1 << l;
-    for (i = 0; i < l; i++) {
-        for (j = 0; j < n; j += n >> i) {
-            for (k = 0; k < (n >> i) / 2; k++) {
-                uint32_t i1 = low + k + j;
-                uint32_t i2 = i1 + (n >> i) / 2;
-                if (i2 >= low + len) 
-                    break;
-                bool pred = ObliviousGreater(arr[i1], arr[i2]);
-                pred = ObliviousEqual(pred, ascending);
-                // These array accesses are oblivious because the indices are deterministic
-                T tmp = arr[i1];
-                arr[i1] = ObliviousChoose(pred, arr[i2], arr[i1]);
-                arr[i2] = ObliviousChoose(pred, tmp, arr[i2]);
-            }
-        }
-    } 
-}
-
-// Imperative implementation of bitonic merge network for POD type
-// Assumes T implements T::ogreater
-template <typename T>
-inline void imperative_o_merge_pod(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    uint32_t i, j, k;
-    uint32_t l = log2_ceil(len);
-    uint32_t n = 1 << l;
-    for (i = 0; i < l; i++) {
-        for (j = 0; j < n; j += n >> i) {
-            for (k = 0; k < (n >> i) / 2; k++) {
-                uint32_t i1 = low + k + j;
-                uint32_t i2 = i1 + (n >> i) / 2;
-                if (i2 >= low + len) 
-                    break;
-                bool pred = T::ogreater(arr[i1], arr[i2]);
-                pred = ObliviousEqual(pred, ascending);
-                // These array accesses are oblivious because the indices are deterministic
-                T tmp = arr[i1];
-                arr[i1] = ObliviousChoose(pred, arr[i2], arr[i1]);
-                arr[i2] = ObliviousChoose(pred, tmp, arr[i2]);
-            }
-        }
-    } 
-}
-
-// Imperative implementation of bitonic sorting network -- works only for powers of 2
-template <typename T>
-inline void imperative_o_sort(T* arr, size_t n, bool ascending) {
-    uint32_t i, j, k;
-    for (k = 2; k <= n; k = 2 * k) {
-        for (j = k >> 1; j > 0; j = j >> 1) {
-            for (i = 0; i < n; i++) {
-                uint32_t ij = i ^ j;
-                if (ij > i) {
-                    if ((i & k) == 0) {
-                        bool pred = ObliviousGreater(arr[i], arr[ij]);
-                        pred = ObliviousEqual(pred, ascending);
-                        // These array accesses are oblivious because the indices are deterministic
-                        T tmp = arr[i];
-                        arr[i] = ObliviousChoose(pred, arr[ij], arr[i]);
-                        arr[ij] = ObliviousChoose(pred, tmp, arr[ij]);
-                    } else {
-                        bool pred = ObliviousGreater(arr[ij], arr[i]);
-                        pred = ObliviousEqual(pred, ascending);
-                        // These array accesses are oblivious because the indices are deterministic
-                        T tmp = arr[i];
-                        arr[i] = ObliviousChoose(pred, arr[ij], arr[i]);
-                        arr[ij] = ObliviousChoose(pred, tmp, arr[ij]);
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Imperative implementation of bitonic sorting network for POD type -- works only for powers of 2
-// Assumes T implements T::ogreater
-template <typename T>
-inline void imperative_o_sort_pod(T* arr, size_t n, bool ascending) {
-    uint32_t i, j, k;
-    for (k = 2; k <= n; k = 2 * k) {
-        for (j = k >> 1; j > 0; j = j >> 1) {
-            for (i = 0; i < n; i++) {
-                uint32_t ij = i ^ j;
-                if (ij > i) {
-                    if ((i & k) == 0) {
-                        bool pred = T::ogreater(arr[i], arr[ij]);
-                        pred = ObliviousEqual(pred, ascending);
-                        // These array accesses are oblivious because the indices are deterministic
-                        T tmp = arr[i];
-                        arr[i] = ObliviousChoose(pred, arr[ij], arr[i]);
-                        arr[ij] = ObliviousChoose(pred, tmp, arr[ij]);
-                    } else {
-                        bool pred = T::ogreater(arr[ij], arr[i]);
-                        pred = ObliviousEqual(pred, ascending);
-                        // These array accesses are oblivious because the indices are deterministic
-                        T tmp = arr[i];
-                        arr[i] = ObliviousChoose(pred, arr[ij], arr[i]);
-                        arr[ij] = ObliviousChoose(pred, tmp, arr[ij]);
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Sort <len> elements in arr -- starting from index arr[low]
-template <typename T>
-void o_sort(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    if (len > 1) {
-        uint32_t m = greatest_power_of_two_less_than(len);
-        if (m * 2 == len) {
-            imperative_o_sort(arr + low, len, ascending);
-        } else {
-            imperative_o_sort(arr + low, m, !ascending);
-            o_sort(arr, low + m, len - m, ascending);
-            imperative_o_merge(arr, low, len, ascending);
-        }
-    }
-}
-
-// Sort <len> elements in arr of POD type -- starting from index arr[low]
-// Assumes T implements T::ogreater
-template <typename T>
-void o_sort_pod(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    if (len > 1) {
-        uint32_t m = greatest_power_of_two_less_than(len);
-        if (m * 2 == len) {
-            imperative_o_sort_pod(arr + low, len, ascending);
-        } else {
-            imperative_o_sort_pod(arr + low, m, !ascending);
-            o_sort_pod(arr, low + m, len - m, ascending);
-            imperative_o_merge_pod(arr, low, len, ascending);
-        }
-    }
-}
-
-template <typename T>
-inline void ObliviousMerge(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    imperative_o_merge(arr, low, len, ascending);
-}
-
-template <typename T>
-inline void ObliviousMergePOD(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    imperative_o_merge_pod(arr, low, len, ascending);
-}
-
-template <typename T>
-inline void ObliviousSort(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    o_sort(arr, low, len, ascending);
-}
-
-template <typename T>
-inline void ObliviousSortPOD(T* arr, uint32_t low, uint32_t len, bool ascending) {
-    o_sort_pod(arr, low, len, ascending);
-}
+}  // namespace obl
 
 /***************************************************************************************
  * Testing
@@ -431,6 +49,17 @@ struct Generic {
     }
 };
 
+namespace obl {
+
+template <>
+struct less<Generic> {
+  bool operator()(const Generic& a, const Generic& b) {
+    return a.x < b.x;
+  }
+};
+
+}
+
 struct Generic_16B {
     double x;
     uint64_t y;
@@ -454,6 +83,7 @@ void test(const char* name, bool cond) {
     else
         printf("fail\n");
 }
+
 void test_ObliviousGreater() {
     // Test generic cases
     test("4 > 5", ObliviousGreater(4,5) == 4 > 5);
@@ -478,6 +108,7 @@ void test_ObliviousGreater() {
     test("(int32_t) 2147483648 > 42", !ObliviousGreater((int32_t)2147483648, 42));
     test("2147483648 > 42", ObliviousGreater(2147483648, (int64_t) 42));
 }
+
 void test_ObliviousLess() {
     // Test generic cases
     test("4 < 5", ObliviousLess(4,5) == 4 < 5);
@@ -502,6 +133,7 @@ void test_ObliviousLess() {
     test("(int32_t) 2147483648 < 42", ObliviousLess((int32_t)2147483648, 42));
     test("2147483648 < 42", !ObliviousLess(2147483648, (int64_t) 42));
 }
+
 void test_ObliviousEqual() {
     // Test generic cases
     test("4 == 5", ObliviousEqual(4,5) == (4==5));
@@ -525,6 +157,7 @@ void test_ObliviousEqual() {
     test("-4. == -4.", ObliviousEqual(-4., -4.) == (-4.==-4.));
     test("4. == 4.", ObliviousEqual(4., 4.) == (4.==4.));
 }
+
 void test_ObliviousAssign() {
     test(" (true, 4, 5) ", ObliviousChoose(true, 4, 5) == 4);
     test(" (false, 4, 5)", ObliviousChoose(false, 4, 5) == 5);
@@ -561,10 +194,11 @@ void test_ObliviousAssign() {
     test(" (false, (1,2,3), (4,5,6) ) ",
             baz.a == (char) 4 && baz.b == (char) 5 && baz.c == (char) 6);
 }
+
 void test_ObliviousSort() {
     double d_arr[5] = {2.123456789, 3.123456789, 1.123456789, -2.123456789, -1.123456789};
     bool pass = true;
-    ObliviousSort(d_arr, 0, 5, true);
+    ObliviousSort(d_arr, d_arr + 5);
 
     for (int i = 0; i < 5; i++) {
         printf("%f ", d_arr[i]);
@@ -577,7 +211,7 @@ void test_ObliviousSort() {
     printf("\n");
 
     int int_arr[5] = {2, 3, 1, -2, -1};
-    ObliviousSort(int_arr, 0, 5, true);
+    ObliviousSort(int_arr, int_arr + 5);
     pass = true;
     for (int i = 0; i < 5; i++) {
         printf("%d ", int_arr[i]);
@@ -590,7 +224,7 @@ void test_ObliviousSort() {
     printf("\n");
     
     Generic g_arr[5] = {Generic(-1.35, 2, 3.21), Generic(4.123, 5, 6.432), Generic(-5.123, 3, 7.432), Generic(6.123, 1, 1.432), Generic(-3.123, 4, 0.432)};
-    ObliviousSortPOD(g_arr, 0, 5, true);
+    ObliviousSort(g_arr, g_arr + 5);
     pass = true;
     for (int i = 0; i < 5; i++) {
         printf("%f,%d,%f -- ", g_arr[i].x, g_arr[i].y, g_arr[i].z);
@@ -602,6 +236,7 @@ void test_ObliviousSort() {
         printf(" : fail");
     printf("\n");
 }
+
 void test_ObliviousArrayAccess() {
     double d_arr[100]; 
     for (int i = 0; i < 100; i++) {
@@ -705,13 +340,13 @@ void test_ObliviousArrayAssign() {
  * Main
  **************************************************************************************/
 
-int main() {
-    //test_ObliviousGreater();
-    //test_ObliviousLess();
-    //test_ObliviousEqual();
-    //test_ObliviousAssign();
-    //test_ObliviousSort();
-    //test_ObliviousArrayAccess();
-    //test_ObliviousArrayAssign(); 
-}
-
+// int main() {
+//     test_ObliviousGreater();
+//     test_ObliviousLess();
+//     test_ObliviousEqual();
+//     test_ObliviousAssign();
+//     test_ObliviousSort();
+//     test_ObliviousArrayAccess();
+//     test_ObliviousArrayAssign(); 
+//     return 0;
+// }
