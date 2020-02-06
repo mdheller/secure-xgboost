@@ -63,9 +63,9 @@ github_doc_root = 'https://github.com/dmlc/xgboost/tree/master/doc/'
 
 os.environ['XGBOOST_BUILD_DOC'] = '1'
 # Version information.
-import xgboost
-version = xgboost.__version__
-release = xgboost.__version__
+import securexgboost
+version = securexgboost.__version__
+release = securexgboost.__version__
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones
