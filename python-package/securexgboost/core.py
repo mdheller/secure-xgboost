@@ -1232,42 +1232,42 @@ class Booster(object):
         #  """Save the current booster to rabit checkpoint."""
         #  _check_call(_LIB.XGBoosterSaveRabitCheckpoint(self.handle))
 
-    def attr(self, key):
-        """Get attribute string from the Booster.
-
-        Parameters
-        ----------
-        key : str
-            The key to get attribute from.
-
-        Returns
-        -------
-        value : str
-            The attribute value of the key, returns None if attribute do not exist.
-        """
-        ret = ctypes.c_char_p()
-        success = ctypes.c_int()
-        _check_call(_LIB.XGBoosterGetAttr(
-            self.handle, c_str(key), ctypes.byref(ret), ctypes.byref(success)))
-        if success.value != 0:
-            return py_str(ret.value)
-        return None
-
-    def attributes(self):
-        """Get attributes stored in the Booster as a dictionary.
-
-        Returns
-        -------
-        result : dictionary of  attribute_name: attribute_value pairs of strings.
-            Returns an empty dict if there's no attributes.
-        """
-        length = c_bst_ulong()
-        sarr = ctypes.POINTER(ctypes.c_char_p)()
-        _check_call(_LIB.XGBoosterGetAttrNames(self.handle,
-                                               ctypes.byref(length),
-                                               ctypes.byref(sarr)))
-        attr_names = from_cstr_to_pystr(sarr, length)
-        return {n: self.attr(n) for n in attr_names}
+    #  def attr(self, key):
+        #  """Get attribute string from the Booster.
+#  
+        #  Parameters
+        #  ----------
+        #  key : str
+            #  The key to get attribute from.
+#  
+        #  Returns
+        #  -------
+        #  value : str
+            #  The attribute value of the key, returns None if attribute do not exist.
+        #  """
+        #  ret = ctypes.c_char_p()
+        #  success = ctypes.c_int()
+        #  _check_call(_LIB.XGBoosterGetAttr(
+            #  self.handle, c_str(key), ctypes.byref(ret), ctypes.byref(success)))
+        #  if success.value != 0:
+            #  return py_str(ret.value)
+        #  return None
+#  
+    #  def attributes(self):
+        #  """Get attributes stored in the Booster as a dictionary.
+#  
+        #  Returns
+        #  -------
+        #  result : dictionary of  attribute_name: attribute_value pairs of strings.
+            #  Returns an empty dict if there's no attributes.
+        #  """
+        #  length = c_bst_ulong()
+        #  sarr = ctypes.POINTER(ctypes.c_char_p)()
+        #  _check_call(_LIB.XGBoosterGetAttrNames(self.handle,
+                                               #  ctypes.byref(length),
+                                               #  ctypes.byref(sarr)))
+        #  attr_names = from_cstr_to_pystr(sarr, length)
+        #  return {n: self.attr(n) for n in attr_names}
 
     #  def set_attr(self, **kwargs):
         #  """Set the attribute of the Booster.

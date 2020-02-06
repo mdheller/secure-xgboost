@@ -1,4 +1,4 @@
-import xgboost as xgb
+import securexgboost as xgb
 import os
 
 OE_ENCLAVE_FLAG_DEBUG = 1
