@@ -1,0 +1,36 @@
+
+#ifndef DEMO_ENCRYPT_H
+#define DEMO_ENCRYPT_H
+
+#include <iostream>
+#include <fstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <xgboost/c_api.h>
+#include <dmlc/base64.h>
+
+#include <mbedtls/entropy.h>    // mbedtls_entropy_context
+#include <mbedtls/ctr_drbg.h>   // mbedtls_ctr_drbg_context
+#include <mbedtls/cipher.h>     // MBEDTLS_CIPHER_ID_AES
+#include <mbedtls/gcm.h>        // mbedtls_gcm_context
+#include <mbedtls/pk.h>
+#include <mbedtls/rsa.h>
+#include "mbedtls/sha256.h"
+
+#define KEY_BYTES 32
+#define IV_BYTES 12
+#define TAG_BYTES 16
+
+static char test_key[KEY_BYTES] = {
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0
+};
+
+void encryptFile(char* fname, char* e_fname);
+void decryptFile(char* fname, char* d_fname);
+
+void verifySignature(char *pkfile, uint8_t* data, size_t data_size, uint8_t* signature, size_t sig_len);
+#endif

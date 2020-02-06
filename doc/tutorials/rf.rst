@@ -64,35 +64,35 @@ A random forest model can then be trained as follows::
   bst = train(params, dmatrix, num_boost_round=1)
 
 
-**************************
-Standalone Random Forest With Scikit-Learn-Like API
-**************************
-
-``XGBRFClassifier`` and ``XGBRFRegressor`` are SKL-like classes that provide random forest
-functionality. They are basically versions of ``XGBClassifier`` and ``XGBRegressor`` that
-train random forest instead of gradient boosting, and have default values and meaning of
-some of the parameters adjusted accordingly. In particular:
-
-* ``n_estimators`` specifies the size of the forest to be trained; it is converted to
-  ``num_parallel_tree``, instead of the number of boosting rounds
-* ``learning_rate`` is set to 1 by default
-* ``colsample_bynode`` and ``subsample`` are set to 0.8 by default
-* ``booster`` is always ``gbtree``
-
-For a simple example, you can train a random forest regressor with::
-
-    from sklearn.model_selection import KFold
-
-    # Your code ...
-
-    kf = KFold(n_splits=2)
-    for train_index, test_index in kf.split(X, y):
-        xgb_model = xgb.XGBRFRegressor(random_state=42).fit(
-	X[train_index], y[train_index])
-
-Note that these classes have a smaller selection of parameters compared to using
-``train()``. In particular, it is impossible to combine random forests with gradient
-boosting using this API.
+.. **************************
+.. Standalone Random Forest With Scikit-Learn-Like API
+.. **************************
+.. 
+.. ``XGBRFClassifier`` and ``XGBRFRegressor`` are SKL-like classes that provide random forest
+.. functionality. They are basically versions of ``XGBClassifier`` and ``XGBRegressor`` that
+.. train random forest instead of gradient boosting, and have default values and meaning of
+.. some of the parameters adjusted accordingly. In particular:
+.. 
+.. * ``n_estimators`` specifies the size of the forest to be trained; it is converted to
+  .. ``num_parallel_tree``, instead of the number of boosting rounds
+.. * ``learning_rate`` is set to 1 by default
+.. * ``colsample_bynode`` and ``subsample`` are set to 0.8 by default
+.. * ``booster`` is always ``gbtree``
+.. 
+.. For a simple example, you can train a random forest regressor with::
+.. 
+    .. from sklearn.model_selection import KFold
+.. 
+    .. # Your code ...
+.. 
+    .. kf = KFold(n_splits=2)
+    .. for train_index, test_index in kf.split(X, y):
+        .. xgb_model = xgb.XGBRFRegressor(random_state=42).fit(
+	.. X[train_index], y[train_index])
+.. 
+.. Note that these classes have a smaller selection of parameters compared to using
+.. ``train()``. In particular, it is impossible to combine random forests with gradient
+.. boosting using this API.
 
 
 *******

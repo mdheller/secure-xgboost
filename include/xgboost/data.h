@@ -17,10 +17,16 @@
 #include <string>
 #include <vector>
 #include "./base.h"
+
+#if defined(__SGX__) && defined(__ENCLAVE__)
+#include "../../enclave/src/common/span.h"
+#include "../../enclave/src/common/group_data.h"
+#include "../../enclave/src/common/host_device_vector.h"
+#else
 #include "../../src/common/span.h"
 #include "../../src/common/group_data.h"
-
 #include "../../src/common/host_device_vector.h"
+#endif // __SGX__ && __ENCLAVE__
 
 namespace xgboost {
 // forward declare learner.
@@ -89,6 +95,8 @@ class MetaInfo {
   inline unsigned GetRoot(size_t i) const {
     return root_index_.size() != 0 ? root_index_[i] : 0U;
   }
+
+#ifndef __ENCLAVE__
   /*! \brief get sorted indexes (argsort) of labels by absolute value (used by cox loss) */
   inline const std::vector<size_t>& LabelAbsSort() const {
     if (label_order_cache_.size() == labels_.Size()) {
@@ -102,6 +110,8 @@ class MetaInfo {
 
     return label_order_cache_;
   }
+#endif // __ENCLAVE__
+
   /*! \brief clear all the information */
   void Clear();
   /*!
@@ -173,11 +183,16 @@ class SparsePage {
     size_t size;
     // in distributed mode, some partitions may not get any instance for a feature. Therefore
     // we should set the size as zero
+#ifndef __ENCLAVE__
+    // FIXME
     if (rabit::IsDistributed() && i + 1 >= offset_vec.size()) {
       size = 0;
     } else {
       size = offset_vec[i + 1] - offset_vec[i];
     }
+#else
+    size = offset_vec[i + 1] - offset_vec[i];
+#endif // __ENCLAVE__
     return {data_vec.data() + offset_vec[i],
             static_cast<Inst::index_type>(size)};
   }
@@ -445,6 +460,11 @@ class DMatrix {
   static DMatrix* Load(const std::string& uri,
                        bool silent,
                        bool load_row_split,
+#ifdef __ENCLAVE__ // pass decryption key
+                       // TODO(rishabh): add support for unencrypted files
+                       bool is_encrypted,
+                       char* key,
+#endif
                        const std::string& file_format = "auto",
                        const size_t page_size = kPageSize);
   /*!

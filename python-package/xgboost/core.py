@@ -17,6 +17,7 @@ import sys
 import warnings
 
 import numpy as np
+from numproto import ndarray_to_proto, proto_to_ndarray
 import scipy.sparse
 
 from .compat import (STRING_TYPES, PY3, DataFrame, MultiIndex, py_str,
@@ -26,6 +27,7 @@ from .libpath import find_lib_path
 
 # c_bst_ulong corresponds to bst_ulong defined in xgboost/c_api.h
 c_bst_ulong = ctypes.c_uint64
+
 
 
 class XGBoostError(Exception):
@@ -217,6 +219,42 @@ def c_array(ctype, values):
     return (ctype * len(values))(*values)
 
 
+def pointer_to_proto(pointer, pointer_len, nptype=np.uint32):
+    """
+    Convert C u_int or float pointer to proto for RPC serialization
+
+    Parameters
+    ----------
+    pointer : ctypes.POINTER
+    pointer_len : length of pointer
+    nptype : np type to cast to
+        if pointer is of type ctypes.c_uint, nptype should be np.uint32
+        if pointer is of type ctypes.c_float, nptype should be np.float32
+
+    Returns:
+        proto : proto.NDArray
+    """
+    ndarray = ctypes2numpy(pointer, pointer_len, nptype)
+    proto = ndarray_to_proto(ndarray)
+    return proto
+
+def proto_to_pointer(proto):
+    """
+    Convert a serialized NDArray to a C pointer
+
+    Parameters
+    ----------
+    proto : proto.NDArray
+
+    Returns:
+        pointer :  ctypes.POINTER(ctypes.u_int)
+    """
+    ndarray = proto_to_ndarray(proto)
+    # FIXME make the ctype POINTER type configurable
+    pointer = ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+    return pointer
+
+
 PANDAS_DTYPE_MAPPER = {'int8': 'int', 'int16': 'int', 'int32': 'int', 'int64': 'int',
                        'uint8': 'int', 'uint16': 'int', 'uint32': 'int', 'uint64': 'int',
                        'float16': 'float', 'float32': 'float', 'float64': 'float',
@@ -329,7 +367,7 @@ class DMatrix(object):
     _feature_names = None  # for previous version's pickle
     _feature_types = None
 
-    def __init__(self, data, label=None, missing=None,
+    def __init__(self, data, encrypted=False, label=None, missing=None,
                  weight=None, silent=False,
                  feature_names=None, feature_types=None,
                  nthread=None):
@@ -392,9 +430,14 @@ class DMatrix(object):
 
         if isinstance(data, STRING_TYPES):
             handle = ctypes.c_void_p()
-            _check_call(_LIB.XGDMatrixCreateFromFile(c_str(data),
-                                                     ctypes.c_int(silent),
-                                                     ctypes.byref(handle)))
+            if encrypted:
+                _check_call(_LIB.XGDMatrixCreateFromEncryptedFile(c_str(data),
+                    ctypes.c_int(silent),
+                    ctypes.byref(handle)))
+            else:
+                _check_call(_LIB.XGDMatrixCreateFromFile(c_str(data),
+                    ctypes.c_int(silent),
+                    ctypes.byref(handle)))
             self.handle = handle
         elif isinstance(data, scipy.sparse.csr_matrix):
             self._init_from_csr(data)
@@ -550,6 +593,7 @@ class DMatrix(object):
                                                c_str(field),
                                                ctypes.byref(length),
                                                ctypes.byref(ret)))
+                                  
         return ctypes2numpy(ret, length.value, np.float32)
 
     def get_uint_info(self, field):
@@ -645,20 +689,20 @@ class DMatrix(object):
                                               c_array(ctypes.c_uint, data),
                                               c_bst_ulong(len(data))))
 
-    def save_binary(self, fname, silent=True):
-        """Save DMatrix to an XGBoost buffer.  Saved binary can be later loaded
-        by providing the path to :py:func:`xgboost.DMatrix` as input.
-
-        Parameters
-        ----------
-        fname : string
-            Name of the output buffer file.
-        silent : bool (optional; default: True)
-            If set, the output is suppressed.
-        """
-        _check_call(_LIB.XGDMatrixSaveBinary(self.handle,
-                                             c_str(fname),
-                                             ctypes.c_int(silent)))
+    #  def save_binary(self, fname, silent=True):
+        #  """Save DMatrix to an XGBoost buffer.  Saved binary can be later loaded
+        #  by providing the path to :py:func:`xgboost.DMatrix` as input.
+#  
+        #  Parameters
+        #  ----------
+        #  fname : string
+            #  Name of the output buffer file.
+        #  silent : bool (optional; default: True)
+            #  If set, the output is suppressed.
+        #  """
+        #  _check_call(_LIB.XGDMatrixSaveBinary(self.handle,
+                                             #  c_str(fname),
+                                             #  ctypes.c_int(silent)))
 
     def set_label(self, label):
         """Set label of dmatrix
@@ -732,17 +776,17 @@ class DMatrix(object):
         """
         self.set_float_info('base_margin', margin)
 
-    def set_group(self, group):
-        """Set group size of DMatrix (used for ranking).
-
-        Parameters
-        ----------
-        group : array like
-            Group size of each group
-        """
-        _check_call(_LIB.XGDMatrixSetGroup(self.handle,
-                                           c_array(ctypes.c_uint, group),
-                                           c_bst_ulong(len(group))))
+    #  def set_group(self, group):
+        #  """Set group size of DMatrix (used for ranking).
+#  
+        #  Parameters
+        #  ----------
+        #  group : array like
+            #  Group size of each group
+        #  """
+        #  _check_call(_LIB.XGDMatrixSetGroup(self.handle,
+                                           #  c_array(ctypes.c_uint, group),
+                                           #  c_bst_ulong(len(group))))
 
     def get_label(self):
         """Get the label of the DMatrix.
@@ -795,27 +839,27 @@ class DMatrix(object):
                                          ctypes.byref(ret)))
         return ret.value
 
-    def slice(self, rindex):
-        """Slice the DMatrix and return a new DMatrix that only contains `rindex`.
-
-        Parameters
-        ----------
-        rindex : list
-            List of indices to be selected.
-
-        Returns
-        -------
-        res : DMatrix
-            A new DMatrix containing only selected indices.
-        """
-        res = DMatrix(None, feature_names=self.feature_names,
-                      feature_types=self.feature_types)
-        res.handle = ctypes.c_void_p()
-        _check_call(_LIB.XGDMatrixSliceDMatrix(self.handle,
-                                               c_array(ctypes.c_int, rindex),
-                                               c_bst_ulong(len(rindex)),
-                                               ctypes.byref(res.handle)))
-        return res
+    #  def slice(self, rindex):
+        #  """Slice the DMatrix and return a new DMatrix that only contains `rindex`.
+#  
+        #  Parameters
+        #  ----------
+        #  rindex : list
+            #  List of indices to be selected.
+#  
+        #  Returns
+        #  -------
+        #  res : DMatrix
+            #  A new DMatrix containing only selected indices.
+        #  """
+        #  res = DMatrix(None, feature_names=self.feature_names,
+                      #  feature_types=self.feature_types)
+        #  res.handle = ctypes.c_void_p()
+        #  _check_call(_LIB.XGDMatrixSliceDMatrix(self.handle,
+                                               #  c_array(ctypes.c_int, rindex),
+                                               #  c_bst_ulong(len(rindex)),
+                                               #  ctypes.byref(res.handle)))
+        #  return res
 
     @property
     def feature_names(self):
@@ -913,6 +957,177 @@ class DMatrix(object):
         self._feature_types = feature_types
 
 
+class Enclave(object):
+    """An enclave.
+
+    A trusted execution environment used for secure XGBoost.
+    """
+    def __init__(self, enclave_image=None, flags=3, create_enclave=True, log_verbosity=0):
+        if create_enclave:
+            _check_call(_LIB.XGBCreateEnclave(c_str(enclave_image), ctypes.c_uint(flags), log_verbosity))
+        self.pem_key = ctypes.POINTER(ctypes.c_uint)()
+        self.key_size = ctypes.c_size_t()
+        self.remote_report = ctypes.POINTER(ctypes.c_uint)()
+        self.remote_report_size = ctypes.c_size_t()
+
+    def get_remote_report_with_pubkey(self):
+        """
+        Get remote attestation report and public key of enclave
+        """
+        _check_call(_LIB.get_remote_report_with_pubkey(ctypes.byref(self.pem_key), ctypes.byref(self.key_size), ctypes.byref(self.remote_report), ctypes.byref(self.remote_report_size)))
+
+    def verify_remote_report_and_set_pubkey(self):
+        """
+        Verify the received attestation report and set the public key
+        """
+        _check_call(_LIB.verify_remote_report_and_set_pubkey(self.pem_key, self.key_size, self.remote_report, self.remote_report_size))
+
+    def set_report_attrs(self, pem_key, key_size, remote_report, remote_report_size):
+        """
+        Set the enclave public key and remote report
+
+        To be used by RPC client during verification
+        """
+        pem_key_ndarray = proto_to_ndarray(pem_key)
+        self.pem_key = pem_key_ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        self.key_size = ctypes.c_size_t(key_size)
+ 
+        remote_report_ndarray = proto_to_ndarray(remote_report)
+        self.remote_report = remote_report_ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        self.remote_report_size = ctypes.c_size_t(remote_report_size)
+
+    def get_report_attrs(self):
+        """
+        Get the enclave public key and remote report
+
+        To be called by the RPC service
+
+        Must be called after get_remote_report_with_pubkey() is called
+
+        Returns pem_key (proto), key_size (int), remote_report (proto), remote_report_size (int)
+        """
+        # Convert pem_key to serialized numpy array
+        pem_key = ctypes2numpy(self.pem_key, self.key_size.value, np.uint32)
+        pem_key = ndarray_to_proto(pem_key)
+        key_size = self.key_size.value
+
+        # Convert remote_report to serialized numpy array
+        remote_report = ctypes2numpy(self.remote_report, self.remote_report_size.value, np.uint32)
+        remote_report = ndarray_to_proto(remote_report)
+        remote_report_size = self.remote_report_size.value
+        
+        return pem_key, key_size, remote_report, remote_report_size
+
+
+class CryptoUtils(object):
+    """
+    Crypto utils class
+    """
+    def __init__(self):
+        # FIXME what do we need here?
+        pass
+
+    def encrypt_data_with_pk(self, data, data_len, pem_key, key_size):
+        """
+        Parameters
+        ----------
+        data : byte array  
+        data_len : int
+        pem_key : proto 
+        key_size : int
+
+        Returns:
+            encrypted_data : proto.NDArray 
+            encrypted_data_size_as_int : int
+        """
+        # Cast data to char*
+        data = ctypes.c_char_p(data)
+        data_len = ctypes.c_size_t(data_len)
+
+        # Cast proto to pointer to pass into C++ encrypt_data_with_pk()
+        pem_key = proto_to_pointer(pem_key)
+        pem_key_len = ctypes.c_size_t(key_size)
+
+        # Allocate memory that will be used to store the encrypted_data and encrypted_data_size
+        encrypted_data = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        encrypted_data_size = ctypes.c_size_t(1024)
+
+        # Encrypt the data with pk pem_key
+        _check_call(_LIB.encrypt_data_with_pk(data, data_len, pem_key, key_size, encrypted_data, ctypes.byref(encrypted_data_size)))
+
+        # Cast the encrypted data back to a proto.NDArray (for RPC purposes) and return it
+        encrypted_data_size_as_int = encrypted_data_size.value
+        encrypted_data = pointer_to_proto(encrypted_data, encrypted_data_size_as_int)
+
+        return encrypted_data, encrypted_data_size_as_int
+
+    def sign_data(self, keyfile, data, data_size):
+        """
+        Parameters
+        ----------
+        keyfile : str 
+        data : proto.NDArray 
+        data_size : int 
+
+        Returns:
+            signature : proto.NDArray 
+            sig_len_as_int : int
+        """
+        # Cast the keyfile to a char* 
+        keyfile = ctypes.c_char_p(str.encode(keyfile)) 
+
+        # Cast data : proto.NDArray to pointer to pass into C++ sign_data() function
+        data = proto_to_pointer(data)
+        data_size = ctypes.c_size_t(data_size)
+        
+        # Allocate memory to store the signature and sig_len
+        signature = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        sig_len = ctypes.c_size_t(1024)
+
+        # Sign data with key keyfile
+        _check_call(_LIB.sign_data(keyfile, data, data_size, signature, ctypes.byref(sig_len)))
+
+        # Cast the signature and sig_len back to a gRPC serializable format
+        sig_len_as_int = sig_len.value
+        signature = pointer_to_proto(signature, sig_len_as_int)
+
+        return signature, sig_len_as_int
+
+    def add_client_key(self, fname, data, data_len, signature, sig_len):
+        """
+        Add client symmetric key used to encrypt file fname
+        
+        Parameters
+        ----------
+        fname : str
+            file that was encrypted
+        data : proto.NDArray
+            key used to encrypt fname
+        data_len : int
+            length of data
+        signature : proto.NDArray
+            signature over data, signed with client private key
+        sig_len : int
+            length of signature
+
+        Returns:
+            Exit status of add_client_key()
+        """
+        # Cast fname to a char*
+        fname = ctypes.c_char_p(str.encode(fname))
+
+        # Cast data : proto.NDArray to pointer to pass into C++ add_client_key()
+        data = proto_to_pointer(data)
+        data_len = ctypes.c_size_t(data_len)
+
+        # Cast signature : proto.NDArray to pointer to pass into C++ add_client_key()
+        signature = proto_to_pointer(signature)
+        sig_len = ctypes.c_size_t(sig_len)
+
+        # Add client key
+        return _check_call(_LIB.add_client_key(fname, data, data_len, signature, sig_len))
+
+
 class Booster(object):
     # pylint: disable=too-many-public-methods
     """A Booster of XGBoost.
@@ -935,13 +1150,14 @@ class Booster(object):
         model_file : string
             Path to the model file.
         """
+
         for d in cache:
             if not isinstance(d, DMatrix):
                 raise TypeError('invalid cache item: {}'.format(type(d).__name__))
             self._validate_features(d)
-
         dmats = c_array(ctypes.c_void_p, [d.handle for d in cache])
         self.handle = ctypes.c_void_p()
+
         _check_call(_LIB.XGBoosterCreate(dmats, c_bst_ulong(len(cache)),
                                          ctypes.byref(self.handle)))
         self.set_param({'seed': 0})
@@ -999,22 +1215,22 @@ class Booster(object):
         """
         return self.__copy__()
 
-    def load_rabit_checkpoint(self):
-        """Initialize the model by load from rabit checkpoint.
+    #  def load_rabit_checkpoint(self):
+        #  """Initialize the model by load from rabit checkpoint.
+#  
+        #  Returns
+        #  -------
+        #  version: integer
+            #  The version number of the model.
+        #  """
+        #  version = ctypes.c_int()
+        #  _check_call(_LIB.XGBoosterLoadRabitCheckpoint(
+            #  self.handle, ctypes.byref(version)))
+        #  return version.value
 
-        Returns
-        -------
-        version: integer
-            The version number of the model.
-        """
-        version = ctypes.c_int()
-        _check_call(_LIB.XGBoosterLoadRabitCheckpoint(
-            self.handle, ctypes.byref(version)))
-        return version.value
-
-    def save_rabit_checkpoint(self):
-        """Save the current booster to rabit checkpoint."""
-        _check_call(_LIB.XGBoosterSaveRabitCheckpoint(self.handle))
+    #  def save_rabit_checkpoint(self):
+        #  """Save the current booster to rabit checkpoint."""
+        #  _check_call(_LIB.XGBoosterSaveRabitCheckpoint(self.handle))
 
     def attr(self, key):
         """Get attribute string from the Booster.
@@ -1053,21 +1269,21 @@ class Booster(object):
         attr_names = from_cstr_to_pystr(sarr, length)
         return {n: self.attr(n) for n in attr_names}
 
-    def set_attr(self, **kwargs):
-        """Set the attribute of the Booster.
-
-        Parameters
-        ----------
-        **kwargs
-            The attributes to set. Setting a value to None deletes an attribute.
-        """
-        for key, value in kwargs.items():
-            if value is not None:
-                if not isinstance(value, STRING_TYPES):
-                    raise ValueError("Set Attr only accepts string values")
-                value = c_str(str(value))
-            _check_call(_LIB.XGBoosterSetAttr(
-                self.handle, c_str(key), value))
+    #  def set_attr(self, **kwargs):
+        #  """Set the attribute of the Booster.
+#  
+        #  Parameters
+        #  ----------
+        #  **kwargs
+            #  The attributes to set. Setting a value to None deletes an attribute.
+        #  """
+        #  for key, value in kwargs.items():
+            #  if value is not None:
+                #  if not isinstance(value, STRING_TYPES):
+                    #  raise ValueError("Set Attr only accepts string values")
+                #  value = c_str(str(value))
+            #  _check_call(_LIB.XGBoosterSetAttr(
+                #  self.handle, c_str(key), value))
 
     def set_param(self, params, value=None):
         """Set parameters into the Booster.
@@ -1170,6 +1386,7 @@ class Booster(object):
                                               dmats, evnames,
                                               c_bst_ulong(len(evals)),
                                               ctypes.byref(msg)))
+                                       
         res = msg.value.decode()
         if feval is not None:
             for dmat, evname in evals:
@@ -1290,9 +1507,11 @@ class Booster(object):
                                           ctypes.c_uint(ntree_limit),
                                           ctypes.byref(length),
                                           ctypes.byref(preds)))
+                         
         preds = ctypes2numpy(preds, length.value, np.float32)
         if pred_leaf:
             preds = preds.astype(np.int32)
+
         nrow = data.num_row()
         if preds.size != nrow and preds.size % nrow == 0:
             chunk_size = int(preds.size / nrow)
@@ -1370,297 +1589,300 @@ class Booster(object):
             ptr = (ctypes.c_char * len(buf)).from_buffer(buf)
             _check_call(_LIB.XGBoosterLoadModelFromBuffer(self.handle, ptr, length))
 
-    def dump_model(self, fout, fmap='', with_stats=False, dump_format="text"):
-        """
-        Dump model into a text or JSON file.
 
-        Parameters
-        ----------
-        fout : string
-            Output file name.
-        fmap : string, optional
-            Name of the file containing feature map names.
-        with_stats : bool, optional
-            Controls whether the split statistics are output.
-        dump_format : string, optional
-            Format of model dump file. Can be 'text' or 'json'.
-        """
-        if isinstance(fout, STRING_TYPES):
-            fout = open(fout, 'w')
-            need_close = True
-        else:
-            need_close = False
-        ret = self.get_dump(fmap, with_stats, dump_format)
-        if dump_format == 'json':
-            fout.write('[\n')
-            for i, _ in enumerate(ret):
-                fout.write(ret[i])
-                if i < len(ret) - 1:
-                    fout.write(",\n")
-            fout.write('\n]')
-        else:
-            for i, _ in enumerate(ret):
-                fout.write('booster[{}]:\n'.format(i))
-                fout.write(ret[i])
-        if need_close:
-            fout.close()
+# TODO: the commented out functions directly below all rely on get_dump()
 
-    def get_dump(self, fmap='', with_stats=False, dump_format="text"):
-        """
-        Returns the model dump as a list of strings.
+    #  def dump_model(self, fout, fmap='', with_stats=False, dump_format="text"):
+        #  """
+        #  Dump model into a text or JSON file.
+#  
+        #  Parameters
+        #  ----------
+        #  fout : string
+            #  Output file name.
+        #  fmap : string, optional
+            #  Name of the file containing feature map names.
+        #  with_stats : bool, optional
+            #  Controls whether the split statistics are output.
+        #  dump_format : string, optional
+            #  Format of model dump file. Can be 'text' or 'json'.
+        #  """
+        #  if isinstance(fout, STRING_TYPES):
+            #  fout = open(fout, 'w')
+            #  need_close = True
+        #  else:
+            #  need_close = False
+        #  ret = self.get_dump(fmap, with_stats, dump_format)
+        #  if dump_format == 'json':
+            #  fout.write('[\n')
+            #  for i, _ in enumerate(ret):
+                #  fout.write(ret[i])
+                #  if i < len(ret) - 1:
+                    #  fout.write(",\n")
+            #  fout.write('\n]')
+        #  else:
+            #  for i, _ in enumerate(ret):
+                #  fout.write('booster[{}]:\n'.format(i))
+                #  fout.write(ret[i])
+        #  if need_close:
+            #  fout.close()
 
-        Parameters
-        ----------
-        fmap : string, optional
-            Name of the file containing feature map names.
-        with_stats : bool, optional
-            Controls whether the split statistics are output.
-        dump_format : string, optional
-            Format of model dump. Can be 'text' or 'json'.
-        """
-        length = c_bst_ulong()
-        sarr = ctypes.POINTER(ctypes.c_char_p)()
-        if self.feature_names is not None and fmap == '':
-            flen = len(self.feature_names)
+    #  def get_dump(self, fmap='', with_stats=False, dump_format="text"):
+        #  """
+        #  Returns the model dump as a list of strings.
+#  
+        #  Parameters
+        #  ----------
+        #  fmap : string, optional
+            #  Name of the file containing feature map names.
+        #  with_stats : bool, optional
+            #  Controls whether the split statistics are output.
+        #  dump_format : string, optional
+            #  Format of model dump. Can be 'text' or 'json'.
+        #  """
+        #  length = c_bst_ulong()
+        #  sarr = ctypes.POINTER(ctypes.c_char_p)()
+        #  if self.feature_names is not None and fmap == '':
+            #  flen = len(self.feature_names)
+#  
+            #  fname = from_pystr_to_cstr(self.feature_names)
+#  
+            #  if self.feature_types is None:
+                #  # use quantitative as default
+                #  # {'q': quantitative, 'i': indicator}
+                #  ftype = from_pystr_to_cstr(['q'] * flen)
+            #  else:
+                #  ftype = from_pystr_to_cstr(self.feature_types)
+            #  _check_call(_LIB.XGBoosterDumpModelExWithFeatures(
+                #  self.handle,
+                #  ctypes.c_int(flen),
+                #  fname,
+                #  ftype,
+                #  ctypes.c_int(with_stats),
+                #  c_str(dump_format),
+                #  ctypes.byref(length),
+                #  ctypes.byref(sarr)))
+        #  else:
+            #  if fmap != '' and not os.path.exists(fmap):
+                #  raise ValueError("No such file: {0}".format(fmap))
+            #  _check_call(_LIB.XGBoosterDumpModelEx(self.handle,
+                                                  #  c_str(fmap),
+                                                  #  ctypes.c_int(with_stats),
+                                                  #  c_str(dump_format),
+                                                  #  ctypes.byref(length),
+                                                  #  ctypes.byref(sarr)))
+        #  res = from_cstr_to_pystr(sarr, length)
+        #  return res
+#  
+    #  def get_fscore(self, fmap=''):
+        #  """Get feature importance of each feature.
+#  
+        #  .. note:: Feature importance is defined only for tree boosters
+#  
+            #  Feature importance is only defined when the decision tree model is chosen as base
+            #  learner (`booster=gbtree`). It is not defined for other base learner types, such
+            #  as linear learners (`booster=gblinear`).
+#  
+        #  .. note:: Zero-importance features will not be included
+#  
+           #  Keep in mind that this function does not include zero-importance feature, i.e.
+           #  those features that have not been used in any split conditions.
+#  
+        #  Parameters
+        #  ----------
+        #  fmap: str (optional)
+           #  The name of feature map file
+        #  """
+#  
+        #  return self.get_score(fmap, importance_type='weight')
+#  
+    #  def get_score(self, fmap='', importance_type='weight'):
+        #  """Get feature importance of each feature.
+        #  Importance type can be defined as:
+#  
+        #  * 'weight': the number of times a feature is used to split the data across all trees.
+        #  * 'gain': the average gain across all splits the feature is used in.
+        #  * 'cover': the average coverage across all splits the feature is used in.
+        #  * 'total_gain': the total gain across all splits the feature is used in.
+        #  * 'total_cover': the total coverage across all splits the feature is used in.
+#  
+        #  .. note:: Feature importance is defined only for tree boosters
+#  
+            #  Feature importance is only defined when the decision tree model is chosen as base
+            #  learner (`booster=gbtree`). It is not defined for other base learner types, such
+            #  as linear learners (`booster=gblinear`).
+#  
+        #  Parameters
+        #  ----------
+        #  fmap: str (optional)
+           #  The name of feature map file.
+        #  importance_type: str, default 'weight'
+            #  One of the importance types defined above.
+        #  """
+        #  if getattr(self, 'booster', None) is not None and self.booster not in {'gbtree', 'dart'}:
+            #  raise ValueError('Feature importance is not defined for Booster type {}'
+                             #  .format(self.booster))
+#  
+        #  allowed_importance_types = ['weight', 'gain', 'cover', 'total_gain', 'total_cover']
+        #  if importance_type not in allowed_importance_types:
+            #  msg = ("importance_type mismatch, got '{}', expected one of " +
+                   #  repr(allowed_importance_types))
+            #  raise ValueError(msg.format(importance_type))
+#  
+        #  # if it's weight, then omap stores the number of missing values
+        #  if importance_type == 'weight':
+            #  # do a simpler tree dump to save time
+            #  trees = self.get_dump(fmap, with_stats=False)
+#  
+            #  fmap = {}
+            #  for tree in trees:
+                #  for line in tree.split('\n'):
+                    #  # look for the opening square bracket
+                    #  arr = line.split('[')
+                    #  # if no opening bracket (leaf node), ignore this line
+                    #  if len(arr) == 1:
+                        #  continue
+#  
+                    #  # extract feature name from string between []
+                    #  fid = arr[1].split(']')[0].split('<')[0]
+#  
+                    #  if fid not in fmap:
+                        #  # if the feature hasn't been seen yet
+                        #  fmap[fid] = 1
+                    #  else:
+                        #  fmap[fid] += 1
+#  
+            #  return fmap
+#  
+        #  average_over_splits = True
+        #  if importance_type == 'total_gain':
+            #  importance_type = 'gain'
+            #  average_over_splits = False
+        #  elif importance_type == 'total_cover':
+            #  importance_type = 'cover'
+            #  average_over_splits = False
+#  
+        #  trees = self.get_dump(fmap, with_stats=True)
+#  
+        #  importance_type += '='
+        #  fmap = {}
+        #  gmap = {}
+        #  for tree in trees:
+            #  for line in tree.split('\n'):
+                #  # look for the opening square bracket
+                #  arr = line.split('[')
+                #  # if no opening bracket (leaf node), ignore this line
+                #  if len(arr) == 1:
+                    #  continue
+#  
+                #  # look for the closing bracket, extract only info within that bracket
+                #  fid = arr[1].split(']')
+#  
+                #  # extract gain or cover from string after closing bracket
+                #  g = float(fid[1].split(importance_type)[1].split(',')[0])
+#  
+                #  # extract feature name from string before closing bracket
+                #  fid = fid[0].split('<')[0]
+#  
+                #  if fid not in fmap:
+                    #  # if the feature hasn't been seen yet
+                    #  fmap[fid] = 1
+                    #  gmap[fid] = g
+                #  else:
+                    #  fmap[fid] += 1
+                    #  gmap[fid] += g
+#  
+        #  # calculate average value (gain/cover) for each feature
+        #  if average_over_splits:
+            #  for fid in gmap:
+                #  gmap[fid] = gmap[fid] / fmap[fid]
+#  
+        #  return gmap
 
-            fname = from_pystr_to_cstr(self.feature_names)
-
-            if self.feature_types is None:
-                # use quantitative as default
-                # {'q': quantitative, 'i': indicator}
-                ftype = from_pystr_to_cstr(['q'] * flen)
-            else:
-                ftype = from_pystr_to_cstr(self.feature_types)
-            _check_call(_LIB.XGBoosterDumpModelExWithFeatures(
-                self.handle,
-                ctypes.c_int(flen),
-                fname,
-                ftype,
-                ctypes.c_int(with_stats),
-                c_str(dump_format),
-                ctypes.byref(length),
-                ctypes.byref(sarr)))
-        else:
-            if fmap != '' and not os.path.exists(fmap):
-                raise ValueError("No such file: {0}".format(fmap))
-            _check_call(_LIB.XGBoosterDumpModelEx(self.handle,
-                                                  c_str(fmap),
-                                                  ctypes.c_int(with_stats),
-                                                  c_str(dump_format),
-                                                  ctypes.byref(length),
-                                                  ctypes.byref(sarr)))
-        res = from_cstr_to_pystr(sarr, length)
-        return res
-
-    def get_fscore(self, fmap=''):
-        """Get feature importance of each feature.
-
-        .. note:: Feature importance is defined only for tree boosters
-
-            Feature importance is only defined when the decision tree model is chosen as base
-            learner (`booster=gbtree`). It is not defined for other base learner types, such
-            as linear learners (`booster=gblinear`).
-
-        .. note:: Zero-importance features will not be included
-
-           Keep in mind that this function does not include zero-importance feature, i.e.
-           those features that have not been used in any split conditions.
-
-        Parameters
-        ----------
-        fmap: str (optional)
-           The name of feature map file
-        """
-
-        return self.get_score(fmap, importance_type='weight')
-
-    def get_score(self, fmap='', importance_type='weight'):
-        """Get feature importance of each feature.
-        Importance type can be defined as:
-
-        * 'weight': the number of times a feature is used to split the data across all trees.
-        * 'gain': the average gain across all splits the feature is used in.
-        * 'cover': the average coverage across all splits the feature is used in.
-        * 'total_gain': the total gain across all splits the feature is used in.
-        * 'total_cover': the total coverage across all splits the feature is used in.
-
-        .. note:: Feature importance is defined only for tree boosters
-
-            Feature importance is only defined when the decision tree model is chosen as base
-            learner (`booster=gbtree`). It is not defined for other base learner types, such
-            as linear learners (`booster=gblinear`).
-
-        Parameters
-        ----------
-        fmap: str (optional)
-           The name of feature map file.
-        importance_type: str, default 'weight'
-            One of the importance types defined above.
-        """
-        if getattr(self, 'booster', None) is not None and self.booster not in {'gbtree', 'dart'}:
-            raise ValueError('Feature importance is not defined for Booster type {}'
-                             .format(self.booster))
-
-        allowed_importance_types = ['weight', 'gain', 'cover', 'total_gain', 'total_cover']
-        if importance_type not in allowed_importance_types:
-            msg = ("importance_type mismatch, got '{}', expected one of " +
-                   repr(allowed_importance_types))
-            raise ValueError(msg.format(importance_type))
-
-        # if it's weight, then omap stores the number of missing values
-        if importance_type == 'weight':
-            # do a simpler tree dump to save time
-            trees = self.get_dump(fmap, with_stats=False)
-
-            fmap = {}
-            for tree in trees:
-                for line in tree.split('\n'):
-                    # look for the opening square bracket
-                    arr = line.split('[')
-                    # if no opening bracket (leaf node), ignore this line
-                    if len(arr) == 1:
-                        continue
-
-                    # extract feature name from string between []
-                    fid = arr[1].split(']')[0].split('<')[0]
-
-                    if fid not in fmap:
-                        # if the feature hasn't been seen yet
-                        fmap[fid] = 1
-                    else:
-                        fmap[fid] += 1
-
-            return fmap
-
-        average_over_splits = True
-        if importance_type == 'total_gain':
-            importance_type = 'gain'
-            average_over_splits = False
-        elif importance_type == 'total_cover':
-            importance_type = 'cover'
-            average_over_splits = False
-
-        trees = self.get_dump(fmap, with_stats=True)
-
-        importance_type += '='
-        fmap = {}
-        gmap = {}
-        for tree in trees:
-            for line in tree.split('\n'):
-                # look for the opening square bracket
-                arr = line.split('[')
-                # if no opening bracket (leaf node), ignore this line
-                if len(arr) == 1:
-                    continue
-
-                # look for the closing bracket, extract only info within that bracket
-                fid = arr[1].split(']')
-
-                # extract gain or cover from string after closing bracket
-                g = float(fid[1].split(importance_type)[1].split(',')[0])
-
-                # extract feature name from string before closing bracket
-                fid = fid[0].split('<')[0]
-
-                if fid not in fmap:
-                    # if the feature hasn't been seen yet
-                    fmap[fid] = 1
-                    gmap[fid] = g
-                else:
-                    fmap[fid] += 1
-                    gmap[fid] += g
-
-        # calculate average value (gain/cover) for each feature
-        if average_over_splits:
-            for fid in gmap:
-                gmap[fid] = gmap[fid] / fmap[fid]
-
-        return gmap
-
-    def trees_to_dataframe(self, fmap=''):
-        """Parse a boosted tree model text dump into a pandas DataFrame structure.
-
-        This feature is only defined when the decision tree model is chosen as base
-        learner (`booster in {gbtree, dart}`). It is not defined for other base learner
-        types, such as linear learners (`booster=gblinear`).
-
-        Parameters
-        ----------
-        fmap: str (optional)
-           The name of feature map file.
-        """
-        # pylint: disable=too-many-locals
-        if not PANDAS_INSTALLED:
-            raise Exception(('pandas must be available to use this method.'
-                             'Install pandas before calling again.'))
-
-        if getattr(self, 'booster', None) is not None and self.booster not in {'gbtree', 'dart'}:
-            raise ValueError('This method is not defined for Booster type {}'
-                             .format(self.booster))
-
-        tree_ids = []
-        node_ids = []
-        fids = []
-        splits = []
-        y_directs = []
-        n_directs = []
-        missings = []
-        gains = []
-        covers = []
-
-        trees = self.get_dump(fmap, with_stats=True)
-        for i, tree in enumerate(trees):
-            for line in tree.split('\n'):
-                arr = line.split('[')
-                # Leaf node
-                if len(arr) == 1:
-                    # Last element of line.split is an empy string
-                    if arr == ['']:
-                        continue
-                    # parse string
-                    parse = arr[0].split(':')
-                    stats = re.split('=|,', parse[1])
-
-                    # append to lists
-                    tree_ids.append(i)
-                    node_ids.append(int(re.findall(r'\b\d+\b', parse[0])[0]))
-                    fids.append('Leaf')
-                    splits.append(float('NAN'))
-                    y_directs.append(float('NAN'))
-                    n_directs.append(float('NAN'))
-                    missings.append(float('NAN'))
-                    gains.append(float(stats[1]))
-                    covers.append(float(stats[3]))
-                # Not a Leaf Node
-                else:
-                    # parse string
-                    fid = arr[1].split(']')
-                    parse = fid[0].split('<')
-                    stats = re.split('=|,', fid[1])
-
-                    # append to lists
-                    tree_ids.append(i)
-                    node_ids.append(int(re.findall(r'\b\d+\b', arr[0])[0]))
-                    fids.append(parse[0])
-                    splits.append(float(parse[1]))
-                    str_i = str(i)
-                    y_directs.append(str_i + '-' + stats[1])
-                    n_directs.append(str_i + '-' + stats[3])
-                    missings.append(str_i + '-' + stats[5])
-                    gains.append(float(stats[7]))
-                    covers.append(float(stats[9]))
-
-        ids = [str(t_id) + '-' + str(n_id) for t_id, n_id in zip(tree_ids, node_ids)]
-        df = DataFrame({'Tree': tree_ids, 'Node': node_ids, 'ID': ids,
-                        'Feature': fids, 'Split': splits, 'Yes': y_directs,
-                        'No': n_directs, 'Missing': missings, 'Gain': gains,
-                        'Cover': covers})
-
-        if callable(getattr(df, 'sort_values', None)):
-            # pylint: disable=no-member
-            return df.sort_values(['Tree', 'Node']).reset_index(drop=True)
-        # pylint: disable=no-member
-        return df.sort(['Tree', 'Node']).reset_index(drop=True)
+    #  def trees_to_dataframe(self, fmap=''):
+        #  """Parse a boosted tree model text dump into a pandas DataFrame structure.
+#  
+        #  This feature is only defined when the decision tree model is chosen as base
+        #  learner (`booster in {gbtree, dart}`). It is not defined for other base learner
+        #  types, such as linear learners (`booster=gblinear`).
+#  
+        #  Parameters
+        #  ----------
+        #  fmap: str (optional)
+           #  The name of feature map file.
+        #  """
+        #  # pylint: disable=too-many-locals
+        #  if not PANDAS_INSTALLED:
+            #  raise Exception(('pandas must be available to use this method.'
+                             #  'Install pandas before calling again.'))
+#  
+        #  if getattr(self, 'booster', None) is not None and self.booster not in {'gbtree', 'dart'}:
+            #  raise ValueError('This method is not defined for Booster type {}'
+                             #  .format(self.booster))
+#  
+        #  tree_ids = []
+        #  node_ids = []
+        #  fids = []
+        #  splits = []
+        #  y_directs = []
+        #  n_directs = []
+        #  missings = []
+        #  gains = []
+        #  covers = []
+#  
+        #  trees = self.get_dump(fmap, with_stats=True)
+        #  for i, tree in enumerate(trees):
+            #  for line in tree.split('\n'):
+                #  arr = line.split('[')
+                #  # Leaf node
+                #  if len(arr) == 1:
+                    #  # Last element of line.split is an empy string
+                    #  if arr == ['']:
+                        #  continue
+                    #  # parse string
+                    #  parse = arr[0].split(':')
+                    #  stats = re.split('=|,', parse[1])
+#  
+                    #  # append to lists
+                    #  tree_ids.append(i)
+                    #  node_ids.append(int(re.findall(r'\b\d+\b', parse[0])[0]))
+                    #  fids.append('Leaf')
+                    #  splits.append(float('NAN'))
+                    #  y_directs.append(float('NAN'))
+                    #  n_directs.append(float('NAN'))
+                    #  missings.append(float('NAN'))
+                    #  gains.append(float(stats[1]))
+                    #  covers.append(float(stats[3]))
+                #  # Not a Leaf Node
+                #  else:
+                    #  # parse string
+                    #  fid = arr[1].split(']')
+                    #  parse = fid[0].split('<')
+                    #  stats = re.split('=|,', fid[1])
+#  
+                    #  # append to lists
+                    #  tree_ids.append(i)
+                    #  node_ids.append(int(re.findall(r'\b\d+\b', arr[0])[0]))
+                    #  fids.append(parse[0])
+                    #  splits.append(float(parse[1]))
+                    #  str_i = str(i)
+                    #  y_directs.append(str_i + '-' + stats[1])
+                    #  n_directs.append(str_i + '-' + stats[3])
+                    #  missings.append(str_i + '-' + stats[5])
+                    #  gains.append(float(stats[7]))
+                    #  covers.append(float(stats[9]))
+#  
+        #  ids = [str(t_id) + '-' + str(n_id) for t_id, n_id in zip(tree_ids, node_ids)]
+        #  df = DataFrame({'Tree': tree_ids, 'Node': node_ids, 'ID': ids,
+                        #  'Feature': fids, 'Split': splits, 'Yes': y_directs,
+                        #  'No': n_directs, 'Missing': missings, 'Gain': gains,
+                        #  'Cover': covers})
+#  
+        #  if callable(getattr(df, 'sort_values', None)):
+            #  # pylint: disable=no-member
+            #  return df.sort_values(['Tree', 'Node']).reset_index(drop=True)
+        #  # pylint: disable=no-member
+        #  return df.sort(['Tree', 'Node']).reset_index(drop=True)
 
     def _validate_features(self, data):
         """
@@ -1689,45 +1911,45 @@ class Booster(object):
                 raise ValueError(msg.format(self.feature_names,
                                             data.feature_names))
 
-    def get_split_value_histogram(self, feature, fmap='', bins=None, as_pandas=True):
-        """Get split value histogram of a feature
-
-        Parameters
-        ----------
-        feature: str
-            The name of the feature.
-        fmap: str (optional)
-            The name of feature map file.
-        bin: int, default None
-            The maximum number of bins.
-            Number of bins equals number of unique split values n_unique,
-            if bins == None or bins > n_unique.
-        as_pandas: bool, default True
-            Return pd.DataFrame when pandas is installed.
-            If False or pandas is not installed, return numpy ndarray.
-
-        Returns
-        -------
-        a histogram of used splitting values for the specified feature
-        either as numpy array or pandas DataFrame.
-        """
-        xgdump = self.get_dump(fmap=fmap)
-        values = []
-        regexp = re.compile(r"\[{0}<([\d.Ee+-]+)\]".format(feature))
-        for i, _ in enumerate(xgdump):
-            m = re.findall(regexp, xgdump[i])
-            values.extend([float(x) for x in m])
-
-        n_unique = len(np.unique(values))
-        bins = max(min(n_unique, bins) if bins is not None else n_unique, 1)
-
-        nph = np.histogram(values, bins=bins)
-        nph = np.column_stack((nph[1][1:], nph[0]))
-        nph = nph[nph[:, 1] > 0]
-
-        if as_pandas and PANDAS_INSTALLED:
-            return DataFrame(nph, columns=['SplitValue', 'Count'])
-        if as_pandas and not PANDAS_INSTALLED:
-            sys.stderr.write(
-                "Returning histogram as ndarray (as_pandas == True, but pandas is not installed).")
-        return nph
+    #  def get_split_value_histogram(self, feature, fmap='', bins=None, as_pandas=True):
+        #  """Get split value histogram of a feature
+#  
+        #  Parameters
+        #  ----------
+        #  feature: str
+            #  The name of the feature.
+        #  fmap: str (optional)
+            #  The name of feature map file.
+        #  bin: int, default None
+            #  The maximum number of bins.
+            #  Number of bins equals number of unique split values n_unique,
+            #  if bins == None or bins > n_unique.
+        #  as_pandas: bool, default True
+            #  Return pd.DataFrame when pandas is installed.
+            #  If False or pandas is not installed, return numpy ndarray.
+#  
+        #  Returns
+        #  -------
+        #  a histogram of used splitting values for the specified feature
+        #  either as numpy array or pandas DataFrame.
+        #  """
+        #  xgdump = self.get_dump(fmap=fmap)
+        #  values = []
+        #  regexp = re.compile(r"\[{0}<([\d.Ee+-]+)\]".format(feature))
+        #  for i, _ in enumerate(xgdump):
+            #  m = re.findall(regexp, xgdump[i])
+            #  values.extend([float(x) for x in m])
+#  
+        #  n_unique = len(np.unique(values))
+        #  bins = max(min(n_unique, bins) if bins is not None else n_unique, 1)
+#  
+        #  nph = np.histogram(values, bins=bins)
+        #  nph = np.column_stack((nph[1][1:], nph[0]))
+        #  nph = nph[nph[:, 1] > 0]
+#  
+        #  if as_pandas and PANDAS_INSTALLED:
+            #  return DataFrame(nph, columns=['SplitValue', 'Count'])
+        #  if as_pandas and not PANDAS_INSTALLED:
+            #  sys.stderr.write(
+                #  "Returning histogram as ndarray (as_pandas == True, but pandas is not installed).")
+        #  return nph

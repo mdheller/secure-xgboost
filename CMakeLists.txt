@@ -1,8 +1,11 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.11)
 project(xgboost LANGUAGES CXX C VERSION 0.90)
+# openenclave
+find_package(OpenEnclave CONFIG REQUIRED)
 include(cmake/Utils.cmake)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 cmake_policy(SET CMP0022 NEW)
+add_definitions(-D__SGX__)
 
 message(STATUS "CMake version ${CMAKE_VERSION}")
 if (MSVC)
@@ -67,6 +70,14 @@ if (USE_CUDA)
   message(STATUS "CUDA GEN_CODE: ${GEN_CODE}")
 endif (USE_CUDA)
 
+# openenclave
+# find_package(OpenEnclave CONFIG REQUIRED)
+# target_link_libraries(file-encryptor_host openenclave::oehostapp)
+
+add_custom_command(OUTPUT xgboost_u.h xgboost_u.c xgboost_args.h 
+    DEPENDS ${PROJECT_SOURCE_DIR}/enclave/xgboost.edl
+    COMMAND openenclave::oeedger8r --untrusted ${CMAKE_SOURCE_DIR}/enclave/xgboost.edl)
+
 # dmlc-core
 msvc_use_static_runtime()
 add_subdirectory(${PROJECT_SOURCE_DIR}/dmlc-core)
@@ -89,10 +100,14 @@ else ()
     rabit/src/engine.cc
     rabit/src/c_api.cc)
 endif (MINGW OR R_LIB)
-add_library(rabit STATIC ${RABIT_SOURCES})
+add_library(rabit STATIC ${RABIT_SOURCES} ${PROJECT_BINARY_DIR}/xgboost_u.c)
 target_include_directories(rabit PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/dmlc-core/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include/rabit>)
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include/rabit>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include>)
+  # ${PROJECT_BINARY_DIR}/src)
+target_link_libraries(rabit PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::oehostapp mbedcrypto mbedtls)
 set_target_properties(rabit
   PROPERTIES
   CXX_STANDARD 11
@@ -115,113 +130,113 @@ target_include_directories(xgboost
   INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
-target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE})
+target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::oehostapp mbedcrypto mbedtls)
 
 # This creates its own shared library `xgboost4j'.
-if (JVM_BINDINGS)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/jvm-packages)
-endif (JVM_BINDINGS)
+# if (JVM_BINDINGS)
+  # add_subdirectory(${PROJECT_SOURCE_DIR}/jvm-packages)
+# endif (JVM_BINDINGS)
 #-- End shared library
 
 #-- CLI for xgboost
-add_executable(runxgboost ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${XGBOOST_OBJ_SOURCES})
-# For cli_main.cc only
-if (USE_OPENMP)
-  find_package(OpenMP REQUIRED)
-  target_compile_options(runxgboost PRIVATE ${OpenMP_CXX_FLAGS})
-endif (USE_OPENMP)
-target_include_directories(runxgboost
-  PRIVATE
-  ${PROJECT_SOURCE_DIR}/include
-  ${PROJECT_SOURCE_DIR}/dmlc-core/include
-  ${PROJECT_SOURCE_DIR}/rabit/include)
-target_link_libraries(runxgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE})
-set_target_properties(
-  runxgboost PROPERTIES
-  OUTPUT_NAME xgboost
-  CXX_STANDARD 11
-  CXX_STANDARD_REQUIRED ON)
-#-- End CLI for xgboost
-
-set_output_directory(runxgboost ${PROJECT_SOURCE_DIR})
+# add_executable(runxgboost ${PROJECT_SOURCE_DIR}/src/cli_main.cc ${XGBOOST_OBJ_SOURCES})
+# # For cli_main.cc only
+# if (USE_OPENMP)
+  # find_package(OpenMP REQUIRED)
+  # target_compile_options(runxgboost PRIVATE ${OpenMP_CXX_FLAGS})
+# endif (USE_OPENMP)
+# target_include_directories(runxgboost
+  # PRIVATE
+  # ${PROJECT_SOURCE_DIR}/include
+  # ${PROJECT_SOURCE_DIR}/dmlc-core/include
+  # ${PROJECT_SOURCE_DIR}/rabit/include)
+# target_link_libraries(runxgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE})
+# set_target_properties(
+  # runxgboost PROPERTIES
+  # OUTPUT_NAME xgboost
+  # CXX_STANDARD 11
+  # CXX_STANDARD_REQUIRED ON)
+# # -- End CLI for xgboost
+# 
+# set_output_directory(runxgboost ${PROJECT_SOURCE_DIR})
 set_output_directory(xgboost ${PROJECT_SOURCE_DIR}/lib)
-# Ensure these two targets do not build simultaneously, as they produce outputs with conflicting names
-add_dependencies(xgboost runxgboost)
+# # Ensure these two targets do not build simultaneously, as they produce outputs with conflicting names
+# add_dependencies(xgboost runxgboost)
 
 #-- Installing XGBoost
-if (R_LIB)
-  set_target_properties(xgboost PROPERTIES PREFIX "")
-  if (APPLE)
-    set_target_properties(xgboost PROPERTIES SUFFIX ".so")
-  endif (APPLE)
-  setup_rpackage_install_target(xgboost ${CMAKE_CURRENT_BINARY_DIR})
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/dummy_inst")
-endif (R_LIB)
-if (MINGW)
-  set_target_properties(xgboost PROPERTIES PREFIX "")
-endif (MINGW)
-
-if (BUILD_C_DOC)
-  include(cmake/Doc.cmake)
-  run_doxygen()
-endif (BUILD_C_DOC)
-
+# if (R_LIB)
+  # set_target_properties(xgboost PROPERTIES PREFIX "")
+  # if (APPLE)
+    # set_target_properties(xgboost PROPERTIES SUFFIX ".so")
+  # endif (APPLE)
+  # setup_rpackage_install_target(xgboost ${CMAKE_CURRENT_BINARY_DIR})
+  # set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/dummy_inst")
+# endif (R_LIB)
+# if (MINGW)
+  # set_target_properties(xgboost PROPERTIES PREFIX "")
+# endif (MINGW)
+# 
+# if (BUILD_C_DOC)
+  # include(cmake/Doc.cmake)
+  # run_doxygen()
+# endif (BUILD_C_DOC)
+# 
 include(GNUInstallDirs)
-# Exposing only C APIs.
-install(FILES
-  "${PROJECT_SOURCE_DIR}/include/xgboost/c_api.h"
-  DESTINATION
-  include/xgboost/)
-
-install(TARGETS xgboost runxgboost
-  EXPORT XGBoostTargets
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  INCLUDES DESTINATION ${LIBLEGACY_INCLUDE_DIRS})
-install(EXPORT XGBoostTargets
-  FILE XGBoostTargets.cmake
-  NAMESPACE xgboost::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xgboost)
-
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-  ${CMAKE_CURRENT_LIST_DIR}/cmake/xgboost-config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/cmake/xgboost-config.cmake
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xgboost)
-write_basic_package_version_file(
-  ${CMAKE_BINARY_DIR}/cmake/xgboost-config-version.cmake
-  VERSION ${XGBOOST_VERSION}
-  COMPATIBILITY AnyNewerVersion)
-install(
-  FILES
-  ${CMAKE_BINARY_DIR}/cmake/xgboost-config.cmake
-  ${CMAKE_BINARY_DIR}/cmake/xgboost-config-version.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xgboost)
+# # Exposing only C APIs.
+# install(FILES
+  # "${PROJECT_SOURCE_DIR}/include/xgboost/c_api.h"
+  # DESTINATION
+  # include/xgboost/)
+# 
+# install(TARGETS xgboost runxgboost
+  # EXPORT XGBoostTargets
+  # ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  # LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  # RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  # INCLUDES DESTINATION ${LIBLEGACY_INCLUDE_DIRS})
+# install(EXPORT XGBoostTargets
+  # FILE XGBoostTargets.cmake
+  # NAMESPACE xgboost::
+  # DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xgboost)
+# 
+# include(CMakePackageConfigHelpers)
+# configure_package_config_file(
+  # ${CMAKE_CURRENT_LIST_DIR}/cmake/xgboost-config.cmake.in
+  # ${CMAKE_CURRENT_BINARY_DIR}/cmake/xgboost-config.cmake
+  # INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xgboost)
+# write_basic_package_version_file(
+  # ${CMAKE_BINARY_DIR}/cmake/xgboost-config-version.cmake
+  # VERSION ${XGBOOST_VERSION}
+  # COMPATIBILITY AnyNewerVersion)
+# install(
+  # FILES
+  # ${CMAKE_BINARY_DIR}/cmake/xgboost-config.cmake
+  # ${CMAKE_BINARY_DIR}/cmake/xgboost-config-version.cmake
+  # DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/xgboost)
 
 #-- Test
-if (GOOGLE_TEST)
-  enable_testing()
-  # Unittests.
-  add_subdirectory(${PROJECT_SOURCE_DIR}/tests/cpp)
-  add_test(
-    NAME TestXGBoostLib
-    COMMAND testxgboost
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-
-  # CLI tests
-  configure_file(
-    ${PROJECT_SOURCE_DIR}/tests/cli/machine.conf.in
-    ${PROJECT_BINARY_DIR}/tests/cli/machine.conf
-    @ONLY)
-  add_test(
-    NAME TestXGBoostCLI
-    COMMAND runxgboost ${PROJECT_BINARY_DIR}/tests/cli/machine.conf
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-  set_tests_properties(TestXGBoostCLI
-    PROPERTIES
-    PASS_REGULAR_EXPRESSION ".*test-rmse:0.087.*")
-endif (GOOGLE_TEST)
+# if (GOOGLE_TEST)
+  # enable_testing()
+  # # Unittests.
+  # add_subdirectory(${PROJECT_SOURCE_DIR}/tests/cpp)
+  # add_test(
+    # NAME TestXGBoostLib
+    # COMMAND testxgboost
+    # WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+# 
+  # # CLI tests
+  # configure_file(
+    # ${PROJECT_SOURCE_DIR}/tests/cli/machine.conf.in
+    # ${PROJECT_BINARY_DIR}/tests/cli/machine.conf
+    # @ONLY)
+  # add_test(
+    # NAME TestXGBoostCLI
+    # COMMAND runxgboost ${PROJECT_BINARY_DIR}/tests/cli/machine.conf
+    # WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  # set_tests_properties(TestXGBoostCLI
+    # PROPERTIES
+    # PASS_REGULAR_EXPRESSION ".*test-rmse:0.087.*")
+# endif (GOOGLE_TEST)
 
 # For MSVC: Call msvc_use_static_runtime() once again to completely
 # replace /MD with /MT. See https://github.com/dmlc/xgboost/issues/4462

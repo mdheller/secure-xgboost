@@ -707,6 +707,7 @@ class LearnerImpl : public Learner {
     // estimate feature bound
     // TODO(hcho3): Change num_feature to 64-bit integer
     unsigned num_feature = 0;
+    printf("In learner.cc lazyinit model\n");
     for (auto & matrix : cache_) {
       CHECK(matrix != nullptr);
       const uint64_t num_col = matrix->Info().num_col_;
@@ -716,7 +717,9 @@ class LearnerImpl : public Learner {
       num_feature = std::max(num_feature, static_cast<unsigned>(num_col));
     }
     // run allreduce on num_feature to find the maximum value
+    printf("Hmmmm\n");
     rabit::Allreduce<rabit::op::Max>(&num_feature, 1);
+    printf("AFter all reduce\n");
     if (num_feature > mparam_.num_feature) {
       mparam_.num_feature = num_feature;
     }

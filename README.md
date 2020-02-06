@@ -1,66 +1,117 @@
-<img src=https://raw.githubusercontent.com/dmlc/dmlc.github.io/master/img/logo-m/xgboost.png width=135/>  eXtreme Gradient Boosting
-===========
-[![Build Status](https://xgboost-ci.net/job/xgboost/job/master/badge/icon?style=plastic)](https://xgboost-ci.net/blue/organizations/jenkins/xgboost/activity)
-[![Build Status](https://img.shields.io/travis/dmlc/xgboost.svg?label=build&logo=travis&branch=master)](https://travis-ci.org/dmlc/xgboost)
-[![Build Status](https://ci.appveyor.com/api/projects/status/5ypa8vaed6kpmli8?svg=true)](https://ci.appveyor.com/project/tqchen/xgboost)
-[![Documentation Status](https://readthedocs.org/projects/xgboost/badge/?version=latest)](https://xgboost.readthedocs.org)
-[![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
-[![CRAN Status Badge](http://www.r-pkg.org/badges/version/xgboost)](http://cran.r-project.org/web/packages/xgboost)
-[![PyPI version](https://badge.fury.io/py/xgboost.svg)](https://pypi.python.org/pypi/xgboost/)
 
-[Community](https://xgboost.ai/community) |
-[Documentation](https://xgboost.readthedocs.org) |
-[Resources](demo/README.md) |
-[Contributors](CONTRIBUTORS.md) |
-[Release Notes](NEWS.md)
+You will need at least two machines: one for the enclave server (on which the model will be trained and executed), and another for the client (i.e., the data owner).
 
-XGBoost is an optimized distributed gradient boosting library designed to be highly ***efficient***, ***flexible*** and ***portable***.
-It implements machine learning algorithms under the [Gradient Boosting](https://en.wikipedia.org/wiki/Gradient_boosting) framework.
-XGBoost provides a parallel tree boosting (also known as GBDT, GBM) that solve many data science problems in a fast and accurate way.
-The same code runs on major distributed environment (Hadoop, SGE, MPI) and can solve problems beyond billions of examples.
+To start, follow the installation instructions below and set up both machines identically. For simplicity, the instructions currently assume that both machines support SGX. (We plan to do away with this requirement in the future.)
 
-License
--------
-© Contributors, 2016. Licensed under an [Apache-2](https://github.com/dmlc/xgboost/blob/master/LICENSE) license.
+# Installation
 
-Contribute to XGBoost
----------------------
-XGBoost has been developed and used by a group of active community members. Your help is very valuable to make the package better for everyone.
-Checkout the [Community Page](https://xgboost.ai/community)
+## Install the Open Enclave SDK (version 0.7) on Ubuntu 18.04
+Follow the instructions [here](https://github.com/openenclave/openenclave/blob/master/docs/GettingStartedDocs/install_oe_sdk-Ubuntu_18.04.md).
+You may also acquire a VM with the required features from [Azure Confidential Compute](https://azure.microsoft.com/en-us/solutions/confidential-compute/); in this case, however, you may need to manually upgrade the SDK installed in the VM to version 0.7:
+```
+sudo apt -y install open-enclave
+```
 
-Reference
----------
-- Tianqi Chen and Carlos Guestrin. [XGBoost: A Scalable Tree Boosting System](http://arxiv.org/abs/1603.02754). In 22nd SIGKDD Conference on Knowledge Discovery and Data Mining, 2016
-- XGBoost originates from research project at University of Washington.
+Configure environment variables for Open Enclave SDK for Linux:
+```
+source /opt/openenclave/share/openenclave/openenclaverc
+```
 
-Sponsors
---------
-Become a sponsor and get a logo here. See details at [Sponsoring the XGBoost Project](https://xgboost.ai/sponsors). The funds are used to defray the cost of continuous integration and testing infrastructure (https://xgboost-ci.net).
+## Install secure XGBoost dependencies
+```
+sudo apt-get install -y libmbedtls-dev python3-pip
+pip3 install numpy pandas sklearn numproto grpcio grpcio-tools kubernetes
+```
+Install ```cmake >= v3.11```. E.g., the following commands install ```cmake v3.15.6```.
+```
+wget https://github.com/Kitware/CMake/releases/download/v3.15.6/cmake-3.15.6-Linux-x86_64.sh
+sudo bash cmake-3.15.6-Linux-x86_64.sh --skip-license --prefix=/usr/local
+```
 
-## Open Source Collective sponsors
-[![Backers on Open Collective](https://opencollective.com/xgboost/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/xgboost/sponsors/badge.svg)](#sponsors) 
+## Download and build secure XGBoost
+```
+git clone -b sgx-dev --recursive https://github.com/mc2-project/secure-xgboost.git
+cd secure-xgboost
+mkdir -p build
 
-### Sponsors
-[[Become a sponsor](https://opencollective.com/xgboost#sponsor)]
+pushd build
+cmake ..
+make -j4
+popd
 
-<!--<a href="https://opencollective.com/xgboost/sponsor/0/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/0/avatar.svg"></a>-->
-<a href="https://www.nvidia.com/en-us/" target="_blank"><img src="https://raw.githubusercontent.com/xgboost-ai/xgboost-ai.github.io/master/images/sponsors/nvidia.jpg" alt="NVIDIA" width="72" height="72"></a>
-<a href="https://opencollective.com/xgboost/sponsor/1/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/1/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/2/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/2/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/3/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/3/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/4/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/4/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/5/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/5/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/6/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/6/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/7/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/7/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/8/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/8/avatar.svg"></a>
-<a href="https://opencollective.com/xgboost/sponsor/9/website" target="_blank"><img src="https://opencollective.com/xgboost/sponsor/9/avatar.svg"></a>
+mkdir enclave/build
+pushd enclave/build
+cmake ..
+make -j4
+popd
 
-### Backers
-[[Become a backer](https://opencollective.com/xgboost#backer)]
+pushd python-package
+sudo python3 setup.py install
+popd
+```
 
-<a href="https://opencollective.com/xgboost#backers" target="_blank"><img src="https://opencollective.com/xgboost/backers.svg?width=890"></a>
+## Sanity Check
+This sanity check ensures that setup was done properly. There is a script, `enclave-api-demo.py`, that loads data, trains a model, and serves predictions at `demo/enclave/`. The example uses encrypted versions of the `agaricus.txt.train` and `agaricus.txt.test` data files from `demo/data/`. The encrypted data was generated using `demo/c-api/encrypt.cc`, with a key of all zeros.
 
-## Other sponsors
-The sponsors in this list are donating cloud hours in lieu of cash donation.
+Note that you may have to change the paths to the built enclave or to the data files in the script. You can run the script with the following:
+```
+python3 demo/enclave/enclave-api-demo.py
+```
+After running the script, you should see something similar to the following printed to the console:
+```
+Model Predictions:
+[18523750] DEBUG: /home/xgb/secure-xgboost/enclave/ecalls.cpp:52: Ecall: XGBoosterPredict
+[0.02386593 0.9543875  0.02386593 0.02386593 0.04897502 0.10559791
+ 0.9543875  0.02876541 0.9543875  0.02423424 0.9543875  0.02876541
+ 0.02340852 0.02386593 0.02340852 0.02920706 0.02876541 0.9543875
+ 0.04897502 0.02876541]
 
-<a href="https://aws.amazon.com/" target="_blank"><img src="https://raw.githubusercontent.com/xgboost-ai/xgboost-ai.github.io/master/images/sponsors/aws.png" alt="Amazon Web Services" width="72" height="72"></a>
+
+True Labels:
+[18523750] DEBUG: /home/xgb/secure-xgboost/enclave/ecalls.cpp:59: Ecall: XGDMatrixGetFloatInfo
+[0. 1. 0. 0. 0. 0. 1. 0. 1. 0. 1. 0. 0. 0. 0. 0. 0. 1. 0. 0.]
+[18523750] DEBUG: /home/xgb/secure-xgboost/enclave/ecalls.cpp:65: Ecall: XGDMatrixFree
+[18523750] DEBUG: /home/xgb/secure-xgboost/enclave/ecalls.cpp:65: Ecall: XGDMatrixFree
+[18523750] DEBUG: /home/xgb/secure-xgboost/enclave/ecalls.cpp:70: Ecall: XGBoosterFree
+[18523750] ======== Enclave Monitor: Learner ========
+[18523750] EvalOneIter: 0.002s, 10 calls @ 200us
+[18523750] GetGradient: 0.014s, 10 calls @ 1400us
+[18523750] PredictRaw: 0.009s, 10 calls @ 900us
+[18523750] UpdateOneIter: 0.174s, 10 calls @ 17400us
+[18523750] ======== Enclave Monitor: GBTree ========
+[18523750] BoostNewTrees: 0.112s, 10 calls @ 11200us
+[18523750] CommitModel: 0.039s, 10 calls @ 3900us
+[18523750] ======== Enclave Monitor: Quantile::Builder ========
+[18523750] ApplySplit: 0.008s, 59 calls @ 135us
+[18523750] BuildHist: 0.015s, 69 calls @ 217us
+[18523750] BuildLocalHistograms: 0.018s, 40 calls @ 450us
+[18523750] BuildNodeStats: 0.005s, 40 calls @ 125us
+[18523750] EvaluateSplit: 0.006s, 128 calls @ 46us
+[18523750] InitData: 0s, 10 calls @ 0us
+[18523750] InitNewNode: 0.004s, 128 calls @ 31us
+[18523750] SubtractionTrick: 0.002s, 59 calls @ 33us
+[18523750] SyncHistograms: 0.002s, 40 calls @ 50us
+[18523750] Update: 0.04s, 10 calls @ 4000us
+[18523750] ======== Enclave Monitor:  ========
+```
+
+# Quickstart
+We provide an example that mirrors a potential real life situation. This is for users who want to remotely start a XGBoost job, i.e. there's a distinction between the server (the machine running training) and the client (a machine to which the user has direct access, but on which no computation is actually happening).
+
+
+## Example 1
+This is an example of a scenario in which a party outsources all computation to a server with an enclave. This scenario can be extended to one in which *multiple* parties outsource all computation to the same central enclave, meaning that they collaborate by sending their data to the same location, at which a XGBoost model is trained over all parties' data.
+
+In this example, the enclave server will start an RPC server to listen for client requests. The client will make four requests to the server: a request for remote attestation, a request to transfer the key used to encrypt the training data, a request to transfer the key used to encrypt the test data, and finally a request to start the XGBoost job.
+
+This assumes that the client will have told the server what code to run -- the code to run in this example can be found in the `xgb_load_train_predict()` function in `remote_attestation_server.py`. 
+
+First, perform [server setup](server/).
+Next, perform [client setup](client/).
+
+After server and client setup, the client should have initiated training and inference on the server. 
+You can find the predictions outputted by the trained model on the console of the server.
+
+
+# API
+For XGBoost functionality (and additional functionality) we currently support, please look at our API [here](API.md)

@@ -1,6 +1,7 @@
 file(GLOB_RECURSE CPU_SOURCES *.cc)
 list(REMOVE_ITEM CPU_SOURCES ${PROJECT_SOURCE_DIR}/src/cli_main.cc)
 
+# find_package(OpenEnclave CONFIG REQUIRED)
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
 #include <xmmintrin.h>
@@ -28,6 +29,13 @@ endif (PLUGIN_LZ4)
 if (PLUGIN_DENSE_PARSER)
   list(APPEND PLUGINS_SOURCES ${PROJECT_SOURCE_DIR}/plugin/dense_parser/dense_libsvm.cc)
 endif (PLUGIN_DENSE_PARSER)
+
+
+
+add_custom_command(OUTPUT xgboost_u.h xgboost_u.c xgboost_args.h 
+  DEPENDS ${PROJECT_SOURCE_DIR}/enclave/xgboost.edl
+  COMMAND openenclave::oeedger8r --untrusted ${CMAKE_SOURCE_DIR}/enclave/xgboost.edl)
+
 
 #-- Object library
 # Object library is necessary for jvm-package, which creates its own shared
@@ -66,14 +74,18 @@ if (USE_CUDA)
   set_target_properties(objxgboost PROPERTIES
     CUDA_SEPARABLE_COMPILATION OFF)
 else (USE_CUDA)
-  add_library(objxgboost OBJECT ${CPU_SOURCES} ${PLUGINS_SOURCES})
+  add_library(objxgboost OBJECT ${CPU_SOURCES} ${PLUGINS_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/xgboost_u.c)
+  # add_library(objxgboost STATIC ${CPU_SOURCES} ${PLUGINS_SOURCES})
+  # add_library(objxgboost SHARED ${CPU_SOURCES} ${PLUGINS_SOURCES})
+  target_link_libraries(objxgboost openenclave::oehostapp ${LINKED_LIBRARIES_PRIVATE})
 endif (USE_CUDA)
 
 target_include_directories(objxgboost
   PRIVATE
   ${PROJECT_SOURCE_DIR}/include
   ${PROJECT_SOURCE_DIR}/dmlc-core/include
-  ${PROJECT_SOURCE_DIR}/rabit/include)
+  ${PROJECT_SOURCE_DIR}/rabit/include
+  ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(objxgboost
   PRIVATE
   $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CXX>>:/MP>
@@ -88,6 +100,8 @@ set_target_properties(objxgboost PROPERTIES
   CXX_STANDARD_REQUIRED ON)
 target_compile_definitions(objxgboost
   PRIVATE
+  -D__SGX__
+  -D__HOST__
   -DDMLC_LOG_CUSTOMIZE=1  # enable custom logging
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:_MWAITXINTRIN_H_INCLUDED>
   ${XGBOOST_DEFINITIONS})
@@ -120,3 +134,4 @@ endif (USE_OPENMP)
 msvc_use_static_runtime()
 
 #-- End object library
+# target_link_libraries(objxgboost openenclave::oehostapp)

@@ -11,6 +11,7 @@
 #define XGB_EXTERN_C extern "C"
 #include <cstdio>
 #include <cstdint>
+#include <string>
 #else
 #define XGB_EXTERN_C
 #include <stdio.h>
@@ -23,8 +24,52 @@
 #define XGB_DLL XGB_EXTERN_C
 #endif  // defined(_MSC_VER) || defined(_WIN32)
 
+#ifdef __ENCLAVE__ // macros for errors / safety checks
+#define safe_ocall(call) {                                \
+oe_result_t result = (call);                              \
+if (result != OE_OK) {                                    \
+  fprintf(stderr,                                         \
+      "%s:%d: Ocall failed; error in %s: %s\n",           \
+      __FILE__, __LINE__, #call, oe_result_str(result));  \
+  exit(1);                                                \
+}                                                         \
+}
+
+#define check_enclave_ptr(ptr) {                          \
+if (!oe_is_within_enclave((ptr), sizeof((ptr)))) {        \
+  fprintf(stderr,                                         \
+      "%s:%d: Ptr bounds check faileds\n",                \
+      __FILE__, __LINE__);                                \
+  exit(1);                                                \
+}                                                         \
+}
+
+#define check_enclave_buffer(ptr, size) {                 \
+if (!oe_is_within_enclave((ptr), size)) {                 \
+    fprintf(stderr,                                       \
+            "%s:%d: Buffer bounds check faileds\n",       \
+            __FILE__, __LINE__);                          \
+    exit(1);                                              \
+}                                                         \
+}
+
+#define check_host_buffer(ptr, size) {                    \
+if (!oe_is_outside_enclave((ptr), size)) {                \
+    fprintf(stderr,                                       \
+            "%s:%d: Buffer bounds check faileds\n",       \
+            __FILE__, __LINE__);                          \
+    exit(1);                                              \
+}                                                         \
+}
+#endif
+
 // manually define unsigned long
 typedef uint64_t bst_ulong;  // NOLINT(*)
+
+//#ifdef __ENCLAVE__
+// FIXME added this here, but perhaps not necessary
+typedef float bst_float;  // NOLINT(*)
+//#endif
 
 
 /*! \brief handle to DMatrix */
@@ -103,6 +148,10 @@ XGB_DLL const char *XGBGetLastError(void);
  */
 XGB_DLL int XGBRegisterLogCallback(void (*callback)(const char*));
 
+#if defined(__SGX__) && defined(__HOST__)
+XGB_DLL int XGBCreateEnclave(const char *enclave_image, uint32_t flags, int log_verbosity);
+#endif
+
 /*!
  * \brief load a data matrix
  * \param fname the name of the file
@@ -112,7 +161,20 @@ XGB_DLL int XGBRegisterLogCallback(void (*callback)(const char*));
  */
 XGB_DLL int XGDMatrixCreateFromFile(const char *fname,
                                     int silent,
-                                    DMatrixHandle *out);
+                                    DMatrixHandle *out); 
+
+#if defined(__SGX__)
+/*!
+ * \brief load a data matrix from an encrypted file
+ * \param fname the name of the encrypted file
+ * \param silent whether print messages during loading
+ * \param out a loaded data matrix
+ * \return 0 when success, -1 when failure happens
+ */
+XGB_DLL int XGDMatrixCreateFromEncryptedFile(const char *fname,
+        int silent,
+        DMatrixHandle *out);
+#endif
 
 /*!
  * \brief Create a DMatrix from a data iterator.
@@ -310,6 +372,7 @@ XGB_DLL int XGDMatrixNumRow(DMatrixHandle handle,
 XGB_DLL int XGDMatrixNumCol(DMatrixHandle handle,
                             bst_ulong *out);
 // --- start XGBoost class
+
 /*!
  * \brief create xgboost learner
  * \param dmats matrices that are set to be cached
@@ -320,6 +383,7 @@ XGB_DLL int XGDMatrixNumCol(DMatrixHandle handle,
 XGB_DLL int XGBoosterCreate(const DMatrixHandle dmats[],
                             bst_ulong len,
                             BoosterHandle *out);
+
 /*!
  * \brief free obj in handle
  * \param handle handle to be freed
@@ -564,5 +628,50 @@ XGB_DLL int XGBoosterLoadRabitCheckpoint(
  * \return 0 when success, -1 when failure happens
  */
 XGB_DLL int XGBoosterSaveRabitCheckpoint(BoosterHandle handle);
+
+#if defined(__SGX__) 
+XGB_DLL int get_remote_report_with_pubkey(
+    uint8_t** pem_key,
+    size_t* key_size,
+    uint8_t** remote_report,
+    size_t* remote_report_size);
+
+XGB_DLL int verify_remote_report_and_set_pubkey(
+    uint8_t* pem_key,
+    size_t key_size,
+    uint8_t* remote_report,
+    size_t remote_report_size);
+
+XGB_DLL int add_client_key(
+    char* fname,
+    uint8_t* data,
+    size_t data_len,
+    uint8_t* signature,
+    size_t sig_len);
+
+XGB_DLL int encrypt_data_with_pk(
+    char* data,
+    size_t len,
+    uint8_t* pem_key,
+    size_t key_size,
+    uint8_t* encrypted_data,
+    size_t* encrypted_data_size);
+
+XGB_DLL int sign_data(
+    char* keyfile,
+    uint8_t* encrypted_data,
+    size_t encrypted_data_size,
+    uint8_t* signature,
+    size_t* sig_len);
+#endif // __SGX__ && __ENCLAVE__
+
+#if defined(__SGX__) && defined(__HOST__)
+// Ocalls
+int ocall_rabit__GetRank();
+
+int ocall_rabit__GetWorldSize();
+
+int ocall_rabit__IsDistributed();
+#endif // __SGX__ && __HOST__
 
 #endif  // XGBOOST_C_API_H_
