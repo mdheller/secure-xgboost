@@ -17,7 +17,7 @@ Links to Other Helpful Resources
 Python
 ******
 
-Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo/enclave/enclave-api-demo.py`. Note that you may have to change the paths to the built enclave or the :code:`$HOME_DIR`.
+Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo/enclave/enclave-api-demo.py`. 
 
 .. code-block:: python
 
@@ -31,20 +31,14 @@ Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo
    dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
    dtest = xgb.DMatrix(HOME_DIR + "demo/c-api/test.encrypted", encrypted=True) 
 
-   booster = xgb.Booster(cache=(dtrain, dtest))
    params = {
-           "tree_method": "hist",
            "objective": "binary:logistic",
-           "min_child_weight": "1",
            "gamma": "0.1",
-           "max_depth": "3",
-           "verbosity": "3" 
+           "max_depth": "3"
    }
-   booster.set_param(params)
 
-   n_trees = 10
-   for i in range(n_trees):
-     booster.update(dtrain, i)
-     booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+   num_rounds = 10
+   booster = xgb.train(params, dtrain, num_rounds)
 
    booster.predict(dtest)
+

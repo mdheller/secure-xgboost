@@ -5,12 +5,11 @@ OE_ENCLAVE_FLAG_DEBUG = 1
 OE_ENCLAVE_FLAG_SIMULATE = 2
 
 print("Creating enclave")
-
 HOME_DIR = os.getcwd() + "/../../"
+
 # Uncomment below for enclave simulation mode
 #  enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
 enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
-#  enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 
 # Remote Attestation
 # print("Remote attestation")
@@ -22,9 +21,6 @@ dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
 
 print("Creating test matrix")
 dtest = xgb.DMatrix(HOME_DIR + "demo/c-api/test.encrypted", encrypted=True) 
-
-print("Creating Booster")
-booster = xgb.Booster(cache=(dtrain, dtest))
 
 print("Beginning Training")
 
@@ -38,15 +34,10 @@ params = {
         "max_depth": "3",
         "verbosity": "3" 
 }
-booster.set_param(params)
-print("All parameters set")
 
 # Train and evaluate
-n_trees = 10
-for i in range(n_trees):
-  booster.update(dtrain, i)
-  print("Tree finished")
-  print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+num_rounds = 10
+booster = xgb.train(params, dtrain, num_rounds, evals=[(dtrain, "train"), (dtest, "test")])
 
 # Predict
 print("\n\nModel Predictions: ")
