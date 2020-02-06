@@ -6,11 +6,6 @@ Before running XGBoost, we must set three types of parameters: general parameter
 - **General parameters** relate to which booster we are using to do boosting, commonly tree or linear model
 - **Booster parameters** depend on which booster you have chosen
 - **Learning task parameters** decide on the learning scenario. For example, regression tasks may use different parameters with ranking tasks.
-- **Command line parameters** relate to behavior of CLI version of XGBoost.
-
-.. note:: Parameters in R package
-
-  In R-package, you can use ``.`` (dot) to replace underscore in the parameters, for example, you can use ``max.depth`` to indicate ``max_depth``. The underscore parameters are also valid in R.
 
 .. contents::
   :backlinks: none
@@ -19,10 +14,6 @@ Before running XGBoost, we must set three types of parameters: general parameter
 ******************
 General Parameters
 ******************
-* ``booster`` [default= ``gbtree`` ]
-
-  - Which booster to use. Can be ``gbtree``, ``gblinear`` or ``dart``; ``gbtree`` and ``dart`` use tree based models while ``gblinear`` uses linear functions.
-
 * ``silent`` [default=0] [Deprecated]
 
   - Deprecated.  Please use ``verbosity`` instead.
@@ -33,10 +24,6 @@ General Parameters
     1 (warning), 2 (info), 3 (debug).  Sometimes XGBoost tries to change
     configurations based on heuristics, which is displayed as warning message.
     If there's unexpected behaviour, please try to increase value of verbosity.
-
-* ``nthread`` [default to maximum number of threads available if not set]
-
-  - Number of parallel threads used to run XGBoost
 
 * ``disable_default_eval_metric`` [default=0]
 
@@ -195,99 +182,6 @@ Parameters for Tree Booster
 * ``num_parallel_tree``, [default=1]
   - Number of parallel trees constructed during each iteration. This option is used to support boosted random forest.
 
-Additional parameters for Dart Booster (``booster=dart``)
-=========================================================
-
-.. note:: Using ``predict()`` with DART booster
-
-  If the booster object is DART type, ``predict()`` will perform dropouts, i.e. only
-  some of the trees will be evaluated. This will produce incorrect results if ``data`` is
-  not the training data. To obtain correct results on test sets, set ``ntree_limit`` to
-  a nonzero value, e.g.
-
-  .. code-block:: python
-
-    preds = bst.predict(dtest, ntree_limit=num_round)
-
-* ``sample_type`` [default= ``uniform``]
-
-  - Type of sampling algorithm.
-
-    - ``uniform``: dropped trees are selected uniformly.
-    - ``weighted``: dropped trees are selected in proportion to weight.
-
-* ``normalize_type`` [default= ``tree``]
-
-  - Type of normalization algorithm.
-
-    - ``tree``: new trees have the same weight of each of dropped trees.
-
-      - Weight of new trees are ``1 / (k + learning_rate)``.
-      - Dropped trees are scaled by a factor of ``k / (k + learning_rate)``.
-
-    - ``forest``: new trees have the same weight of sum of dropped trees (forest).
-
-      - Weight of new trees are ``1 / (1 + learning_rate)``.
-      - Dropped trees are scaled by a factor of ``1 / (1 + learning_rate)``.
-
-* ``rate_drop`` [default=0.0]
-
-  - Dropout rate (a fraction of previous trees to drop during the dropout).
-  - range: [0.0, 1.0]
-
-* ``one_drop`` [default=0]
-
-  - When this flag is enabled, at least one tree is always dropped during the dropout (allows Binomial-plus-one or epsilon-dropout from the original DART paper).
-
-* ``skip_drop`` [default=0.0]
-
-  - Probability of skipping the dropout procedure during a boosting iteration.
-
-    - If a dropout is skipped, new trees are added in the same manner as ``gbtree``.
-    - Note that non-zero ``skip_drop`` has higher priority than ``rate_drop`` or ``one_drop``.
-
-  - range: [0.0, 1.0]
-
-Parameters for Linear Booster (``booster=gblinear``)
-====================================================
-* ``lambda`` [default=0, alias: ``reg_lambda``]
-
-  - L2 regularization term on weights. Increasing this value will make model more conservative. Normalised to number of training examples.
-
-* ``alpha`` [default=0, alias: ``reg_alpha``]
-
-  - L1 regularization term on weights. Increasing this value will make model more conservative. Normalised to number of training examples.
-
-* ``updater`` [default= ``shotgun``]
-
-  - Choice of algorithm to fit linear model
-
-    - ``shotgun``: Parallel coordinate descent algorithm based on shotgun algorithm. Uses 'hogwild' parallelism and therefore produces a nondeterministic solution on each run.
-    - ``coord_descent``: Ordinary coordinate descent algorithm. Also multithreaded but still produces a deterministic solution.
-
-* ``feature_selector`` [default= ``cyclic``]
-
-  - Feature selection and ordering method
-
-    * ``cyclic``: Deterministic selection by cycling through features one at a time.
-    * ``shuffle``: Similar to ``cyclic`` but with random feature shuffling prior to each update.
-    * ``random``: A random (with replacement) coordinate selector.
-    * ``greedy``: Select coordinate with the greatest gradient magnitude.  It has ``O(num_feature^2)`` complexity. It is fully deterministic. It allows restricting the selection to ``top_k`` features per group with the largest magnitude of univariate weight change, by setting the ``top_k`` parameter. Doing so would reduce the complexity to ``O(num_feature*top_k)``.
-    * ``thrifty``: Thrifty, approximately-greedy feature selector. Prior to cyclic updates, reorders features in descending magnitude of their univariate weight changes. This operation is multithreaded and is a linear complexity approximation of the quadratic greedy selection. It allows restricting the selection to ``top_k`` features per group with the largest magnitude of univariate weight change, by setting the ``top_k`` parameter.
-
-* ``top_k`` [default=0]
-
-  - The number of top features to select in ``greedy`` and ``thrifty`` feature selector. The value of 0 means using all the features.
-
-Parameters for Tweedie Regression (``objective=reg:tweedie``)
-=============================================================
-* ``tweedie_variance_power`` [default=1.5]
-
-  - Parameter that controls the variance of the Tweedie distribution ``var(y) ~ E(y)^tweedie_variance_power``
-  - range: (1,2)
-  - Set closer to 2 to shift towards a gamma distribution
-  - Set closer to 1 to shift towards a Poisson distribution.
-
 ************************
 Learning Task Parameters
 ************************
@@ -348,62 +242,3 @@ Specify the learning task and the corresponding learning objective. The objectiv
 
   - Random number seed.
 
-***********************
-Command Line Parameters
-***********************
-The following parameters are only used in the console version of XGBoost
-
-* ``num_round``
-
-  - The number of rounds for boosting
-
-* ``data``
-
-  - The path of training data
-
-* ``test:data``
-
-  - The path of test data to do prediction
-
-* ``save_period`` [default=0]
-
-  - The period to save the model. Setting ``save_period=10`` means that for every 10 rounds XGBoost will save the model. Setting it to 0 means not saving any model during the training.
-
-* ``task`` [default= ``train``] options: ``train``, ``pred``, ``eval``, ``dump``
-
-  - ``train``: training using data
-  - ``pred``: making prediction for test:data
-  - ``eval``: for evaluating statistics specified by ``eval[name]=filename``
-  - ``dump``: for dump the learned model into text format
-
-* ``model_in`` [default=NULL]
-
-  - Path to input model, needed for ``test``, ``eval``, ``dump`` tasks. If it is specified in training, XGBoost will continue training from the input model.
-
-* ``model_out`` [default=NULL]
-
-  - Path to output model after training finishes. If not specified, XGBoost will output files with such names as ``0003.model`` where ``0003`` is number of boosting rounds.
-
-* ``model_dir`` [default= ``models/``]
-
-  - The output directory of the saved models during training
-
-* ``fmap``
-
-  - Feature map, used for dumping model
-
-* ``dump_format`` [default= ``text``] options: ``text``, ``json``
-
-  - Format of model dump file
-
-* ``name_dump`` [default= ``dump.txt``]
-
-  - Name of model dump file
-
-* ``name_pred`` [default= ``pred.txt``]
-
-  - Name of prediction file, used in pred mode
-
-* ``pred_margin`` [default=0]
-
-  - Predict margin instead of transformed probability

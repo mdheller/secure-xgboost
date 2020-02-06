@@ -18,7 +18,6 @@ Contents
 
   build
   get_started
-  tutorials/index
   XGBoost User Forum <https://discuss.xgboost.ai>
   parameter
   Python package <python/index>
