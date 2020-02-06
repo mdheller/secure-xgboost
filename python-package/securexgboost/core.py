@@ -1328,31 +1328,31 @@ class Booster(object):
             grad, hess = fobj(pred, dtrain)
             self.boost(dtrain, grad, hess)
 
-    def boost(self, dtrain, grad, hess):
-        """Boost the booster for one iteration, with customized gradient
-        statistics.  Like :func:`xgboost.core.Booster.update`, this
-        function should not be called directly by users.
-
-        Parameters
-        ----------
-        dtrain : DMatrix
-            The training DMatrix.
-        grad : list
-            The first order of gradient.
-        hess : list
-            The second order of gradient.
-
-        """
-        if len(grad) != len(hess):
-            raise ValueError('grad / hess length mismatch: {} / {}'.format(len(grad), len(hess)))
-        if not isinstance(dtrain, DMatrix):
-            raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
-        self._validate_features(dtrain)
-
-        _check_call(_LIB.XGBoosterBoostOneIter(self.handle, dtrain.handle,
-                                               c_array(ctypes.c_float, grad),
-                                               c_array(ctypes.c_float, hess),
-                                               c_bst_ulong(len(grad))))
+    #  def boost(self, dtrain, grad, hess):
+        #  """Boost the booster for one iteration, with customized gradient
+        #  statistics.  Like :func:`xgboost.core.Booster.update`, this
+        #  function should not be called directly by users.
+#  
+        #  Parameters
+        #  ----------
+        #  dtrain : DMatrix
+            #  The training DMatrix.
+        #  grad : list
+            #  The first order of gradient.
+        #  hess : list
+            #  The second order of gradient.
+#  
+        #  """
+        #  if len(grad) != len(hess):
+            #  raise ValueError('grad / hess length mismatch: {} / {}'.format(len(grad), len(hess)))
+        #  if not isinstance(dtrain, DMatrix):
+            #  raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
+        #  self._validate_features(dtrain)
+#  
+        #  _check_call(_LIB.XGBoosterBoostOneIter(self.handle, dtrain.handle,
+                                               #  c_array(ctypes.c_float, grad),
+                                               #  c_array(ctypes.c_float, hess),
+                                               #  c_bst_ulong(len(grad))))
 
     def eval_set(self, evals, iteration=0, feval=None):
         # pylint: disable=invalid-name
