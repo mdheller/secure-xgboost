@@ -1061,6 +1061,43 @@ class CryptoUtils(object):
 
         return encrypted_data, encrypted_data_size_as_int
 
+
+    def user_encrypt_data_with_pk(self, data, data_len, pem_key, key_size):
+        """
+        Parameters
+        ----------
+        data : byte array  
+        data_len : int
+        pem_key : byte array 
+        key_size : int
+
+        Returns:
+            encrypted_data : byte array 
+            encrypted_data_size_as_int : int
+        """
+        # Cast data to char*
+        data = ctypes.c_char_p(data)
+        data_len = ctypes.c_size_t(data_len)
+
+        # Cast pem_key to char*
+        pem_key = ctypes.POINTER(ctypes.c_uint)(pem_key)
+        pem_key_len = ctypes.c_size_t(key_size)
+
+        # Allocate memory that will be used to store the encrypted_data and encrypted_data_size
+        encrypted_data = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        encrypted_data_size = ctypes.c_size_t(1024)
+
+        # Encrypt the data with pk pem_key
+        _check_call(_LIB.encrypt_data_with_pk(data, data_len, pem_key, key_size, encrypted_data, ctypes.byref(encrypted_data_size)))
+
+        # TODO: Should we save the numpy array to a file here instead?
+
+        # Cast return values to proper types
+        encrypted_data_size_as_int = encrypted_data_size.value
+        encrypted_data_bytes = encrypted_data.tobytes()
+
+        return encrypted_data_bytes, encrypted_data_size_as_int
+
     def sign_data(self, keyfile, data, data_size):
         """
         Parameters
@@ -1093,6 +1130,38 @@ class CryptoUtils(object):
 
         return signature, sig_len_as_int
 
+    def user_sign_data(self, keyfile, data, data_size):
+        """
+        Parameters
+        ----------
+        keyfile : str 
+        data : byte array 
+        data_size : int 
+
+        Returns:
+            signature : byte array
+            sig_len_as_int : int
+        """
+        # Cast the keyfile to a char* 
+        keyfile = ctypes.c_char_p(str.encode(keyfile)) 
+
+        # Cast data : data to unsigned int*  
+        data = ctypes.POINTER(ctypes.c_uint)(data)
+        data_size = ctypes.c_size_t(data_size)
+
+        # Allocate memory to store the signature and sig_len
+        signature = np.zeros(1024).ctypes.data_as(ctypes.POINTER(ctypes.c_uint))
+        sig_len = ctypes.c_size_t(1024)
+
+        # Sign data with key keyfile
+        _check_call(_LIB.sign_data(keyfile, data, data_size, signature, ctypes.byref(sig_len)))
+
+        # Cast the signature and sig_len back to a gRPC serializable format
+        sig_len_as_int = sig_len.value
+        signature_bytes = signature.tobytes()
+
+        return signature_bytes, sig_len_as_int
+
     def add_client_key(self, fname, data, data_len, signature, sig_len):
         """
         Add client symmetric key used to encrypt file fname
@@ -1122,6 +1191,41 @@ class CryptoUtils(object):
 
         # Cast signature : proto.NDArray to pointer to pass into C++ add_client_key()
         signature = proto_to_pointer(signature)
+        sig_len = ctypes.c_size_t(sig_len)
+
+        # Add client key
+        return _check_call(_LIB.add_client_key(fname, data, data_len, signature, sig_len))
+
+    
+    def user_add_client_key(self, fname, data, data_len, signature, sig_len):
+        """
+        Add client symmetric key used to encrypt file fname
+
+        Parameters
+        ----------
+        fname : str
+            file that was encrypted
+        data : byte array 
+            key used to encrypt fname
+        data_len : int
+            length of data
+        signature : byte array
+            signature over data, signed with client private key
+        sig_len : int
+            length of signature
+
+        Returns:
+            Exit status of add_client_key()
+        """
+        # Cast fname to a char*
+        fname = ctypes.c_char_p(str.encode(fname))
+
+        # Cast data to unsigned int* 
+        data = ctypes.POINTER(ctypes.c_uint)(data)
+        data_len = ctypes.c_size_t(data_len)
+
+        # Cast signature to unsigned int* 
+        signature = ctypes.POINTER(ctypes.c_uint)(signature)
         sig_len = ctypes.c_size_t(sig_len)
 
         # Add client key
