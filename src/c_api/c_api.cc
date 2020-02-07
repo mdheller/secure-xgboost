@@ -1036,9 +1036,13 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              int option_mask,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
-                             const bst_float **out_result) {
 #ifdef __SGX__
-    enclave_XGBoosterPredict(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, dmat, option_mask, ntree_limit, len, (bst_float**) out_result);
+                             char **out_result) {
+#else
+                             const bst_float **out_result) {
+#endif
+#ifdef __SGX__
+    enclave_XGBoosterPredict(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, handle, dmat, option_mask, ntree_limit, len, out_result);
 #else 
     std::vector<bst_float>&preds =
       XGBAPIThreadLocalStore::Get()->ret_vec_float;
@@ -1419,9 +1423,15 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
   return 0;
 }
 
-XGB_DLL int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+//XGB_DLL int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+//    // FIXME return value / error handling
+//    enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, data, data_len, signature, sig_len);
+//    return Enclave::getInstance().enclave_ret;
+//}
+
+XGB_DLL int add_client_key(uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
     // FIXME return value / error handling
-  enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, data, data_len, signature, sig_len);
+  enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, data, data_len, signature, sig_len);
   return Enclave::getInstance().enclave_ret;
 }
 
@@ -1519,5 +1529,25 @@ XGB_DLL int sign_data(char *keyfile, uint8_t* data, size_t data_size, uint8_t* s
     return ret;
   }
   return 0;
+}
+
+XGB_DLL int decrypt_predictions(uint8_t* key, char* encrypted_preds, size_t num_preds, bst_float** preds) {
+    size_t len = num_preds*sizeof(float);
+    unsigned char* iv = (unsigned char*)encrypted_preds;
+    unsigned char* tag = iv + CIPHER_IV_SIZE;
+    unsigned char* data = tag + CIPHER_TAG_SIZE;
+    unsigned char* output = (unsigned char*) malloc(len);
+
+    decrypt_symm(
+            key,
+            data,
+            len,
+            iv,
+            tag,
+            NULL,
+            0,
+            output);
+    *preds = reinterpret_cast<float*>(output);
+    return 0;
 }
 #endif
