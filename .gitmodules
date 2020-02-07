@@ -1,9 +1,9 @@
-[submodule "dmlc-core"]
-	path = dmlc-core
-    url = https://github.com/mc2-project/dmlc-core.git
-[submodule "rabit"]
-	path = rabit
-    url = https://github.com/mc2-project/rabit.git
 [submodule "cub"]
 	path = cub
 	url = https://github.com/NVlabs/cub
+[submodule "rabit"]
+	path = rabit
+	url = https://github.com/mc2-project/rabit.git
+[submodule "dmlc-core"]
+	path = dmlc-core
+	url = https://github.com/mc2-project/dmlc-core.git

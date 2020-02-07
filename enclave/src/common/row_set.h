@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "quantile.h"
+
 namespace xgboost {
 namespace common {
 
@@ -81,6 +83,7 @@ class RowSetCollection {
     const size_t* end = dmlc::BeginPtr(row_indices_) + row_indices_.size();
     elem_of_each_node_.emplace_back(Elem(begin, end, 0));
   }
+
   // split rowset into two
   inline void AddSplit(unsigned node_id,
                        const std::vector<Split>& row_split_tloc,
@@ -121,6 +124,34 @@ class RowSetCollection {
  private:
   // vector: node_id -> elements
   std::vector<Elem> elem_of_each_node_;
+};
+
+// For Oblivious.
+class RowNodeMap {
+ public:
+  inline void Init(size_t nrows, uint32_t max_depth)  {
+    max_depth_ = max_depth;
+    nrows_ = nrows;
+    index_.resize(nrows * (max_depth + 1));
+    // Init called on every tree construction. Set all target_nid to |0| to
+    // make sure all nodes go to root node at first level.
+    std::fill(index_.begin(), index_.end(), 0);
+  }
+
+  inline int GetRowTarget(size_t row_idx, uint32_t depth) const {
+    DCHECK(depth <= max_depth_);
+    return index_[nrows_ * depth + row_idx];
+  }
+
+  inline void SetRowTarget(size_t row_idx, uint32_t depth, int node_id) {
+    DCHECK(depth <= max_depth_);
+    index_[nrows_ * depth + row_idx] = node_id;
+  }
+
+ private:
+  uint32_t max_depth_;
+  uint32_t nrows_;
+  std::vector<int> index_;
 };
 
 }  // namespace common
