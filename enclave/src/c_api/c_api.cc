@@ -1215,7 +1215,11 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              int option_mask,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
+#ifdef __ENCLAVE__
+                             char **out_result) {
+#else
                              const bst_float **out_result) {
+#endif
   std::vector<bst_float>&preds =
     XGBAPIThreadLocalStore::Get()->ret_vec_float;
   API_BEGIN();
@@ -1233,12 +1237,40 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
       (option_mask & 16) != 0);
   preds = tmp_preds.HostVector();
 #ifdef __ENCLAVE__ // write results to host memory
-  bst_float* result = (bst_float*) oe_host_malloc(preds.size()*sizeof(float));
-  for (int i = 0; i < preds.size(); ++i) {
-    result[i] = preds[i];
-  }
+  //bst_float* result = (bst_float*) oe_host_malloc(preds.size()*sizeof(float));
+  //for (int i = 0; i < preds.size(); ++i) {
+  //    result[i] = preds[i];
+  //}
+  //*len = static_cast<xgboost::bst_ulong>(preds.size());
+  //*out_result = result;
+
+  unsigned char key[CIPHER_KEY_SIZE];
+  EnclaveContext::getInstance().get_client_key((uint8_t*)key);
+
+  int preds_len = preds.size()*sizeof(float);
+  size_t buf_len = CIPHER_IV_SIZE + CIPHER_TAG_SIZE + preds_len;
+  unsigned char* buf  = (unsigned char*) malloc(buf_len);
+
+  unsigned char* iv = buf;
+  unsigned char* tag = buf + CIPHER_IV_SIZE;
+  unsigned char* output = tag + CIPHER_TAG_SIZE;
+
+  encrypt_symm(
+          key,
+          (const unsigned char*)dmlc::BeginPtr(preds),
+          preds_len,
+          NULL,
+          0,
+          output,
+          iv,
+          tag);
+
+  unsigned char* host_buf  = (unsigned char*) oe_host_malloc(buf_len);
+  memcpy(host_buf, buf, buf_len);
+  free(buf);
   *len = static_cast<xgboost::bst_ulong>(preds.size());
-  *out_result = result;
+  *out_result = (char*)host_buf;
+
 #else
   *out_result = dmlc::BeginPtr(preds);
   *len = static_cast<xgboost::bst_ulong>(preds.size());

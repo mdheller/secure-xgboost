@@ -163,18 +163,24 @@ int main(int argc, char** argv) {
 
   // predict
   bst_ulong out_len = 0;
-  const float* out_result = NULL;
+  char* enc_result = NULL;
+  float* out_result = NULL;
   int n_print = 10;
   
-  safe_xgboost(XGBoosterPredict(booster, dtrain, 0, 0, &out_len, &out_result));
-  printf("DONE PREDICTING\n");
+  uint8_t key[32];
+  memset(key, 0, 32);
+  safe_xgboost(XGBoosterPredict(booster, dtrain, 0, 0, &out_len, &enc_result));
+  printf("DONE ENCRYPTED PREDICTIONS\n");
+  safe_xgboost(decrypt_predictions(key, enc_result, out_len, &out_result));
+  printf("DONE DECRYPTING PREDICTIONS\n");
+  printf("n_pred: %d %x\n", out_len, out_result);
   printf("y_pred: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
   
-  safe_xgboost(XGDMatrixGetFloatInfo(dtrain, "label", &out_len, &out_result));
+  safe_xgboost(XGDMatrixGetFloatInfo(dtrain, "label", &out_len, (const float**)&out_result));
   printf("y_test: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);

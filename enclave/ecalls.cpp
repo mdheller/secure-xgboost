@@ -110,11 +110,11 @@ int enclave_XGBoosterLoadModelFromBuffer(BoosterHandle handle, const void* buf, 
   return XGBoosterLoadModelFromBuffer(handle, buf, len);
 }
 
-int enclave_XGBoosterPredict(BoosterHandle handle, DMatrixHandle dmat, int option_mask, unsigned ntree_limit, bst_ulong *len, bst_float **out_result) {
+int enclave_XGBoosterPredict(BoosterHandle handle, DMatrixHandle dmat, int option_mask, unsigned ntree_limit, bst_ulong *len, char **out_result) {
   LOG(DEBUG) << "Ecall: XGBoosterPredict";
   check_enclave_ptr(handle);
   check_enclave_ptr(dmat);
-  return XGBoosterPredict(handle, dmat, option_mask, ntree_limit, len, (const bst_float**) out_result);
+  return XGBoosterPredict(handle, dmat, option_mask, ntree_limit, len, out_result);
 }
 
 int enclave_XGDMatrixGetFloatInfo(const DMatrixHandle handle, const char* field, bst_ulong *out_len, bst_float **out_dptr) {

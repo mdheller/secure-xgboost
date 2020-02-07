@@ -463,7 +463,11 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              int option_mask,
                              unsigned ntree_limit,
                              bst_ulong *out_len,
+#ifdef __SGX__
+                             char **out_result);
+#else
                              const float **out_result);
+#endif
 
 /*!
  * \brief load model from existing file
@@ -663,6 +667,12 @@ XGB_DLL int sign_data(
     size_t encrypted_data_size,
     uint8_t* signature,
     size_t* sig_len);
+
+XGB_DLL int decrypt_predictions(
+    uint8_t* key,
+    char* encrypted_preds,
+    size_t preds_len,
+    bst_float** preds);
 #endif // __SGX__ && __ENCLAVE__
 
 #if defined(__SGX__) && defined(__HOST__)

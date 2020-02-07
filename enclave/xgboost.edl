@@ -51,7 +51,7 @@ enclave {
                 int option_mask,
                 unsigned ntree_limit,
                 [out] bst_ulong *out_len,
-                [out] bst_float **out_result);
+                [out] char **out_result);
         
         public int enclave_XGDMatrixGetFloatInfo(
                 DMatrixHandle handle,
