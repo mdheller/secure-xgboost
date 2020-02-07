@@ -11,14 +11,15 @@ class EnclaveContext {
     mbedtls_ctr_drbg_context m_ctr_drbg_context;
     mbedtls_entropy_context m_entropy_context;
     mbedtls_pk_context m_pk_context;
-    uint8_t m_public_key[CIPHER_PK_SIZE];
-    uint8_t m_private_key[CIPHER_PK_SIZE];
+    uint8_t m_public_key[CIPHER_PUBKEY_SIZE];
+    uint8_t m_private_key[CIPHER_PRIVKEY_SIZE];
 
     // FIXME use array of fixed length instead of vector
     std::unordered_map<std::string, std::vector<uint8_t>> client_keys;
 
     EnclaveContext() {
       generate_public_key();
+      // generate_key_pair();
     }
 
   public:
@@ -155,6 +156,62 @@ class EnclaveContext {
     /**
      * Generate an ephermeral public key pair for the enclave
      */
+    oe_result_t generate_key_pair()
+    {
+    uint8_t** public_key;
+    size_t* public_key_size;
+    uint8_t** private_key;
+    size_t* private_key_size;
+        oe_result_t result = OE_FAILURE;
+        oe_asymmetric_key_params_t params;
+        char user_data[] = "test user data!";
+        size_t user_data_size = sizeof(user_data) - 1;
+
+        // Call oe_get_public_key_by_policy() to generate key pair derived from an
+        // enclave's seal key If an enclave does not want to have this key pair tied
+        // to enclave instance, it can generate its own key pair using any chosen
+        // crypto API
+
+        params.type = OE_ASYMMETRIC_KEY_EC_SECP256P1; // MBEDTLS_ECP_DP_SECP256R1
+        params.format = OE_ASYMMETRIC_KEY_PEM;
+        params.user_data = user_data;
+        params.user_data_size = user_data_size;
+        result = oe_get_public_key_by_policy(
+                OE_SEAL_POLICY_UNIQUE,
+                &params,
+                public_key,
+                public_key_size,
+                NULL,
+                NULL);
+        if (result != OE_OK)
+        {
+            printf(
+                    "oe_get_public_key_by_policy(OE_SEAL_POLICY_UNIQUE) = %s\n",
+                    oe_result_str(result));
+            goto done;
+        }
+
+        result = oe_get_private_key_by_policy(
+                OE_SEAL_POLICY_UNIQUE,
+                &params,
+                private_key,
+                private_key_size,
+                NULL,
+                NULL);
+        if (result != OE_OK)
+        {
+            printf(
+                    "oe_get_private_key_by_policy(OE_SEAL_POLICY_UNIQUE) = %s\n",
+                    oe_result_str(result));
+            goto done;
+        }
+
+done:
+        printf("KEYSIZES %d %d \n", *public_key_size, *private_key_size);
+        return result;
+    }
+
+
     bool generate_public_key() {
       mbedtls_ctr_drbg_init(&m_ctr_drbg_context);
       mbedtls_entropy_init(&m_entropy_context);
@@ -199,7 +256,7 @@ class EnclaveContext {
       // Write out the private key in PEM format for exchange with other enclaves.
       res = mbedtls_pk_write_key_pem(&m_pk_context, m_private_key, sizeof(m_private_key));
       if (res != 0) {
-        LOG(INFO) << "mbedtls_pk_write_pubkey_pem failed " << res;
+        LOG(INFO) << "mbedtls_pk_write_key_pem failed " << res;
         return false;
       }
       return true;

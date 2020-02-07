@@ -1,1 +1,1 @@
-/home/xgb/secure-xgboost/dmlc-core/tracker/dmlc-submit --log-level DEBUG --cluster ssh --num-workers 3 --host-file hosts.config --worker-memory 4g python3 /home/xgb/secure-xgboost/demo/enclave/distributed/distr-training.py
+/home/xgb/secure-xgboost/dmlc-core/tracker/dmlc-submit --log-level DEBUG --cluster ssh --num-workers $1 --host-file hosts.config --worker-memory 4g python3 /home/xgb/secure-xgboost/demo/enclave/distributed/distr-training.py

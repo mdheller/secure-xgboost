@@ -25,13 +25,13 @@ bool generate_certificate_and_pkey(
   result = oe_generate_attestation_certificate(
       (const unsigned char*)"CN=Open Enclave SDK,O=OESDK TLS,C=US",
       private_key_buf,
-      CIPHER_PK_SIZE,
+      CIPHER_PRIVKEY_SIZE,
       public_key_buf,
-      CIPHER_PK_SIZE,
+      CIPHER_PUBKEY_SIZE,
       &output_cert,
       &output_cert_size);
   if (result != OE_OK) {
-    printf(" failed with %s\n", oe_result_str(result));
+    printf("generate attestation failed with %s\n", oe_result_str(result));
     oe_free_attestation_certificate(output_cert);
     return false;
   }
@@ -39,7 +39,7 @@ bool generate_certificate_and_pkey(
   // create mbedtls_x509_crt from output_cert
   ret = mbedtls_x509_crt_parse_der(cert, output_cert, output_cert_size);
   if (ret != 0) {
-    printf(" failed with ret = %d\n", ret);
+    printf("parse cert failed with ret = %d\n", ret);
     oe_free_attestation_certificate(output_cert);
     return false;
   }
@@ -48,11 +48,11 @@ bool generate_certificate_and_pkey(
   ret = mbedtls_pk_parse_key(
       private_key,
       (const unsigned char*)private_key_buf,
-      CIPHER_PK_SIZE,
+      CIPHER_PRIVKEY_SIZE,
       NULL,
       0);
   if (ret != 0) {
-    printf(" failed with ret = %d\n", ret);
+    printf("parse key failed with ret = %d\n", ret);
     oe_free_attestation_certificate(output_cert);
     return false;
   }
@@ -183,7 +183,7 @@ SSLTcpSocket SSLTcpSocket::SSLAccept() {
   mbedtls_ssl_conf_rng( &client_sock.conf, mbedtls_ctr_drbg_random, &ctr_drbg );
   
   
-  mbedtls_ssl_conf_ca_chain(&client_sock.conf, srvcert.next, NULL);
+  // mbedtls_ssl_conf_ca_chain(&client_sock.conf, srvcert.next, NULL);
   if ((ret = mbedtls_ssl_conf_own_cert(&client_sock.conf, &srvcert, &pkey)) != 0) {
     print_err(ret);
     return false;

@@ -18,7 +18,8 @@
 #define CIPHER_IV_SIZE  12
 #define CIPHER_TAG_SIZE 16
 #define SHA_DIGEST_SIZE 32
-#define CIPHER_PK_SIZE 512
+#define CIPHER_PUBKEY_SIZE 512
+#define CIPHER_PRIVKEY_SIZE 2048
 
 static int cipher_init(mbedtls_gcm_context* gcm, unsigned char* key) {
   // Initialize GCM context (just makes references valid) - makes the context ready for mbedtls_gcm_setkey()
