@@ -1,6 +1,7 @@
 #include "ssl_socket.h"
 #include "../include/dmlc/logging.h"
 #include "ssl_context_manager.h"
+#include "certs.h"
 
 namespace rabit {
 namespace utils {
