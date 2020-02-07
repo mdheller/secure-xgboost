@@ -148,26 +148,26 @@ SSLTcpSocket SSLTcpSocket::SSLAccept() {
   }
 
   // FIXME currently using inbuilt certs / key
-  ret = mbedtls_x509_crt_parse( &srvcert, (const unsigned char *) mbedtls_test_srv_crt_ec, mbedtls_test_srv_crt_ec_len );
-  if( ret != 0 ) {
-    print_err(ret);
-  }
-  ret = mbedtls_x509_crt_parse( &cachain, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len );
-  if( ret != 0 ) {
-    print_err(ret);
-  }
-  mbedtls_pk_init( &pkey );
-  ret =  mbedtls_pk_parse_key( &pkey, (const unsigned char *) mbedtls_test_srv_key_ec, mbedtls_test_srv_key_ec_len, NULL, 0 );
-  if( ret != 0 ) {
-    print_err(ret);
-  }
-  //
-  //
-  //if (!generate_certificate_and_pkey(&srvcert, &pkey)) {
-  //  printf("Server failed to generate certificate and pkey\n");
-  //  return false;
+  //ret = mbedtls_x509_crt_parse( &srvcert, (const unsigned char *) mbedtls_test_srv_crt_ec, mbedtls_test_srv_crt_ec_len );
+  //if( ret != 0 ) {
+  //  print_err(ret);
   //}
-  //
+  //ret = mbedtls_x509_crt_parse( &cachain, (const unsigned char *) mbedtls_test_cas_pem, mbedtls_test_cas_pem_len );
+  //if( ret != 0 ) {
+  //  print_err(ret);
+  //}
+  //mbedtls_pk_init( &pkey );
+  //ret =  mbedtls_pk_parse_key( &pkey, (const unsigned char *) mbedtls_test_srv_key_ec, mbedtls_test_srv_key_ec_len, NULL, 0 );
+  //if( ret != 0 ) {
+  //  print_err(ret);
+  //}
+  
+  
+  if (!generate_certificate_and_pkey(&srvcert, &pkey)) {
+    printf("Server failed to generate certificate and pkey\n");
+    return false;
+  }
+  
   mbedtls_ssl_conf_ca_chain( &client_sock.conf, &cachain, NULL );
   if( ( ret = mbedtls_ssl_conf_own_cert( &client_sock.conf, &srvcert, &pkey ) ) != 0 ) {
     print_err(ret);
@@ -181,15 +181,15 @@ SSLTcpSocket SSLTcpSocket::SSLAccept() {
   }
 
   mbedtls_ssl_conf_rng( &client_sock.conf, mbedtls_ctr_drbg_random, &ctr_drbg );
-  //
-  //
-  //mbedtls_ssl_conf_ca_chain(&client_sock.conf, srvcert.next, NULL);
-  //if ((ret = mbedtls_ssl_conf_own_cert(&client_sock.conf, &srvcert, &pkey)) != 0) {
-  //  print_err(ret);
-  //  return false;
-  //}
-  //
-  //
+  
+  
+  mbedtls_ssl_conf_ca_chain(&client_sock.conf, srvcert.next, NULL);
+  if ((ret = mbedtls_ssl_conf_own_cert(&client_sock.conf, &srvcert, &pkey)) != 0) {
+    print_err(ret);
+    return false;
+  }
+  
+  
   // Make sure memory refs are valid
   mbedtls_ssl_init( &client_sock.ssl_);
 
