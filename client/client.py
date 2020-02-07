@@ -1,4 +1,4 @@
-from subprocess import call
+from subprocess import check_call
 import os
 import binascii
 
@@ -12,8 +12,12 @@ def generate_client_key(path_to_key):
 
 def encrypt_file(input_path, output_path, client_key):
     print("Encrypting file {}".format(input_path))
-    call('./encrypt-file ' + input_path + ' ' + output_path + " " + client_key, shell=True)
+    ret = check_call('./encrypt-file ' + input_path + ' ' + output_path + " " + client_key, shell=True)
+    if ret != 0:
+        print(ret)
 
 def decrypt_file(input_path, output_path, client_key):
     print("Decrypting file {}".format(input_path))
-    call('./decrypt-file ' + input_path + ' ' + output_path + " " + client_key, shell=True)
+    ret = check_call('./decrypt-file ' + input_path + ' ' + output_path + " " + client_key, shell=True)
+    if ret != 0:
+        print(ret)
