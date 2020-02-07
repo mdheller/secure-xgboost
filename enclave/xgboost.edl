@@ -133,7 +133,6 @@ enclave {
                 size_t remote_report_size);
 
         public int enclave_add_client_key(
-                [in, string] char* fname, 
                 [in, size=data_len] uint8_t* data, 
                 size_t data_len, 
                 [in, size=sig_len] uint8_t* signature,

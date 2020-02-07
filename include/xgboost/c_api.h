@@ -643,7 +643,7 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
     size_t remote_report_size);
 
 XGB_DLL int add_client_key(
-    char* fname,
+    //char* fname,
     uint8_t* data,
     size_t data_len,
     uint8_t* signature,

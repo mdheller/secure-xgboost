@@ -1419,9 +1419,15 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
   return 0;
 }
 
-XGB_DLL int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+//XGB_DLL int add_client_key(char* fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
+//    // FIXME return value / error handling
+//    enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, data, data_len, signature, sig_len);
+//    return Enclave::getInstance().enclave_ret;
+//}
+
+XGB_DLL int add_client_key(uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
     // FIXME return value / error handling
-  enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, fname, data, data_len, signature, sig_len);
+  enclave_add_client_key(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, data, data_len, signature, sig_len);
   return Enclave::getInstance().enclave_ret;
 }
 

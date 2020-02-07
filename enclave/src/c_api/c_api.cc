@@ -440,10 +440,8 @@ int verify_remote_report_and_set_pubkey(
   return 0;
 }
 
-int add_client_key(char* fname, uint8_t* data, size_t len, uint8_t* signature, size_t sig_len) {
-  // FIXME return value / error handling
-  // FIXME char* vs string
-  EnclaveContext::getInstance().decrypt_and_save_client_key(std::string(fname), data, len, signature, sig_len);
+int add_client_key(uint8_t* data, size_t len, uint8_t* signature, size_t sig_len) {
+    EnclaveContext::getInstance().decrypt_and_save_client_key(data, len, signature, sig_len);
 }
 #endif // __ENCLAVE__
 
@@ -484,7 +482,8 @@ int XGDMatrixCreateFromEncryptedFile(const char *fname,
 #ifdef __ENCLAVE__ // pass decryption key
     // FIXME consistently use uint8_t* for key bytes
     char key[CIPHER_KEY_SIZE];
-    EnclaveContext::getInstance().get_client_key(fname, (uint8_t*) key);
+    EnclaveContext::getInstance().get_client_key((uint8_t*) key);
+    //EnclaveContext::getInstance().get_client_key(fname, (uint8_t*) key);
     *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split, true, key));
 #else
     *out = new std::shared_ptr<DMatrix>(DMatrix::Load(fname, silent != 0, load_row_split));
