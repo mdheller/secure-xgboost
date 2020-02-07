@@ -1093,16 +1093,14 @@ class CryptoUtils(object):
 
         return signature, sig_len_as_int
 
-    def add_client_key(self, fname, data, data_len, signature, sig_len):
+    def add_client_key(self, data, data_len, signature, sig_len):
         """
         Add client symmetric key used to encrypt file fname
         
         Parameters
         ----------
-        fname : str
-            file that was encrypted
         data : proto.NDArray
-            key used to encrypt fname
+            key used to encrypt client files 
         data_len : int
             length of data
         signature : proto.NDArray
@@ -1113,8 +1111,8 @@ class CryptoUtils(object):
         Returns:
             Exit status of add_client_key()
         """
-        # Cast fname to a char*
-        fname = ctypes.c_char_p(str.encode(fname))
+        # # Cast fname to a char*
+        # fname = ctypes.c_char_p(str.encode(fname))
 
         # Cast data : proto.NDArray to pointer to pass into C++ add_client_key()
         data = proto_to_pointer(data)
@@ -1125,7 +1123,7 @@ class CryptoUtils(object):
         sig_len = ctypes.c_size_t(sig_len)
 
         # Add client key
-        return _check_call(_LIB.add_client_key(fname, data, data_len, signature, sig_len))
+        return _check_call(_LIB.add_client_key(data, data_len, signature, sig_len))
 
 
 class Booster(object):

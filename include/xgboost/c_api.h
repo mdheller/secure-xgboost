@@ -463,7 +463,11 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              int option_mask,
                              unsigned ntree_limit,
                              bst_ulong *out_len,
+#ifdef __SGX__
+                             char **out_result);
+#else
                              const float **out_result);
+#endif
 
 /*!
  * \brief load model from existing file
@@ -643,7 +647,7 @@ XGB_DLL int verify_remote_report_and_set_pubkey(
     size_t remote_report_size);
 
 XGB_DLL int add_client_key(
-    char* fname,
+    //char* fname,
     uint8_t* data,
     size_t data_len,
     uint8_t* signature,
@@ -663,6 +667,12 @@ XGB_DLL int sign_data(
     size_t encrypted_data_size,
     uint8_t* signature,
     size_t* sig_len);
+
+XGB_DLL int decrypt_predictions(
+    uint8_t* key,
+    char* encrypted_preds,
+    size_t preds_len,
+    bst_float** preds);
 #endif // __SGX__ && __ENCLAVE__
 
 #if defined(__SGX__) && defined(__HOST__)

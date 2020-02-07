@@ -15,10 +15,13 @@ class EnclaveContext {
     uint8_t m_private_key[CIPHER_PK_SIZE];
 
     // FIXME use array of fixed length instead of vector
-    std::unordered_map<std::string, std::vector<uint8_t>> client_keys;
+    //std::unordered_map<std::string, std::vector<uint8_t>> client_keys;
+    uint8_t client_key[CIPHER_KEY_SIZE];
+    bool client_key_is_set;
 
     EnclaveContext() {
       generate_public_key();
+      client_key_is_set = false;
     }
 
   public:
@@ -41,22 +44,24 @@ class EnclaveContext {
       return m_private_key;
     }
 
-    bool get_client_key(std::string fname, uint8_t* key) {
-      std::unordered_map<std::string, std::vector<uint8_t>>::const_iterator iter = client_keys.find(fname);
+    //bool get_client_key(std::string fname, uint8_t* key) {
+    //  std::unordered_map<std::string, std::vector<uint8_t>>::const_iterator iter = client_keys.find(fname);
+    //
+    //  if (iter == client_keys.end()) {
+    //    memset(key, 0, CIPHER_KEY_SIZE);
+    //    return false;
+    //  } else {
+    //    //memcpy(key, iter->second, CIPHER_KEY_SIZE);
+    //    std::copy(iter->second.begin(), iter->second.end(), key);
+    //    return true;
+    //  }
+    //}
 
-      if (iter == client_keys.end()) {
-        memset(key, 0, CIPHER_KEY_SIZE);
-        return false;
-      } else {
-        //memcpy(key, iter->second, CIPHER_KEY_SIZE);
-        std::copy(iter->second.begin(), iter->second.end(), key);
-        return true;
-      }
-    }
-
-    //FIXME temporary function for testing
     bool get_client_key(uint8_t* key) {
-      memset(key, 0, CIPHER_KEY_SIZE);
+      if (client_key_is_set)
+          memcpy(key, client_key, CIPHER_KEY_SIZE);
+      else
+          memset(key, 0, CIPHER_KEY_SIZE);
     }
 
     // FIXME verify client identity using root CA
@@ -104,15 +109,7 @@ class EnclaveContext {
       return true;
     }
 
-    bool decrypt_and_save_client_key(std::string fname, uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
-      // FIXME signature should be bound to file name as well
-      //uint8_t signed_data = (uint8_t*) malloc (fname.length() + data_len);
-      //memcpy(signed_data, fname.c_str(), fname.length());
-      //memcpy(signed_data + fname.length(), data, data_len);
-      //if (!verifySignature("publickey.crt", signed_data, fname.length() + data_len, signature, sig_len)) {
-      //  LOG(INFO) << "Signature verification failed";
-      //  return false;
-      //}
+    bool decrypt_and_save_client_key(uint8_t* data, size_t data_len, uint8_t* signature, size_t sig_len) {
       if (!verifySignature(data, data_len, signature, sig_len)) {
         LOG(INFO) << "Signature verification failed";
         return false;
@@ -147,7 +144,9 @@ class EnclaveContext {
       //  fprintf(stdout, "%d\t", output[i]);
       //fprintf(stdout, "\n");
       std::vector<uint8_t> v(output, output + CIPHER_KEY_SIZE);
-      client_keys.insert({fname, v});
+      //client_keys.insert({fname, v});
+      memcpy(client_key, output, CIPHER_KEY_SIZE);
+      client_key_is_set = true;
       return true;
     }
 
@@ -196,13 +195,14 @@ class EnclaveContext {
         return false;
       }
 
+      // FIXME
       // Write out the private key in PEM format for exchange with other enclaves.
-      res = mbedtls_pk_write_key_pem(&m_pk_context, m_private_key, sizeof(m_private_key));
-      if (res != 0) {
-        LOG(INFO) << "mbedtls_pk_write_pubkey_pem failed " << res;
-        return false;
-      }
-      return true;
+      //res = mbedtls_pk_write_key_pem(&m_pk_context, m_private_key, sizeof(m_private_key));
+      //if (res != 0) {
+      //  LOG(INFO) << "mbedtls_pk_write_pubkey_pem failed " << res;
+      //  return false;
+      //}
+      //return true;
     }
 
   public:
