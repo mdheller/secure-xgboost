@@ -1531,15 +1531,22 @@ XGB_DLL int sign_data(char *keyfile, uint8_t* data, size_t data_size, uint8_t* s
   return 0;
 }
 
-XGB_DLL int decrypt_predictions(uint8_t* key, char* encrypted_preds, size_t num_preds, bst_float** preds) {
+XGB_DLL int decrypt_predictions(char* key, char* encrypted_preds, size_t num_preds, bst_float** preds) {
+    // key = reinterpret_cast<uint8_t*) key;
     size_t len = num_preds*sizeof(float);
     unsigned char* iv = (unsigned char*)encrypted_preds;
     unsigned char* tag = iv + CIPHER_IV_SIZE;
     unsigned char* data = tag + CIPHER_TAG_SIZE;
     unsigned char* output = (unsigned char*) malloc(len);
 
+    printf("decrypting.......\n");
+    for (int i = 0; i < 32; i++) {
+        printf("%d ", key[i]);
+    }
+    printf("\n");
+
     decrypt_symm(
-            key,
+            (uint8_t*) key,
             data,
             len,
             iv,
