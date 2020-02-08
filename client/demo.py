@@ -1,4 +1,4 @@
-from client import *
+from sxgb_client import *
 
 KEY_FILE = "key.txt"
 
