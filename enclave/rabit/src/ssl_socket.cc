@@ -20,7 +20,6 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
   }
 
   if (Connect(addr)) {
-      LOG(INFO) << "Connected";
     mbedtls_ssl_init(&ssl_);
 
     // configure TLS layer
@@ -63,7 +62,6 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
         return false;
       }
     }
-    printf("%d Connected! Addresses %x %x \n", getpid(), this, ssl());
     return true;
   }
   return false;
@@ -137,8 +135,6 @@ void SSLTcpSocket::SSLAccept(SSLTcpSocket* client_sock) {
       print_err(ret);
     }
   }
-  printf("%d Accepted! Addresses %x %x \n", getpid(), client_sock, client_sock->ssl());
-  //return client_sock;
 }
 
 size_t SSLTcpSocket::SSLSendAll(const void *buf_, size_t len) {

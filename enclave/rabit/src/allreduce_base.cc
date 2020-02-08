@@ -235,7 +235,6 @@ void AllreduceBase::SetParam(const char *name, const char *val) {
  * \return a socket that initializes the connection
  */
 utils::TCPSocket AllreduceBase::ConnectTracker(void) const {
-    LOG(INFO) << "Connect Tracker";
   int magic = kMagic;
   // get information from tracker
   utils::TCPSocket tracker;
@@ -271,7 +270,6 @@ utils::TCPSocket AllreduceBase::ConnectTracker(void) const {
   Assert(tracker.SendAll(&world_size, sizeof(world_size)) == sizeof(world_size),
          "ReConnectLink failure 3");
   tracker.SendStr(task_id);
-  LOG(INFO) << "Connect Tracker DONE";
   return tracker;
 }
 /*!
@@ -360,30 +358,6 @@ void AllreduceBase::ReConnectLinks(const char *cmd) {
            sizeof(num_accept), "ReConnectLink failure 8");
     num_error = 0;
     for (int i = 0; i < num_conn; ++i) {
-#if false // FIXME
-        int hport, hrank;
-        std::string hname;
-        tracker.RecvStr(&hname);
-        Assert(tracker.RecvAll(&hport, sizeof(hport)) == sizeof(hport),
-                "ReConnectLink failure 9");
-        Assert(tracker.RecvAll(&hrank, sizeof(hrank)) == sizeof(hrank),
-                "ReConnectLink failure 10");
-
-        LinkRecord r;
-        all_links.push_back(r);
-        all_links[i].sock->Create();
-        if (!all_links[i].sock->SSLConnect(utils::SockAddr(hname.c_str(), hport))) {
-            num_error += 1; all_links[i].sock->Close(); continue;
-        }
-        printf("%d Connected OUTSIDE ! Addresses %x %x \n", getpid(), &all_links[i].sock, all_links[i].sock->ssl());
-        Assert(all_links[i].sock->SSLSendAll(&rank, sizeof(rank)) == sizeof(rank),
-                "ReConnectLink failure 12");
-        Assert(all_links[i].sock->SSLRecvAll(&all_links[i].rank, sizeof(all_links[i].rank)) == sizeof(all_links[i].rank),
-                "ReConnectLink failure 13");
-        utils::Check(hrank == all_links[i].rank,
-                "ReConnectLink failure, link rank inconsistent");
-
-#else
       LinkRecord r;
       int hport, hrank;
       std::string hname;
@@ -409,19 +383,13 @@ void AllreduceBase::ReConnectLinks(const char *cmd) {
         if (all_links[i].rank == hrank) {
           Assert(all_links[i].sock->IsClosed(),
                  "Override a link that is active");
-          LOG(INFO) << "HERE match";
           all_links[i].sock = r.sock; match = true; 
-          //memcpy(all_links[i].sock->conf_(), r.sock->conf_(), sizeof(mbedtls_ssl_config));
-          //memcpy(all_links[i].sock->ssl(), r.sock->ssl(), sizeof(mbedtls_ssl_context));
-          //memcpy(&all_links[i].sock->net, &r.sock->net, sizeof(mbedtls_net_context));
           break;
         }
       }
       if (!match) {
-          LOG(INFO) << "HERE";
           all_links.push_back(r);
       }
-#endif
     }
     Assert(tracker.SendAll(&num_error, sizeof(num_error)) == sizeof(num_error),
            "ReConnectLink failure 14");
@@ -432,20 +400,7 @@ void AllreduceBase::ReConnectLinks(const char *cmd) {
   // close connection to tracker
   tracker.Close();
   // listen to incoming links
-  LOG(INFO) << " ---------SIZE------- " << all_links.size() << " num_conn" << num_conn;
   for (int i = num_conn; i < num_conn + num_accept; ++i) {
-#if false // FIXME
-      LinkRecord r;
-      all_links.push_back(r);
-      //all_links[i].sock = sock_listen.SSLAccept();
-      sock_listen.SSLAccept(&all_links[i].sock);
-      printf("%d Accepted OUTSIDE ! Addresses %x %x \n", getpid(), &all_links[i].sock, all_links[i].sock->ssl());
-      Assert(all_links[i].sock->SSLSendAll(&rank, sizeof(rank)) == sizeof(rank),
-              "ReConnectLink failure 15");
-      Assert(all_links[i].sock->SSLRecvAll(&all_links[i].rank, sizeof(all_links[i].rank)) == sizeof(all_links[i].rank),
-              "ReConnectLink failure 15");
-      bool match = false;
-#else
     LinkRecord r;
     r.sock = new utils::SSLTcpSocket();
     //r.sock = sock_listen.SSLAccept();
@@ -459,28 +414,15 @@ void AllreduceBase::ReConnectLinks(const char *cmd) {
       if (all_links[i].rank == r.rank) {
         utils::Assert(all_links[i].sock->IsClosed(),
                       "Override a link that is active");
-        LOG(INFO) << "HERE match";
         all_links[i].sock = r.sock; match = true; 
-        //memcpy(all_links[i].sock->conf_(), r.sock->conf_(), sizeof(mbedtls_ssl_config));
-        //memcpy(all_links[i].sock->ssl(), r.sock->ssl(), sizeof(mbedtls_ssl_context));
-        //memcpy(&all_links[i].sock->net, &r.sock->net, sizeof(mbedtls_net_context));
         break;
       }
     }
     if (!match) {
-      LOG(INFO) << "HERE";
       all_links.push_back(r);
-      //memcpy(all_links[i].sock->conf_(), r.sock->conf_(), sizeof(mbedtls_ssl_config));
-      //memcpy(all_links[i].sock->ssl(), r.sock->ssl(), sizeof(mbedtls_ssl_context));
-      //memcpy(&all_links[i].sock->net, &r.sock->net, sizeof(mbedtls_net_context));
     }
-#endif
   }
   
-  //for (size_t i = 0; i < all_links.size(); ++i) {
-  //  all_links[i].sock->setBio();
-  //}
-
   this->parent_index = -1;
   // setup tree links and ring structure
   tree_links.plinks.clear();
@@ -494,14 +436,10 @@ void AllreduceBase::ReConnectLinks(const char *cmd) {
         parent_index = static_cast<int>(tree_links.plinks.size());
       }
       tree_links.plinks.push_back(&all_links[i]);
-      printf("%d PLINKS ! Addresses %x %x \n", getpid(), &tree_links[i].sock, tree_links[i].sock->ssl());
     }
     if (all_links[i].rank == prev_rank) ring_prev = &all_links[i];
     if (all_links[i].rank == next_rank) ring_next = &all_links[i];
   }
-  //for (size_t i = 0; i < all_links.size(); ++i) {
-  //    all_links[i].sock->setBio();
-  //}
   Assert(parent_rank == -1 || parent_index != -1,
          "cannot find parent in the link");
   Assert(prev_rank == -1 || ring_prev != NULL,
@@ -529,14 +467,11 @@ AllreduceBase::TryAllreduce(void *sendrecvbuf_,
                             size_t type_nbytes,
                             size_t count,
                             ReduceFunction reducer) {
-#if false // FIXME
   if (count > reduce_ring_mincount) {
     return this->TryAllreduceRing(sendrecvbuf_, type_nbytes, count, reducer);
   } else {
     return this->TryAllreduceTree(sendrecvbuf_, type_nbytes, count, reducer);
   }
-#endif
-  return this->TryAllreduceTree(sendrecvbuf_, type_nbytes, count, reducer);
 }
 /*!
  * \brief perform in-place allreduce, on sendrecvbuf,
@@ -554,14 +489,7 @@ AllreduceBase::TryAllreduceTree(void *sendrecvbuf_,
                                 size_t type_nbytes,
                                 size_t count,
                                 ReduceFunction reducer) {
-    //for (size_t i = 0; i < all_links.size(); ++i) {
-        //all_links[i].sock->setBio();
-    //}
-    LOG(INFO) << "TREE";
   RefLinkVector &links = tree_links;
-  //for (size_t i = 0; i < links.size(); ++i) {
-      //links[i].sock->setBio();
-  //}
   if (links.size() == 0 || count == 0) return kSuccess;
   // total size of message
   const size_t total_size = type_nbytes * count;

@@ -52,21 +52,11 @@ class SSLTcpSocket : public TCPSocket {
     ssl_ = ssl;
   }
 
-  SSLTcpSocket* getPtr() {
-    return this;
-  }
-
   // SSL Accept.
   void SSLAccept(SSLTcpSocket* client_sock);
 
   // SSL Connect.
   bool SSLConnect(const SockAddr &addr);
-
-  void setBio() {
-    mbedtls_net_init(&net);
-    net.fd = this->sockfd;
-    mbedtls_ssl_set_bio(ssl(), &net, mbedtls_net_send, mbedtls_net_recv, NULL);
-  }
 
   // SSL Write, note this does not support |flag| argument.
   ssize_t SSLSend(const void *buf, size_t len) {
@@ -75,19 +65,16 @@ class SSLTcpSocket : public TCPSocket {
     {
         if( ret == MBEDTLS_ERR_NET_CONN_RESET )
         {
-          printf("SEND Error %x %d\n", ssl(), len);
           print_err(ret);
           return -1;
         }
 
         if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
         {
-          printf("SEND Error %x %d\n", ssl(), len);
           print_err(ret);
           return -1;
         }
     }
-    printf("%d SEND SUcess %x %d\n", getpid(), ssl(), len);
     return ret;
   }
 
@@ -100,13 +87,8 @@ class SSLTcpSocket : public TCPSocket {
         if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
             continue;
 
-        if ( ret > (int)len ) {
-            printf("%d RECVD more bytes than expected %d %d\n", getpid(), ret, len);
-        }
-
         if( ret <= 0 )
         {
-            printf("%d RECV Error %x %x %d %d\n", getpid(), this, ssl(), len, net.fd);
             switch( ret )
             {
                 case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
@@ -126,7 +108,6 @@ class SSLTcpSocket : public TCPSocket {
         if( ret > 0 )
             break;
     } while( 1 );
-    printf("%d RECV SUccess %x %x %d %d\n", getpid(), this, ssl(), len, net.fd);
     return ret;
   }
 
