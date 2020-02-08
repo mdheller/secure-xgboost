@@ -1034,9 +1034,12 @@ class CryptoUtils(object):
 
     def generate_client_key(self, path_to_key):
         """
+        Generate a new key and save it to `path_to_key`
+
         Parameters
         ----------
-
+        path_to_key : str
+            path to which key will be saved
         """
         KEY_BYTES = 32
 
@@ -1046,6 +1049,18 @@ class CryptoUtils(object):
             keyfile.write(key)
 
     def encrypt_file(self, input_file, output_file, key_file):
+        """
+        Encrypt a file
+
+        Parameters
+        ----------
+        input_file : str
+            path to file to be encrypted
+        output_file : str
+            path to which encrypted file will be saved
+        key_file : str
+            path to key used to encrypt file
+        """
         print("Encrypting file {}".format(input_file))
 
         input_file_bytes = input_file.encode('utf-8')
@@ -1141,10 +1156,6 @@ class CryptoUtils(object):
             signature over data, signed with client private key
         sig_len : int
             length of signature
-
-        Returns
-        -------
-        Exit status of add_client_key()
         """
         # # Cast fname to a char*
         # fname = ctypes.c_char_p(str.encode(fname))
@@ -1158,7 +1169,7 @@ class CryptoUtils(object):
         sig_len = ctypes.c_size_t(sig_len)
 
         # Add client key
-        return _LIB.add_client_key(data, data_len, signature, sig_len)
+        _LIB.add_client_key(data, data_len, signature, sig_len)
 
     def decrypt_predictions(self, key, encrypted_preds, num_preds):
         """
