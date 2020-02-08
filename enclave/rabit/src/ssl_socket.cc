@@ -20,6 +20,7 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
   }
 
   if (Connect(addr)) {
+      LOG(INFO) << "Connected";
     mbedtls_ssl_init(&ssl_);
 
     // configure TLS layer
@@ -32,6 +33,13 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
     mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     // configure RNG
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+
+
+    // FIXME disable debug
+    mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
+    mbedtls_debug_set_threshold(DEBUG_LEVEL);
+
+
     // set up SSL context
     if ((ret = mbedtls_ssl_setup(ssl(), &conf)) != 0) {
       print_err(ret);
@@ -55,16 +63,17 @@ bool SSLTcpSocket::SSLConnect(const SockAddr &addr) {
         return false;
       }
     }
+    printf("%d Connected! Addresses %x %x \n", getpid(), this, ssl());
     return true;
   }
   return false;
 }
 
-SSLTcpSocket SSLTcpSocket::SSLAccept() {
+void SSLTcpSocket::SSLAccept(SSLTcpSocket* client_sock) {
   SOCKET client_fd = Accept();
 
-  SSLTcpSocket client_sock(client_fd);
-  mbedtls_ssl_config_init(&client_sock.conf);
+  client_sock->sockfd = client_fd;
+  mbedtls_ssl_config_init(&client_sock->conf);
   int ret;
 
   mbedtls_x509_crt srvcert;
@@ -94,36 +103,42 @@ SSLTcpSocket SSLTcpSocket::SSLAccept() {
   if( ret != 0 ) {
     print_err(ret);
   }
-  mbedtls_ssl_conf_ca_chain( &client_sock.conf, &cachain, NULL );
-  if( ( ret = mbedtls_ssl_conf_own_cert( &client_sock.conf, &srvcert, &pkey ) ) != 0 ) {
+  mbedtls_ssl_conf_ca_chain( &client_sock->conf, &cachain, NULL );
+  if( ( ret = mbedtls_ssl_conf_own_cert( &client_sock->conf, &srvcert, &pkey ) ) != 0 ) {
     print_err(ret);
   }
 
-  if( ( ret = mbedtls_ssl_config_defaults( &client_sock.conf,
+  if( ( ret = mbedtls_ssl_config_defaults( &client_sock->conf,
           MBEDTLS_SSL_IS_SERVER,
           MBEDTLS_SSL_TRANSPORT_STREAM,
           MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 ) {
     print_err(ret);
   }
 
-  mbedtls_ssl_conf_rng( &client_sock.conf, mbedtls_ctr_drbg_random, &ctr_drbg );
-  // Make sure memory refs are valid
-  mbedtls_ssl_init( &client_sock.ssl_);
+  mbedtls_ssl_conf_rng( &client_sock->conf, mbedtls_ctr_drbg_random, &ctr_drbg );
 
-  if ((ret = mbedtls_ssl_setup(&client_sock.ssl_, &client_sock.conf)) != 0) {
+  // FIXME disable debug
+  mbedtls_ssl_conf_dbg( &conf, my_debug, stdout );
+  mbedtls_debug_set_threshold(DEBUG_LEVEL);
+
+  // Make sure memory refs are valid
+  mbedtls_ssl_init( &client_sock->ssl_);
+
+  if ((ret = mbedtls_ssl_setup(&client_sock->ssl_, &client_sock->conf)) != 0) {
     print_err(ret);
   }
 
-  mbedtls_net_init(&client_sock.net);
-  client_sock.net.fd = client_sock.sockfd;
-  mbedtls_ssl_set_bio(&client_sock.ssl_, &client_sock.net,  mbedtls_net_send, mbedtls_net_recv, NULL);
+  mbedtls_net_init(&client_sock->net);
+  client_sock->net.fd = client_sock->sockfd;
+  mbedtls_ssl_set_bio(&client_sock->ssl_, &client_sock->net,  mbedtls_net_send, mbedtls_net_recv, NULL);
 
-  while( ( ret = mbedtls_ssl_handshake(&client_sock.ssl_ ) ) != 0 ) {
+  while( ( ret = mbedtls_ssl_handshake(&client_sock->ssl_ ) ) != 0 ) {
     if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE ) {
       print_err(ret);
     }
   }
-  return client_sock;
+  printf("%d Accepted! Addresses %x %x \n", getpid(), client_sock, client_sock->ssl());
+  //return client_sock;
 }
 
 size_t SSLTcpSocket::SSLSendAll(const void *buf_, size_t len) {

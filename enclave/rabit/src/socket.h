@@ -27,6 +27,7 @@
 #include <vector>
 #include <unordered_map>
 #include "../include/rabit/internal/utils.h"
+#include "../include/dmlc/logging.h"
 
 #if defined(_WIN32) || defined(__MINGW32__)
 typedef int ssize_t;
@@ -310,10 +311,12 @@ class TCPSocket : public Socket{
   }
   /*! \brief get a new connection */
   TCPSocket Accept(void) {
+      LOG(INFO) << "Accepting";
     SOCKET newfd = accept(sockfd, NULL, NULL);
     if (newfd == INVALID_SOCKET) {
       Socket::Error("Accept");
     }
+    LOG(INFO) << "Accepted";
     return TCPSocket(newfd);
   }
   /*!
@@ -336,6 +339,7 @@ class TCPSocket : public Socket{
    * \return whether connect is successful
    */
   inline bool Connect(const SockAddr &addr) {
+      LOG(INFO) << "Connecting";
     return connect(sockfd, reinterpret_cast<const sockaddr*>(&addr.addr),
                    sizeof(addr.addr)) == 0;
   }

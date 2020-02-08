@@ -56,7 +56,7 @@ booster.set_param(params)
 print("All parameters set")
 
 # Train and evaluate
-n_trees = 10
+n_trees = 10 
 for i in range(n_trees):
   booster.update(dtrain, i)
   print("Tree finished")

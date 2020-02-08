@@ -3,6 +3,8 @@
 
 #include "socket.h"
 #include "ssl_context_manager.h"
+#include "mbedtls/debug.h"
+
 
 namespace rabit {
 namespace utils {
@@ -13,6 +15,18 @@ static void print_err(int error_code) {
   mbedtls_strerror(error_code, err_buf, LEN);
   mbedtls_printf(" ERROR %d: %s\n", getpid(), err_buf);
   exit(1);
+}
+
+#define DEBUG_LEVEL 0
+
+static void my_debug( void *ctx, int level,
+                      const char *file, int line,
+                      const char *str )
+{
+    ((void) level);
+
+    mbedtls_fprintf( (FILE *) ctx, "%s:%04d: %s", file, line, str );
+    fflush(  (FILE *) ctx  );
 }
 
 class SSLTcpSocket : public TCPSocket {
@@ -26,6 +40,7 @@ class SSLTcpSocket : public TCPSocket {
   SSLTcpSocket(SOCKET sockfd) : TCPSocket(sockfd), ssl_() {}
 
   SSLTcpSocket(SOCKET sockfd, SharedSSL ssl) : TCPSocket(sockfd), ssl_(ssl) {}
+
 
   // Indicate has ssl context.
   //bool HasSSL() const { return ssl_.get() != nullptr; }
@@ -42,7 +57,7 @@ class SSLTcpSocket : public TCPSocket {
   }
 
   // SSL Accept.
-  SSLTcpSocket SSLAccept();
+  void SSLAccept(SSLTcpSocket* client_sock);
 
   // SSL Connect.
   bool SSLConnect(const SockAddr &addr);
@@ -55,35 +70,43 @@ class SSLTcpSocket : public TCPSocket {
 
   // SSL Write, note this does not support |flag| argument.
   ssize_t SSLSend(const void *buf, size_t len) {
-    ssize_t ret = -1;
+    int ret = -1;
     while( ( ret = mbedtls_ssl_write( ssl(), (const unsigned char*)buf, len ) ) <= 0 )
     {
         if( ret == MBEDTLS_ERR_NET_CONN_RESET )
         {
+          printf("SEND Error %x %d\n", ssl(), len);
           print_err(ret);
-          break;
+          return -1;
         }
 
         if( ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE )
         {
+          printf("SEND Error %x %d\n", ssl(), len);
           print_err(ret);
-          break;
+          return -1;
         }
     }
+    printf("%d SEND SUcess %x %d\n", getpid(), ssl(), len);
     return ret;
   }
 
   // SSL Read, note this does not support |flag| argument.
   ssize_t SSLRecv(void *buf, size_t len) { 
-    ssize_t ret = -1;
+    int ret = -1;
     do {
         ret = mbedtls_ssl_read(ssl(), (unsigned char*)buf, len);
 
         if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
             continue;
 
+        if ( ret > (int)len ) {
+            printf("%d RECVD more bytes than expected %d %d\n", getpid(), ret, len);
+        }
+
         if( ret <= 0 )
         {
+            printf("%d RECV Error %x %x %d %d\n", getpid(), this, ssl(), len, net.fd);
             switch( ret )
             {
                 case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
@@ -103,6 +126,7 @@ class SSLTcpSocket : public TCPSocket {
         if( ret > 0 )
             break;
     } while( 1 );
+    printf("%d RECV SUccess %x %x %d %d\n", getpid(), this, ssl(), len, net.fd);
     return ret;
   }
 
@@ -143,7 +167,7 @@ class SSLTcpSocket : public TCPSocket {
 
   mbedtls_ssl_context *ssl() { return &ssl_; }
   mbedtls_ssl_config *conf_() { return &conf; }
- private:
+
   SharedSSL ssl_;
 
   mbedtls_net_context net;
@@ -151,6 +175,7 @@ class SSLTcpSocket : public TCPSocket {
   mbedtls_ssl_config conf;
   mbedtls_entropy_context entropy;
   mbedtls_x509_crt cacert;
+    private:
 };
 
 }  // namespace utils
