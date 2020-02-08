@@ -65,21 +65,22 @@ int main(int argc, char** argv) {
   uint8_t* remote_report = NULL;
   size_t remote_report_size = 0;
 
-  //safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
-  //safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
+  safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
+  safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
 
   uint8_t* encrypted_data = (uint8_t*) malloc(1024*sizeof(uint8_t));
   size_t encrypted_data_size = 1024;
   uint8_t* signature = (uint8_t*) malloc(1024*sizeof(uint8_t));
   size_t sig_len;
 
-  //safe_xgboost(encrypt_data_with_pk(test_key, KEY_BYTES, pem_key, key_size, encrypted_data, &encrypted_data_size));
-  //safe_xgboost(sign_data("keypair.pem", encrypted_data, encrypted_data_size, signature, &sig_len));
-  //verifySignature("publickey.crt", encrypted_data, encrypted_data_size, signature, sig_len);
+  safe_xgboost(encrypt_data_with_pk(test_key, KEY_BYTES, pem_key, key_size, encrypted_data, &encrypted_data_size));
+  safe_xgboost(sign_data("keypair.pem", encrypted_data, encrypted_data_size, signature, &sig_len));
+  // verifySignature("publickey.crt", encrypted_data, encrypted_data_size, signature, sig_len);
 
   // std::string fname1("/root/mc2/code/secure-xgboost/demo/c-api/train.encrypted");
   std::string fname1("/home/xgb/secure-xgboost/demo/c-api/train.encrypted");
-  //safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+  // safe_xgboost(add_client_key(encrypted_data, encrypted_data_size, signature, sig_len));
+  add_client_key(encrypted_data, encrypted_data_size, signature, sig_len);
   std::string fname2("/home/xgb/secure-xgboost/demo/c-api/test.encrypted");
   //safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
 
