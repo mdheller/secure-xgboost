@@ -1032,6 +1032,33 @@ class CryptoUtils(object):
         # FIXME what do we need here?
         pass
 
+    def generate_client_key(self, path_to_key):
+        """
+        Parameters
+        ----------
+
+        """
+        KEY_BYTES = 32
+
+        print("Generating client key...")
+        key = os.urandom(KEY_BYTES)
+        with open(path_to_key, "wb") as keyfile:
+            keyfile.write(key)
+
+    def encrypt_file(self, input_file, output_file, key_file):
+        print("Encrypting file {}".format(input_file))
+
+        input_file_bytes = input_file.encode('utf-8')
+        output_file_bytes = output_file.encode('utf-8')
+        key_file_bytes = key_file.encode('utf-8')
+        
+        # Convert to proper ctypes
+        input_path = ctypes.c_char_p(input_file_bytes)
+        output_path = ctypes.c_char_p(output_file_bytes)
+        key_path = ctypes.c_char_p(key_file_bytes)
+
+        _check_call(_LIB.encryptFile(input_path, output_path, key_path))
+
     def encrypt_data_with_pk(self, data, data_len, pem_key, key_size):
         """
         Parameters
