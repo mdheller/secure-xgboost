@@ -1,16 +1,15 @@
 ###########################
 Python Package Introduction
 ###########################
-This document gives a basic walkthrough of xgboost python package.
+This document gives a basic walkthrough of securexgboost python package. There's also a sample Jupyter notebook at ``demo/enclave/jupyter/e2e-demo.ipynb``.
 
 **List of other Helpful Links**
 
-* `Python walkthrough code collections <https://github.com/tqchen/xgboost/blob/master/demo/guide-python>`_
 * :doc:`Python API Reference <python_api>`
 
-Install XGBoost
+Install Secure XGBoost
 ---------------
-To install XGBoost, follow instructions in :doc:`/build`.
+To install Secure XGBoost, follow instructions in :doc:`/build`.
 
 To verify your installation, run the following in Python:
 
@@ -20,23 +19,23 @@ To verify your installation, run the following in Python:
 
 Data Interface
 --------------
-The XGBoost python module is able to load data from:
+The Secure XGBoost python module is able to load data from:
 
 - LibSVM text format file
 - Comma-separated values (CSV) file
 
 (See :doc:`/tutorials/input_format` for detailed description of text input format.)
 
-The data is stored in a :py:class:`DMatrix <xgboost.DMatrix>` object.
+The data is stored in a :py:class:`DMatrix <securexgboost.DMatrix>` object.
 
-* To load a libsvm text file or a XGBoost binary file into :py:class:`DMatrix <xgboost.DMatrix>`:
+* To load a libsvm text file or a Secure XGBoost binary file into :py:class:`DMatrix <securexgboost.DMatrix>`:
 
   .. code-block:: python
 
     dtrain = xgb.DMatrix('train.svm.txt')
     dtest = xgb.DMatrix('test.svm.buffer')
 
-* To load a CSV file into :py:class:`DMatrix <xgboost.DMatrix>`:
+* To load a CSV file into :py:class:`DMatrix <securexgboost.DMatrix>`:
 
   .. code-block:: python
 
@@ -46,11 +45,11 @@ The data is stored in a :py:class:`DMatrix <xgboost.DMatrix>` object.
 
   .. note:: Categorical features not supported
 
-    Note that XGBoost does not support categorical features.
+    Note that Secure XGBoost does not support categorical features.
 
 Setting Parameters
 ------------------
-XGBoost can use either a list of pairs or a dictionary to set :doc:`parameters </parameter>`. For instance:
+Secure XGBoost can use either a list of pairs or a dictionary to set :doc:`parameters </parameter>`. For instance:
 
 * Booster parameters
 
@@ -86,8 +85,8 @@ Training a model requires a parameter list and data set.
   num_round = 10
   bst = xgb.train(param, dtrain, num_round, evallist)
 
-Methods including `update` and `boost` from `xgboost.Booster` are designed for
-internal usage only.  The wrapper function `xgboost.train` does some
+Methods including `update` and `boost` from `securexgboost.Booster` are designed for
+internal usage only.  The wrapper function `securexgboost.train` does some
 pre-configuration including setting up caches and some other parameters.
 
 Early Stopping
