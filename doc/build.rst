@@ -90,7 +90,7 @@ On Ubuntu, one builds XGBoost by running CMake:
 
 .. code-block:: bash
    
-   git clone -b r0.01s --recursive https://github.com/mc2-project/secure-xgboost.git
+   git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git
    cd secure-xgboost
    mkdir -p build
 
