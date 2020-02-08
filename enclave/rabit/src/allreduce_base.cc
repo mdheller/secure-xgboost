@@ -73,9 +73,7 @@ AllreduceBase::AllreduceBase(void) {
 }
 
 void AllreduceBase::InitSSL() {
-  //::rabit::utils::SSLContextManager::instance()->LoadCertAndKey(
-  //    ReadAsString(cert_chain_path.c_str()),
-  //    ReadAsString(private_key_path.c_str()), root_cert_path);
+
 }
 
 // initialization function

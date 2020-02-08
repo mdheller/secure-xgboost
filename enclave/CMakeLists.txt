@@ -5,7 +5,6 @@ set(RABIT_SOURCES
     rabit/src/allreduce_base.cc
     rabit/src/allreduce_robust.cc 
     rabit/src/ssl_socket.cc 
-    rabit/src/ssl_context_manager.cc 
     rabit/src/engine.cc
     rabit/src/c_api.cc)
 file(GLOB_RECURSE CPU_SOURCES dmlc-core/*.cc src/*.cc)
