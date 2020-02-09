@@ -53,6 +53,17 @@ Configure environment variables for Open Enclave SDK for Linux:
 
    source /opt/openenclave/share/openenclave/openenclaverc
 
+Make sure the Intel SGX driver is running:
+
+.. code-block:: bash
+
+   lsmod | grep intel_sgx
+
+Also ensure that the driver is enabled to automatically start across system reboots. If you use an Azure Confidential Compute VM, then the following works:
+
+.. code-block:: bash
+
+   systemctl enable intel-sgx-load-module
 
 **************************************
 Installing Secure XGBoost Dependencies 
@@ -60,15 +71,15 @@ Installing Secure XGBoost Dependencies
 
 .. code-block:: bash
 
-   sudo apt-get install -y libmbedtls-dev python3-pip
-   pip3 install numpy pandas sklearn numproto grpcio grpcio-tools kubernetes   
+sudo apt-get install -y libmbedtls-dev python3-pip
+pip3 install numpy pandas sklearn numproto grpcio grpcio-tools kubernetes   
 
 Install cmake >= v3.11. E.g., the following commands install cmake v3.15.6.
 
 .. code-block:: bash
 
-   wget https://github.com/Kitware/CMake/releases/download/v3.15.6/cmake-3.15.6-Linux-x86_64.sh
-   sudo bash cmake-3.15.6-Linux-x86_64.sh --skip-license --prefix=/usr/local
+wget https://github.com/Kitware/CMake/releases/download/v3.15.6/cmake-3.15.6-Linux-x86_64.sh
+sudo bash cmake-3.15.6-Linux-x86_64.sh --skip-license --prefix=/usr/local
 
 ***************************
 Building the Shared Library
@@ -78,67 +89,67 @@ Our goal is to build the shared library:
 
 - On Linux the target library is ``libxgboost.so``
 
-The minimal building requirement is
+  The minimal building requirement is
 
-- A recent C++ compiler supporting C++11 (g++-4.8 or higher)
-- CMake 3.11 or higher
+  - A recent C++ compiler supporting C++11 (g++-4.8 or higher)
+    - CMake 3.11 or higher
 
-Building on Ubuntu
-==================
+    Building on Ubuntu
+    ==================
 
-On Ubuntu, one builds XGBoost by running CMake:
+    On Ubuntu, one builds XGBoost by running CMake:
 
-.. code-block:: bash
-   
-   git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git
-   cd secure-xgboost
-   mkdir -p build
+    .. code-block:: bash
 
-   pushd build
-   cmake ..
-   make -j4
-   popd
+ git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git
+ cd secure-xgboost
+ mkdir -p build
 
-   mkdir enclave/build
-   pushd enclave/build
-   cmake ..
-   make -j4
-   popd
+ pushd build
+ cmake ..
+ make -j4
+ popd
 
-Python Package Installation
-===========================
+ mkdir enclave/build
+ pushd enclave/build
+ cmake ..
+ make -j4
+ popd
 
-The Python package is located at ``python-package/``.
+ Python Package Installation
+ ===========================
 
-1. Install system-wide, which requires root permission:
+ The Python package is located at ``python-package/``.
 
-.. code-block:: bash
+ 1. Install system-wide, which requires root permission:
+
+ .. code-block:: bash
 
   cd python-package; sudo python3 setup.py install
 
-.. note:: Re-compiling Secure XGBoost
+  .. note:: Re-compiling Secure XGBoost
 
   If you recompiled Secure XGBoost, then you need to reinstall it again to make the new library take effect.
 
-2. Set the environment variable ``PYTHONPATH`` to tell Python where to find
-   the RPC library. For example, assume we cloned ``secure-xgboost`` on the home directory
-   ``~``. then we can added the following line in ``~/.bashrc``.
+  2. Set the environment variable ``PYTHONPATH`` to tell Python where to find
+       the RPC library. For example, assume we cloned ``secure-xgboost`` on the home directory
+       ``~``. then we can added the following line in ``~/.bashrc``.
 
-.. code-block:: bash
+  .. code-block:: bash
 
    export PYTHONPATH=~/secure-xgboost/rpc
 
 
-Trouble Shooting
-================
+   Troubleshooting
+   ================
 
-1. Compile failed after ``git pull``
+   1. Compile failed after ``git pull``
 
    Please first update the submodules, clean all and recompile:
 
    .. code-block:: bash
 
-     git submodule update && make clean_all && make -j4
+git submodule update && make clean_all && make -j4
 
 2. ``Makefile: dmlc-core/make/dmlc.mk: No such file or directory``
 
@@ -146,11 +157,11 @@ Trouble Shooting
 
    .. code-block:: bash
 
-     git submodule init
-     git submodule update
+git submodule init
+git submodule update
 
-   Alternatively, do another clone
+Alternatively, do another clone
 
-   .. code-block:: bash
-      
-      git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git
+.. code-block:: bash
+
+git clone -b hackathon --recursive https://github.com/mc2-project/secure-xgboost.git
