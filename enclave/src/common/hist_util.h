@@ -93,9 +93,13 @@ struct HistCutMatrix {
   std::vector<uint32_t> row_ptr;
   /*! \brief minimum value of each feature */
   std::vector<bst_float> min_val;
+  // TODO: we need to add padding to make |cut| oblivious for each row.
+  // If |cut| is oblivious, then |row_ptr| is oblivious too.
   /*! \brief the cut field */
   std::vector<bst_float> cut;
   uint32_t GetBinIdx(const Entry &e);
+  uint32_t OGetBinIdx(const Entry &e);
+  uint32_t RawGetBinIdx(const Entry &e);
 
   using WXQSketch = common::WXQuantileSketch<bst_float, bst_float>;
 
@@ -132,6 +136,7 @@ using GHistIndexRow = Span<uint32_t const>;
  *  This is a global histogram index.
  */
 struct GHistIndexMatrix {
+  // TODO: add padding here to make sparsity oblivious ?
   /*! \brief row pointer to rows by element position */
   std::vector<size_t> row_ptr;
   /*! \brief The index data */
@@ -222,6 +227,24 @@ class HistCollection {
     return {ptr, nbins_};
   }
 
+  // NOTE: oaccess GradStats between: [start_nid, end_nid), the bin index in one
+  // node is specified by |bid|, the target id is specified by |nid|.
+  tree::GradStats ORead(size_t start_nid, size_t end_nid, size_t target_nid,
+                        size_t bid) const {
+    GHistRow stats_begin = (*this)[start_nid];
+    return ObliviousArrayAccess(stats_begin.data(),
+                                (target_nid - start_nid) * nbins_ + bid,
+                                (end_nid - start_nid) * nbins_);
+  }
+
+  void OWrite(size_t start_nid, size_t end_nid, size_t target_nid,
+                        size_t bid, tree::GradStats stats) const {
+    GHistRow stats_begin = (*this)[start_nid];
+    ObliviousArrayAssign(stats_begin.data(),
+                         (target_nid - start_nid) * nbins_ + bid,
+                         (end_nid - start_nid) * nbins_, stats);
+  }
+
   // have we computed a histogram for i-th node?
   bool RowExists(bst_uint nid) const {
     const uint32_t k_max = std::numeric_limits<uint32_t>::max();
@@ -234,6 +257,19 @@ class HistCollection {
     row_ptr_.clear();
     data_.clear();
   }
+
+  void Init(uint32_t nbins, size_t num_nodes) {
+    Init(nbins);
+    for (size_t idx = 0; idx < num_nodes; ++idx) {
+      AddHistRow(idx);
+    }
+  }
+
+  uint32_t nbins() const {
+    return nbins_;
+  }
+
+  size_t row_ptr_size() const { return row_ptr_.size(); }
 
   // create an empty histogram for i-th node
   void AddHistRow(bst_uint nid) {

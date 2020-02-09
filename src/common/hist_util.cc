@@ -215,6 +215,10 @@ void HistCutMatrix::Init
 }
 
 uint32_t HistCutMatrix::GetBinIdx(const Entry& e) {
+  return ObliviousEnabled() ? OGetBinIdx(e) : RawGetBinIdx(e);
+}
+
+uint32_t HistCutMatrix::RawGetBinIdx(const Entry& e) {
   unsigned fid = e.index;
   auto cbegin = cut.begin() + row_ptr[fid];
   auto cend = cut.begin() + row_ptr[fid + 1];
@@ -224,6 +228,25 @@ uint32_t HistCutMatrix::GetBinIdx(const Entry& e) {
     it = cend - 1;
   }
   uint32_t idx = static_cast<uint32_t>(it - cut.begin());
+  return idx;
+}
+
+// This reveals range for feature values, thus need to be oblivious.
+// Change std::upper_bound to linear.
+uint32_t HistCutMatrix::OGetBinIdx(const Entry& e) {
+  unsigned fid = e.index;
+  auto cbegin = cut.begin() + row_ptr[fid];
+  auto cend = cut.begin() + row_ptr[fid + 1];
+  CHECK(cbegin != cend);
+  uint32_t idx = row_ptr[fid];
+  while (cbegin != cend) {
+    idx += ObliviousChoose(e.fvalue >= *cbegin, 1, 0);
+    cbegin++;
+  }
+  CHECK(idx != row_ptr[fid + 1]);
+  if (ObliviousDebugCheckEnabled()) {
+    CHECK(idx == RawGetBinIdx(e)) << idx << ", expected=" << RawGetBinIdx(e);
+  }
   return idx;
 }
 
@@ -307,6 +330,11 @@ void GHistIndexMatrix::Init(DMatrix* p_fmat, int max_num_bins) {
         index[ibegin + j] = idx;
         ++hit_count_tloc_[tid * nbins + idx];
       }
+      // Sort here is fine due to we only care about what the feature
+      // bins are for this instance as a whole.
+      // This sort helps accelerate |ColumnMatrix::Init|.
+      // This sort just reveals what the input sequences are, which is not
+      // sensitive.
       std::sort(index.begin() + ibegin, index.begin() + iend);
     }
 

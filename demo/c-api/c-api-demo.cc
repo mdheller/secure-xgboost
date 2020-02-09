@@ -48,7 +48,9 @@ int main(int argc, char** argv) {
   }
 
   uint32_t flags = OE_ENCLAVE_FLAG_DEBUG;
+  bool simulate = false;
   if (check_simulate_opt(&argc, argv)) {
+    simulate = true;
     flags |= OE_ENCLAVE_FLAG_SIMULATE;
   }
 
@@ -65,23 +67,42 @@ int main(int argc, char** argv) {
   uint8_t* remote_report = NULL;
   size_t remote_report_size = 0;
 
-  //safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
-  //safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
+  if (!simulate) {
 
-  uint8_t* encrypted_data = (uint8_t*) malloc(1024*sizeof(uint8_t));
-  size_t encrypted_data_size = 1024;
-  uint8_t* signature = (uint8_t*) malloc(1024*sizeof(uint8_t));
-  size_t sig_len;
+    safe_xgboost(get_remote_report_with_pubkey(&pem_key, &key_size, &remote_report, &remote_report_size));
+    safe_xgboost(verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size));
 
-  //safe_xgboost(encrypt_data_with_pk(test_key, KEY_BYTES, pem_key, key_size, encrypted_data, &encrypted_data_size));
-  //safe_xgboost(sign_data("keypair.pem", encrypted_data, encrypted_data_size, signature, &sig_len));
-  //verifySignature("publickey.crt", encrypted_data, encrypted_data_size, signature, sig_len);
+    uint8_t* encrypted_data = (uint8_t*) malloc(1024*sizeof(uint8_t));
+    size_t encrypted_data_size = 1024;
+    uint8_t* signature = (uint8_t*) malloc(1024*sizeof(uint8_t));
+    size_t sig_len;
 
-  // std::string fname1("/root/mc2/code/secure-xgboost/demo/c-api/train.encrypted");
-  std::string fname1("/home/xgb/secure-xgboost/demo/c-api/train.encrypted");
-  //safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
-  std::string fname2("/home/xgb/secure-xgboost/demo/c-api/test.encrypted");
-  //safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+    safe_xgboost(encrypt_data_with_pk(test_key, KEY_BYTES, pem_key, key_size, encrypted_data, &encrypted_data_size));
+    safe_xgboost(sign_data("keypair.pem", encrypted_data, encrypted_data_size, signature, &sig_len));
+    //verifySignature("publickey.crt", encrypted_data, encrypted_data_size, signature, sig_len);
+
+    // std::string fname1("/root/mc2/code/secure-xgboost/demo/c-api/train.encrypted");
+    std::string fname1("/home/xgb/secure-xgboost/demo/c-api/train.encrypted");
+    //safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+    // std::string fname2("/root/mc2/code/secure-xgboost/demo/c-api/test.encrypted");
+    std::string fname2("/home/xgb/secure-xgboost/demo/c-api/test.encrypted");
+    //safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+    safe_xgboost(add_client_key(encrypted_data, encrypted_data_size, signature, sig_len));
+
+  } else {
+
+    uint8_t* encrypted_data = (uint8_t*) malloc(1024*sizeof(uint8_t));
+    size_t encrypted_data_size = 1024;
+    uint8_t* signature = (uint8_t*) malloc(1024*sizeof(uint8_t));
+    size_t sig_len;
+
+    // std::string fname1("/root/mc2/code/secure-xgboost/demo/c-api/train.encrypted");
+    std::string fname1("/home/xgb/secure-xgboost/demo/c-api/train.encrypted");
+    //safe_xgboost(add_client_key((char*)fname1.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+    // std::string fname2("/root/mc2/code/secure-xgboost/demo/c-api/test.encrypted");
+    std::string fname2("/home/xgb/secure-xgboost/demo/c-api/test.encrypted");
+    //safe_xgboost(add_client_key((char*)fname2.c_str(), encrypted_data, encrypted_data_size, signature, sig_len));
+  }
 
 #endif
 
@@ -139,7 +160,7 @@ int main(int argc, char** argv) {
   }
   
   // save model
-  const char* fname = "/home/xgb/secure-xgboost/demo/c-api/demo_model.model";
+  const char* fname = "/root/mc2/code/secure-xgboost/demo/c-api/demo_model.model";
   safe_xgboost(XGBoosterSaveModel(booster, fname));
   std::cout << "Saved model to demo_model.model" << std::endl;
   // load model
@@ -163,18 +184,24 @@ int main(int argc, char** argv) {
 
   // predict
   bst_ulong out_len = 0;
-  const float* out_result = NULL;
+  char* enc_result = NULL;
+  float* out_result = NULL;
   int n_print = 10;
   
-  safe_xgboost(XGBoosterPredict(booster, dtrain, 0, 0, &out_len, &out_result));
-  printf("DONE PREDICTING\n");
+  uint8_t key[32];
+  memset(key, 0, 32);
+  safe_xgboost(XGBoosterPredict(booster, dtrain, 0, 0, &out_len, &enc_result));
+  printf("DONE ENCRYPTED PREDICTIONS\n");
+  safe_xgboost(decrypt_predictions(key, enc_result, out_len, &out_result));
+  printf("DONE DECRYPTING PREDICTIONS\n");
+  printf("n_pred: %d %x\n", out_len, out_result);
   printf("y_pred: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);
   }
   printf("\n");
   
-  safe_xgboost(XGDMatrixGetFloatInfo(dtrain, "label", &out_len, &out_result));
+  safe_xgboost(XGDMatrixGetFloatInfo(dtrain, "label", &out_len, (const float**)&out_result));
   printf("y_test: ");
   for (int i = 0; i < n_print; ++i) {
     printf("%1.4f ", out_result[i]);

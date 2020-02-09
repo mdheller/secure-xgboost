@@ -1,6 +1,9 @@
 #ifndef CRYPTO_H_
 #define CRYPTO_H_
 
+#include <cstring>
+#include <stdio.h>
+
 #include "mbedtls/gcm.h"
 #include <mbedtls/entropy.h>    // mbedtls_entropy_context
 #include <mbedtls/ctr_drbg.h>   // mbedtls_ctr_drbg_context
@@ -9,6 +12,7 @@
 #include <mbedtls/pk.h>
 #include <mbedtls/rsa.h>
 #include <mbedtls/sha256.h>
+#include <mbedtls/x509_crt.h>
 #include <mbedtls/error.h>
 
 #include "mbedtls/gcm.h"
@@ -17,6 +21,7 @@
 #define CIPHER_IV_SIZE  12
 #define CIPHER_TAG_SIZE 16
 #define SHA_DIGEST_SIZE 32
+#define CIPHER_PK_SIZE 512
 
 static int cipher_init(mbedtls_gcm_context* gcm, unsigned char* key) {
   // Initialize GCM context (just makes references valid) - makes the context ready for mbedtls_gcm_setkey()

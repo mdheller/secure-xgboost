@@ -110,11 +110,11 @@ int enclave_XGBoosterLoadModelFromBuffer(BoosterHandle handle, const void* buf, 
   return XGBoosterLoadModelFromBuffer(handle, buf, len);
 }
 
-int enclave_XGBoosterPredict(BoosterHandle handle, DMatrixHandle dmat, int option_mask, unsigned ntree_limit, bst_ulong *len, bst_float **out_result) {
+int enclave_XGBoosterPredict(BoosterHandle handle, DMatrixHandle dmat, int option_mask, unsigned ntree_limit, bst_ulong *len, char **out_result) {
   LOG(DEBUG) << "Ecall: XGBoosterPredict";
   check_enclave_ptr(handle);
   check_enclave_ptr(dmat);
-  return XGBoosterPredict(handle, dmat, option_mask, ntree_limit, len, (const bst_float**) out_result);
+  return XGBoosterPredict(handle, dmat, option_mask, ntree_limit, len, out_result);
 }
 
 int enclave_XGDMatrixGetFloatInfo(const DMatrixHandle handle, const char* field, bst_ulong *out_len, bst_float **out_dptr) {
@@ -193,14 +193,23 @@ int enclave_verify_remote_report_and_set_pubkey(
   return verify_remote_report_and_set_pubkey(pem_key, key_size, remote_report, remote_report_size);
 }
 
+//int enclave_add_client_key(
+//    char* fname,
+//    uint8_t* data,
+//    size_t data_len,
+//    uint8_t* signature,
+//    size_t sig_len) {
+//  fprintf(stdout, "Ecall: add_client_key\n");
+//  return add_client_key(fname, data, data_len, signature, sig_len);
+//}
+
 int enclave_add_client_key(
-    char* fname,
-    uint8_t* data,
-    size_t data_len,
-    uint8_t* signature,
-    size_t sig_len) {
-  fprintf(stdout, "Ecall: add_client_key\n");
-  return add_client_key(fname, data, data_len, signature, sig_len);
+        uint8_t* data,
+        size_t data_len,
+        uint8_t* signature,
+        size_t sig_len) {
+    fprintf(stdout, "Ecall: add_client_key\n");
+    return add_client_key(data, data_len, signature, sig_len);
 }
 
 // FIXME: check bounds

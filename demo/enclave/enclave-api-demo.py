@@ -8,9 +8,8 @@ print("Creating enclave")
 
 HOME_DIR = os.getcwd() + "/../../"
 # Uncomment below for enclave simulation mode
-#  enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
-#  enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
-enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
+enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+# enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 
 # Remote Attestation
 # print("Remote attestation")
@@ -19,7 +18,6 @@ enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.si
 
 print("Creating training matrix")
 dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
-print(dtrain.num_col())
 
 print("Creating test matrix")
 dtest = xgb.DMatrix(HOME_DIR + "demo/c-api/test.encrypted", encrypted=True) 
@@ -37,7 +35,7 @@ params = {
         "min_child_weight": "1",
         "gamma": "0.1",
         "max_depth": "3",
-        "verbosity": "3" 
+        "verbosity": "1" 
 }
 booster.set_param(params)
 print("All parameters set")
@@ -54,5 +52,3 @@ print("\n\nModel Predictions: ")
 print(booster.predict(dtest)[:20])
 print("\n\nTrue Labels: ")
 print(dtest.get_label()[:20])
-
-print(booster.attributes())
