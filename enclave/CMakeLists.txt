@@ -5,6 +5,7 @@ set(RABIT_SOURCES
     rabit/src/allreduce_base.cc
     rabit/src/allreduce_robust.cc 
     rabit/src/ssl_socket.cc 
+    rabit/src/ssl_attestation.cc 
     rabit/src/engine.cc
     rabit/src/c_api.cc)
 file(GLOB_RECURSE CPU_SOURCES dmlc-core/*.cc src/*.cc)
@@ -167,14 +168,14 @@ target_link_libraries(xgboost_enclave openenclave::oeenclave openenclave::oelibc
 
 
 # Generate key
-add_custom_command(OUTPUT private.pem public.pem
-	COMMAND openssl genrsa -out private.pem -3 3072
-	COMMAND openssl rsa -in private.pem -pubout -out public.pem)
+# add_custom_command(OUTPUT private.pem public.pem
+#     COMMAND openssl genrsa -out private.pem -3 3072
+#     COMMAND openssl rsa -in private.pem -pubout -out public.pem)
 
 # Sign enclave
 add_custom_command(OUTPUT xgboost_enclave.signed
 	DEPENDS xgboost_enclave xgboost.conf private.pem
-	COMMAND openenclave::oesign sign -e $<TARGET_FILE:xgboost_enclave> -c ${CMAKE_SOURCE_DIR}/xgboost.conf -k private.pem)
+    COMMAND openenclave::oesign sign -e $<TARGET_FILE:xgboost_enclave> -c ${CMAKE_SOURCE_DIR}/xgboost.conf -k ${CMAKE_SOURCE_DIR}/private.pem)
 
 # Dump enclave info
 add_custom_command(OUTPUT xgboost_enclave.info

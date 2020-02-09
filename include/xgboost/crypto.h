@@ -1,6 +1,8 @@
 #ifndef CRYPTO_H_
 #define CRYPTO_H_
 
+#include <cstring>
+
 #include "mbedtls/gcm.h"
 #include <mbedtls/entropy.h>    // mbedtls_entropy_context
 #include <mbedtls/ctr_drbg.h>   // mbedtls_ctr_drbg_context
