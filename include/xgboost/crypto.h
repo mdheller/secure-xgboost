@@ -2,6 +2,7 @@
 #define CRYPTO_H_
 
 #include <cstring>
+#include <stdio.h>
 
 #include "mbedtls/gcm.h"
 #include <mbedtls/entropy.h>    // mbedtls_entropy_context

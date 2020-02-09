@@ -27,6 +27,7 @@
 #include <openenclave/host.h>
 #include "xgboost_u.h"
 #include <xgboost/crypto.h>
+#include <xgboost/attestation.h>
 #include "../../enclave/enclave.h"
 #endif
 
@@ -1319,6 +1320,94 @@ XGB_DLL int get_remote_report_with_pubkey(
   enclave_get_remote_report_with_pubkey(Enclave::getInstance().getEnclave(), &Enclave::getInstance().enclave_ret, pem_key, key_size, remote_report, remote_report_size);
   return Enclave::getInstance().enclave_ret;
 }
+
+bool verify_mrsigner(
+    char* siging_public_key_buf,
+    size_t siging_public_key_buf_size,
+    uint8_t* signer_id_buf,
+    size_t signer_id_buf_size) {
+  mbedtls_pk_context ctx;
+  mbedtls_pk_type_t pk_type;
+  mbedtls_rsa_context* rsa_ctx = NULL;
+  uint8_t* modulus = NULL;
+  size_t modulus_size = 0;
+  int res = 0;
+  bool ret = false;
+  unsigned char* signer = NULL;
+
+  signer = (unsigned char*)malloc(signer_id_buf_size);
+  if (signer == NULL) {
+    printf("Out of memory\n");
+    goto exit;
+  }
+
+  mbedtls_pk_init(&ctx);
+  res = mbedtls_pk_parse_public_key(
+      &ctx,
+      (const unsigned char*)siging_public_key_buf,
+      siging_public_key_buf_size);
+  if (res != 0) {
+    printf("mbedtls_pk_parse_public_key failed with %d\n", res);
+    goto exit;
+  }
+
+  pk_type = mbedtls_pk_get_type(&ctx);
+  if (pk_type != MBEDTLS_PK_RSA) {
+    printf("mbedtls_pk_get_type had incorrect type: %d\n", res);
+    goto exit;
+  }
+
+  rsa_ctx = mbedtls_pk_rsa(ctx);
+  modulus_size = mbedtls_rsa_get_len(rsa_ctx);
+  modulus = (uint8_t*)malloc(modulus_size);
+  if (modulus == NULL) {
+    printf("malloc for modulus failed with size %zu:\n", modulus_size);
+    goto exit;
+  }
+
+  res = mbedtls_rsa_export_raw(
+      rsa_ctx, modulus, modulus_size, NULL, 0, NULL, 0, NULL, 0, NULL, 0);
+  if (res != 0) {
+    printf("mbedtls_rsa_export failed with %d\n", res);
+    goto exit;
+  }
+
+  // Reverse the modulus and compute sha256 on it.
+  for (size_t i = 0; i < modulus_size / 2; i++) {
+    uint8_t tmp = modulus[i];
+    modulus[i] = modulus[modulus_size - 1 - i];
+    modulus[modulus_size - 1 - i] = tmp;
+  }
+
+  // Calculate the MRSIGNER value which is the SHA256 hash of the
+  // little endian representation of the public key modulus. This value
+  // is populated by the signer_id sub-field of a parsed oe_report_t's
+  // identity field.
+  if (compute_sha256(modulus, modulus_size, signer) != 0) {
+    goto exit;
+  }
+
+  if (memcmp(signer, signer_id_buf, signer_id_buf_size) != 0) {
+    printf("mrsigner is not equal!\n");
+    for (int i = 0; i < signer_id_buf_size; i++) {
+      printf(
+          "0x%x - 0x%x\n", (uint8_t)signer[i], (uint8_t)signer_id_buf[i]);
+    }
+    goto exit;
+  }
+
+  ret = true;
+
+exit:
+  if (signer)
+    free(signer);
+
+  if (modulus != NULL)
+    free(modulus);
+
+  mbedtls_pk_free(&ctx);
+  return ret;
+}
 /**
  * Attest the given remote report and accompanying data. It consists of the
  * following three steps:
@@ -1347,62 +1436,50 @@ bool attest_remote_report(
   // Verify the remote report to ensure its authenticity.
   result = oe_verify_report(NULL, remote_report, remote_report_size, &parsed_report);
   if (result != OE_OK) {
-    std::cout << "oe_verify_report failed " << oe_result_str(result);
-    exit(1);
+    std::cout << "oe_verify_report failed " << oe_result_str(result) << std::endl;
+    goto exit;
   }
 
   // 2) validate the enclave identity's signed_id is the hash of the public
   // signing key that was used to sign an enclave. Check that the enclave was
   // signed by an trusted entity.
-  // FIXME Enable this check
-  /*if (memcmp(parsed_report.identity.signer_id, m_enclave_mrsigner, 32) != 0) {
-    LOG(FATAL) << "identity.signer_id checking failed."
-
-    std::cout<< "identity.signer_id " << parsed_report.identity.signer_id;
-
-    for (int i = 0; i < 32; i++) {
-    TRACE_ENCLAVE(
-    "m_enclave_mrsigner[%d]=0x%0x\n",
-    i,
-    (uint8_t)m_enclave_mrsigner[i]);
-    }
-
-    TRACE_ENCLAVE("\n\n\n");
-
-    for (int i = 0; i < 32; i++)
-    {
-    TRACE_ENCLAVE(
-    "parsedReport.identity.signer_id)[%d]=0x%0x\n",
-    i,
-    (uint8_t)parsed_report.identity.signer_id[i]);
-    }
-    TRACE_ENCLAVE("m_enclave_mrsigner %s", m_enclave_mrsigner);
+  if (!verify_mrsigner(
+        (char*)ENCLAVE_PUBLIC_KEY,
+        sizeof(ENCLAVE_PUBLIC_KEY),
+        parsed_report.identity.signer_id,
+        sizeof(parsed_report.identity.signer_id))) {
+    std::cout << "failed:mrsigner not equal!" << std::endl;
     goto exit;
-    }*/
+  }
 
-  // FIXME add verification for MRENCLAVE
+  //FIXME add verification for mrenclave
 
-  // Check the enclave's product id and security version
-  // See enc.conf for values specified when signing the enclave.
+  // check the enclave's product id and security version
+  // see enc.conf for values specified when signing the enclave.
   if (parsed_report.identity.product_id[0] != 1) {
     std::cout << "identity.product_id checking failed." << std::endl;
+    goto exit;
   }
 
   if (parsed_report.identity.security_version < 1) {
     std::cout << "identity.security_version checking failed." << std::endl;
+    goto exit;
   }
 
   // 3) Validate the report data
   //    The report_data has the hash value of the report data
   if (compute_sha256(data, data_size, sha256) != 0) {
     std::cout << "hash validation failed." << std::endl;
+    goto exit;
   }
 
   if (memcmp(parsed_report.report_data, sha256, sizeof(sha256)) != 0) {
     std::cout << "SHA256 mismatch." << std::endl;
+    goto exit;
   }
   ret = true;
   std::cout << "remote attestation succeeded." << std::endl;
+exit:
   return ret;
 }
 

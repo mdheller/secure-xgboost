@@ -1,7 +1,6 @@
 #ifndef RABIT_TLS_SOCKET_H_
 #define RABIT_TLS_SOCKET_H_
 
-
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/certs.h"
