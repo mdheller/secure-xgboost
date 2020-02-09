@@ -1,4 +1,5 @@
 #include "ssl_socket.h"
+#include "ssl_attestation.h"
 #include "../include/dmlc/logging.h"
 #include "certs.h"
 
@@ -9,6 +10,10 @@ namespace {}  // namespace
 
 bool SSLTcpSocket::ConfigureClientSSL() {
   int ret;
+  mbedtls_x509_crt_init(&srvcert);
+  mbedtls_x509_crt_init(&cachain);
+  mbedtls_pk_init( &pkey );
+
   if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0)) != 0) {
     print_err(ret);
     return false;
@@ -23,8 +28,22 @@ bool SSLTcpSocket::ConfigureClientSSL() {
     return false;
   }
 
-  // FIXME add certificate auth (currently not verifying) 
+#if false // FIXME For testing on non-SGX platform; wrap within `SIMULATION_MODE` macro
   mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
+#else
+  oe_result_t result = generate_certificate_and_pkey(&srvcert, &pkey);
+  if (result != OE_OK) {
+      printf("Generate cert failed with %s\n", oe_result_str(result));
+      return false;
+  }
+  mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+  mbedtls_ssl_conf_verify(&conf, cert_verify_callback, NULL);
+
+  if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
+      print_err(ret);
+      return false;
+  }
+#endif
   mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
   mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
 
@@ -50,7 +69,7 @@ bool SSLTcpSocket::ConfigureServerSSL() {
     return false;
   }
 
-  // FIXME currently using inbuilt certs / key
+#if false // FIXME Inbuilt certs for testing on non-SGX platform; wrap within `SIMULATION_MODE` macro
   if ((ret = mbedtls_x509_crt_parse( &srvcert, (const unsigned char *) mbedtls_test_srv_crt_ec, mbedtls_test_srv_crt_ec_len)) != 0) {
     print_err(ret);
     return false;
@@ -65,6 +84,17 @@ bool SSLTcpSocket::ConfigureServerSSL() {
   }
 
   mbedtls_ssl_conf_ca_chain(&conf, &cachain, NULL);
+#else
+  oe_result_t result = generate_certificate_and_pkey(&srvcert, &pkey);
+  if (result != OE_OK) {
+      printf("Generate cert failed with %s\n", oe_result_str(result));
+      return false;
+  }
+  mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+  mbedtls_ssl_conf_verify(&conf, cert_verify_callback, NULL);
+
+#endif
+  mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
   if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
     print_err(ret);
     return false;
