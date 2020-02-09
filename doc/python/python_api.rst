@@ -8,22 +8,29 @@ This page gives the Python API reference of xgboost, please also refer to Python
 
 Core Data Structure
 -------------------
-.. automodule:: xgboost.core
+.. automodule:: securexgboost.core
 
-.. autoclass:: xgboost.DMatrix
+.. autoclass:: securexgboost.DMatrix
     :members:
     :show-inheritance:
 
-.. autoclass:: xgboost.Booster
+.. autoclass:: securexgboost.Booster
     :members:
     :show-inheritance:
 
+.. autoclass:: securexgboost.Enclave
+    :members:
+    :show-inheritance:
 
-.. Learning API
-.. ------------
-.. .. automodule:: xgboost.training
-.. 
-.. .. autofunction:: xgboost.train
+.. autoclass:: securexgboost.CryptoUtils
+    :members:
+    :show-inheritance:
+
+Learning API
+------------
+.. automodule:: securexgboost.training
+
+.. autofunction:: securexgboost.train
 .. 
 .. .. autofunction:: xgboost.cv
 .. 

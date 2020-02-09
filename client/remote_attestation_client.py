@@ -9,7 +9,7 @@ import base64
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 
-import xgboost as xgb
+import securexgboost as xgb
 import argparse
 
 def run(channel_addr, train_fname, train_sym_key_path, test_fname, test_sym_key_path, keypair):

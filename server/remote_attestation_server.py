@@ -20,7 +20,7 @@ import grpc
 
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
-import xgboost as xgb
+import securexgboost as xgb
 
 def xgb_load_train_predict():
     """

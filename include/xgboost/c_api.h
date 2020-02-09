@@ -669,10 +669,15 @@ XGB_DLL int sign_data(
     size_t* sig_len);
 
 XGB_DLL int decrypt_predictions(
-    uint8_t* key,
+    char* key,
     char* encrypted_preds,
     size_t preds_len,
     bst_float** preds);
+
+XGB_DLL int encryptFile(
+    char* fname,
+    char* e_fname,
+    char* k_fname);
 #endif // __SGX__ && __ENCLAVE__
 
 #if defined(__SGX__) && defined(__HOST__)

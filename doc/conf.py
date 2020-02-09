@@ -58,14 +58,14 @@ for mod_name in MOCK_MODULES:
 # General information about the project.
 project = u'Secure XGBoost'
 author = u'%s developers' % project
-copyright = u'2016, %s' % author
-github_doc_root = 'https://github.com/dmlc/xgboost/tree/master/doc/'
+copyright = u'2020, %s' % author
+github_doc_root = 'https://github.com/mc2-project/secure-xgboost/tree/hackathon/doc'
 
 os.environ['XGBOOST_BUILD_DOC'] = '1'
 # Version information.
-import xgboost
-version = xgboost.__version__
-release = xgboost.__version__
+import securexgboost
+version = securexgboost.__version__
+release = securexgboost.__version__
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones

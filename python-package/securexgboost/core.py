@@ -574,120 +574,120 @@ class DMatrix(object):
             _check_call(_LIB.XGDMatrixFree(self.handle))
             self.handle = None
 
-    def get_float_info(self, field):
-        """Get float property from the DMatrix.
-
-        Parameters
-        ----------
-        field: str
-            The field name of the information
-
-        Returns
-        -------
-        info : array
-            a numpy array of float information of the data
-        """
-        length = c_bst_ulong()
-        ret = ctypes.POINTER(ctypes.c_float)()
-        _check_call(_LIB.XGDMatrixGetFloatInfo(self.handle,
-                                               c_str(field),
-                                               ctypes.byref(length),
-                                               ctypes.byref(ret)))
-                                  
-        return ctypes2numpy(ret, length.value, np.float32)
-
-    def get_uint_info(self, field):
-        """Get unsigned integer property from the DMatrix.
-
-        Parameters
-        ----------
-        field: str
-            The field name of the information
-
-        Returns
-        -------
-        info : array
-            a numpy array of unsigned integer information of the data
-        """
-        length = c_bst_ulong()
-        ret = ctypes.POINTER(ctypes.c_uint)()
-        _check_call(_LIB.XGDMatrixGetUIntInfo(self.handle,
-                                              c_str(field),
-                                              ctypes.byref(length),
-                                              ctypes.byref(ret)))
-        return ctypes2numpy(ret, length.value, np.uint32)
-
-    def set_float_info(self, field, data):
-        """Set float type property into the DMatrix.
-
-        Parameters
-        ----------
-        field: str
-            The field name of the information
-
-        data: numpy array
-            The array of data to be set
-        """
-        if getattr(data, 'base', None) is not None and \
-           data.base is not None and isinstance(data, np.ndarray) \
-           and isinstance(data.base, np.ndarray) and (not data.flags.c_contiguous):
-            self.set_float_info_npy2d(field, data)
-            return
-        c_data = c_array(ctypes.c_float, data)
-        _check_call(_LIB.XGDMatrixSetFloatInfo(self.handle,
-                                               c_str(field),
-                                               c_data,
-                                               c_bst_ulong(len(data))))
-
-    def set_float_info_npy2d(self, field, data):
-        """Set float type property into the DMatrix
-           for numpy 2d array input
-
-        Parameters
-        ----------
-        field: str
-            The field name of the information
-
-        data: numpy array
-            The array of data to be set
-        """
-        if getattr(data, 'base', None) is not None and \
-           data.base is not None and isinstance(data, np.ndarray) \
-           and isinstance(data.base, np.ndarray) and (not data.flags.c_contiguous):
-            warnings.warn("Use subset (sliced data) of np.ndarray is not recommended " +
-                          "because it will generate extra copies and increase memory consumption")
-            data = np.array(data, copy=True, dtype=np.float32)
-        else:
-            data = np.array(data, copy=False, dtype=np.float32)
-        c_data = data.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-        _check_call(_LIB.XGDMatrixSetFloatInfo(self.handle,
-                                               c_str(field),
-                                               c_data,
-                                               c_bst_ulong(len(data))))
-
-    def set_uint_info(self, field, data):
-        """Set uint type property into the DMatrix.
-
-        Parameters
-        ----------
-        field: str
-            The field name of the information
-
-        data: numpy array
-            The array of data to be set
-        """
-        if getattr(data, 'base', None) is not None and \
-           data.base is not None and isinstance(data, np.ndarray) \
-           and isinstance(data.base, np.ndarray) and (not data.flags.c_contiguous):
-            warnings.warn("Use subset (sliced data) of np.ndarray is not recommended " +
-                          "because it will generate extra copies and increase memory consumption")
-            data = np.array(data, copy=True, dtype=ctypes.c_uint)
-        else:
-            data = np.array(data, copy=False, dtype=ctypes.c_uint)
-        _check_call(_LIB.XGDMatrixSetUIntInfo(self.handle,
-                                              c_str(field),
-                                              c_array(ctypes.c_uint, data),
-                                              c_bst_ulong(len(data))))
+    #  def get_float_info(self, field):
+        #  """Get float property from the DMatrix.
+#  
+        #  Parameters
+        #  ----------
+        #  field: str
+            #  The field name of the information
+#  
+        #  Returns
+        #  -------
+        #  info : array
+            #  a numpy array of float information of the data
+        #  """
+        #  length = c_bst_ulong()
+        #  ret = ctypes.POINTER(ctypes.c_float)()
+        #  _check_call(_LIB.XGDMatrixGetFloatInfo(self.handle,
+                                               #  c_str(field),
+                                               #  ctypes.byref(length),
+                                               #  ctypes.byref(ret)))
+                                  #  
+        #  return ctypes2numpy(ret, length.value, np.float32)
+#  
+    #  def get_uint_info(self, field):
+        #  """Get unsigned integer property from the DMatrix.
+#  
+        #  Parameters
+        #  ----------
+        #  field: str
+            #  The field name of the information
+#  
+        #  Returns
+        #  -------
+        #  info : array
+            #  a numpy array of unsigned integer information of the data
+        #  """
+        #  length = c_bst_ulong()
+        #  ret = ctypes.POINTER(ctypes.c_uint)()
+        #  _check_call(_LIB.XGDMatrixGetUIntInfo(self.handle,
+                                              #  c_str(field),
+                                              #  ctypes.byref(length),
+                                              #  ctypes.byref(ret)))
+        #  return ctypes2numpy(ret, length.value, np.uint32)
+#  
+    #  def set_float_info(self, field, data):
+        #  """Set float type property into the DMatrix.
+#  
+        #  Parameters
+        #  ----------
+        #  field: str
+            #  The field name of the information
+#  
+        #  data: numpy array
+            #  The array of data to be set
+        #  """
+        #  if getattr(data, 'base', None) is not None and \
+           #  data.base is not None and isinstance(data, np.ndarray) \
+           #  and isinstance(data.base, np.ndarray) and (not data.flags.c_contiguous):
+            #  self.set_float_info_npy2d(field, data)
+            #  return
+        #  c_data = c_array(ctypes.c_float, data)
+        #  _check_call(_LIB.XGDMatrixSetFloatInfo(self.handle,
+                                               #  c_str(field),
+                                               #  c_data,
+                                               #  c_bst_ulong(len(data))))
+#  
+    #  def set_float_info_npy2d(self, field, data):
+        #  """Set float type property into the DMatrix
+           #  for numpy 2d array input
+#  
+        #  Parameters
+        #  ----------
+        #  field: str
+            #  The field name of the information
+#  
+        #  data: numpy array
+            #  The array of data to be set
+        #  """
+        #  if getattr(data, 'base', None) is not None and \
+           #  data.base is not None and isinstance(data, np.ndarray) \
+           #  and isinstance(data.base, np.ndarray) and (not data.flags.c_contiguous):
+            #  warnings.warn("Use subset (sliced data) of np.ndarray is not recommended " +
+                          #  "because it will generate extra copies and increase memory consumption")
+            #  data = np.array(data, copy=True, dtype=np.float32)
+        #  else:
+            #  data = np.array(data, copy=False, dtype=np.float32)
+        #  c_data = data.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+        #  _check_call(_LIB.XGDMatrixSetFloatInfo(self.handle,
+                                               #  c_str(field),
+                                               #  c_data,
+                                               #  c_bst_ulong(len(data))))
+#  
+    #  def set_uint_info(self, field, data):
+        #  """Set uint type property into the DMatrix.
+#  
+        #  Parameters
+        #  ----------
+        #  field: str
+            #  The field name of the information
+#  
+        #  data: numpy array
+            #  The array of data to be set
+        #  """
+        #  if getattr(data, 'base', None) is not None and \
+           #  data.base is not None and isinstance(data, np.ndarray) \
+           #  and isinstance(data.base, np.ndarray) and (not data.flags.c_contiguous):
+            #  warnings.warn("Use subset (sliced data) of np.ndarray is not recommended " +
+                          #  "because it will generate extra copies and increase memory consumption")
+            #  data = np.array(data, copy=True, dtype=ctypes.c_uint)
+        #  else:
+            #  data = np.array(data, copy=False, dtype=ctypes.c_uint)
+        #  _check_call(_LIB.XGDMatrixSetUIntInfo(self.handle,
+                                              #  c_str(field),
+                                              #  c_array(ctypes.c_uint, data),
+                                              #  c_bst_ulong(len(data))))
 
     #  def save_binary(self, fname, silent=True):
         #  """Save DMatrix to an XGBoost buffer.  Saved binary can be later loaded
@@ -704,77 +704,77 @@ class DMatrix(object):
                                              #  c_str(fname),
                                              #  ctypes.c_int(silent)))
 
-    def set_label(self, label):
-        """Set label of dmatrix
-
-        Parameters
-        ----------
-        label: array like
-            The label information to be set into DMatrix
-        """
-        self.set_float_info('label', label)
-
-    def set_label_npy2d(self, label):
-        """Set label of dmatrix
-
-        Parameters
-        ----------
-        label: array like
-            The label information to be set into DMatrix
-            from numpy 2D array
-        """
-        self.set_float_info_npy2d('label', label)
-
-    def set_weight(self, weight):
-        """ Set weight of each instance.
-
-        Parameters
-        ----------
-        weight : array like
-            Weight for each data point
-
-            .. note:: For ranking task, weights are per-group.
-
-                In ranking task, one weight is assigned to each group (not each data
-                point). This is because we only care about the relative ordering of
-                data points within each group, so it doesn't make sense to assign
-                weights to individual data points.
-        """
-        self.set_float_info('weight', weight)
-
-    def set_weight_npy2d(self, weight):
-        """ Set weight of each instance
-            for numpy 2D array
-
-        Parameters
-        ----------
-        weight : array like
-            Weight for each data point in numpy 2D array
-
-            .. note:: For ranking task, weights are per-group.
-
-                In ranking task, one weight is assigned to each group (not each data
-                point). This is because we only care about the relative ordering of
-                data points within each group, so it doesn't make sense to assign
-                weights to individual data points.
-        """
-        self.set_float_info_npy2d('weight', weight)
-
-    def set_base_margin(self, margin):
-        """ Set base margin of booster to start from.
-
-        This can be used to specify a prediction value of
-        existing model to be base_margin
-        However, remember margin is needed, instead of transformed prediction
-        e.g. for logistic regression: need to put in value before logistic transformation
-        see also example/demo.py
-
-        Parameters
-        ----------
-        margin: array like
-            Prediction margin of each datapoint
-        """
-        self.set_float_info('base_margin', margin)
+    #  def set_label(self, label):
+        #  """Set label of dmatrix
+#  
+        #  Parameters
+        #  ----------
+        #  label: array like
+            #  The label information to be set into DMatrix
+        #  """
+        #  self.set_float_info('label', label)
+#  
+    #  def set_label_npy2d(self, label):
+        #  """Set label of dmatrix
+#  
+        #  Parameters
+        #  ----------
+        #  label: array like
+            #  The label information to be set into DMatrix
+            #  from numpy 2D array
+        #  """
+        #  self.set_float_info_npy2d('label', label)
+#  
+    #  def set_weight(self, weight):
+        #  """ Set weight of each instance.
+#  
+        #  Parameters
+        #  ----------
+        #  weight : array like
+            #  Weight for each data point
+#  
+            #  .. note:: For ranking task, weights are per-group.
+#  
+                #  In ranking task, one weight is assigned to each group (not each data
+                #  point). This is because we only care about the relative ordering of
+                #  data points within each group, so it doesn't make sense to assign
+                #  weights to individual data points.
+        #  """
+        #  self.set_float_info('weight', weight)
+#  
+    #  def set_weight_npy2d(self, weight):
+        #  """ Set weight of each instance
+            #  for numpy 2D array
+#  
+        #  Parameters
+        #  ----------
+        #  weight : array like
+            #  Weight for each data point in numpy 2D array
+#  
+            #  .. note:: For ranking task, weights are per-group.
+#  
+                #  In ranking task, one weight is assigned to each group (not each data
+                #  point). This is because we only care about the relative ordering of
+                #  data points within each group, so it doesn't make sense to assign
+                #  weights to individual data points.
+        #  """
+        #  self.set_float_info_npy2d('weight', weight)
+#  
+    #  def set_base_margin(self, margin):
+        #  """ Set base margin of booster to start from.
+#  
+        #  This can be used to specify a prediction value of
+        #  existing model to be base_margin
+        #  However, remember margin is needed, instead of transformed prediction
+        #  e.g. for logistic regression: need to put in value before logistic transformation
+        #  see also example/demo.py
+#  
+        #  Parameters
+        #  ----------
+        #  margin: array like
+            #  Prediction margin of each datapoint
+        #  """
+        #  self.set_float_info('base_margin', margin)
 
     #  def set_group(self, group):
         #  """Set group size of DMatrix (used for ranking).
@@ -788,33 +788,33 @@ class DMatrix(object):
                                            #  c_array(ctypes.c_uint, group),
                                            #  c_bst_ulong(len(group))))
 
-    def get_label(self):
-        """Get the label of the DMatrix.
-
-        Returns
-        -------
-        label : array
-        """
-        return self.get_float_info('label')
-
-    def get_weight(self):
-        """Get the weight of the DMatrix.
-
-        Returns
-        -------
-        weight : array
-        """
-        return self.get_float_info('weight')
-
-    def get_base_margin(self):
-        """Get the base margin of the DMatrix.
-
-        Returns
-        -------
-        base_margin : float
-        """
-        return self.get_float_info('base_margin')
-
+    #  def get_label(self):
+        #  """Get the label of the DMatrix.
+#  
+        #  Returns
+        #  -------
+        #  label : array
+        #  """
+        #  return self.get_float_info('label')
+#  
+    #  def get_weight(self):
+        #  """Get the weight of the DMatrix.
+#  
+        #  Returns
+        #  -------
+        #  weight : array
+        #  """
+        #  return self.get_float_info('weight')
+#  
+    #  def get_base_margin(self):
+        #  """Get the base margin of the DMatrix.
+#  
+        #  Returns
+        #  -------
+        #  base_margin : float
+        #  """
+        #  return self.get_float_info('base_margin')
+#  
     def num_row(self):
         """Get the number of rows in the DMatrix.
 
@@ -1004,7 +1004,12 @@ class Enclave(object):
 
         Must be called after get_remote_report_with_pubkey() is called
 
-        Returns pem_key (proto), key_size (int), remote_report (proto), remote_report_size (int)
+        Returns 
+        -------
+        pem_key : proto.NDArray
+        key_size : int
+        remote_report : proto.NDArray
+        remote_report_size : int
         """
         # Convert pem_key to serialized numpy array
         pem_key = ctypes2numpy(self.pem_key, self.key_size.value, np.uint32)
@@ -1027,6 +1032,48 @@ class CryptoUtils(object):
         # FIXME what do we need here?
         pass
 
+    def generate_client_key(self, path_to_key):
+        """
+        Generate a new key and save it to `path_to_key`
+
+        Parameters
+        ----------
+        path_to_key : str
+            path to which key will be saved
+        """
+        KEY_BYTES = 32
+
+        print("Generating client key...")
+        key = os.urandom(KEY_BYTES)
+        with open(path_to_key, "wb") as keyfile:
+            keyfile.write(key)
+
+    def encrypt_file(self, input_file, output_file, key_file):
+        """
+        Encrypt a file
+
+        Parameters
+        ----------
+        input_file : str
+            path to file to be encrypted
+        output_file : str
+            path to which encrypted file will be saved
+        key_file : str
+            path to key used to encrypt file
+        """
+        print("Encrypting file {}".format(input_file))
+
+        input_file_bytes = input_file.encode('utf-8')
+        output_file_bytes = output_file.encode('utf-8')
+        key_file_bytes = key_file.encode('utf-8')
+        
+        # Convert to proper ctypes
+        input_path = ctypes.c_char_p(input_file_bytes)
+        output_path = ctypes.c_char_p(output_file_bytes)
+        key_path = ctypes.c_char_p(key_file_bytes)
+
+        _check_call(_LIB.encryptFile(input_path, output_path, key_path))
+
     def encrypt_data_with_pk(self, data, data_len, pem_key, key_size):
         """
         Parameters
@@ -1036,9 +1083,10 @@ class CryptoUtils(object):
         pem_key : proto 
         key_size : int
 
-        Returns:
-            encrypted_data : proto.NDArray 
-            encrypted_data_size_as_int : int
+        Returns
+        -------
+        encrypted_data : proto.NDArray 
+        encrypted_data_size_as_int : int
         """
         # Cast data to char*
         data = ctypes.c_char_p(data)
@@ -1069,9 +1117,10 @@ class CryptoUtils(object):
         data : proto.NDArray 
         data_size : int 
 
-        Returns:
-            signature : proto.NDArray 
-            sig_len_as_int : int
+        Returns
+        -------
+        signature : proto.NDArray 
+        sig_len_as_int : int
         """
         # Cast the keyfile to a char* 
         keyfile = ctypes.c_char_p(str.encode(keyfile)) 
@@ -1107,9 +1156,6 @@ class CryptoUtils(object):
             signature over data, signed with client private key
         sig_len : int
             length of signature
-
-        Returns:
-            Exit status of add_client_key()
         """
         # # Cast fname to a char*
         # fname = ctypes.c_char_p(str.encode(fname))
@@ -1123,7 +1169,37 @@ class CryptoUtils(object):
         sig_len = ctypes.c_size_t(sig_len)
 
         # Add client key
-        return _check_call(_LIB.add_client_key(data, data_len, signature, sig_len))
+        _LIB.add_client_key(data, data_len, signature, sig_len)
+
+    def decrypt_predictions(self, key, encrypted_preds, num_preds):
+        """
+        Decrypt encrypted predictions
+
+        Parameters
+        ----------
+        key : byte array
+            key used to encrypt client files
+        encrypted_preds : c_char_p
+            encrypted predictions
+        num_preds : int
+            number of predictions
+
+        Returns
+        -------
+        preds : numpy array
+            plaintext predictions
+        """
+        # Cast arguments to proper ctypes
+        c_char_p_key = ctypes.c_char_p(key)
+        size_t_num_preds = ctypes.c_size_t(num_preds)
+
+        preds = ctypes.POINTER(ctypes.c_float)()
+
+        _check_call(_LIB.decrypt_predictions(c_char_p_key, encrypted_preds, size_t_num_preds, ctypes.byref(preds)))
+
+        # Convert c pointer to numpy array
+        preds = ctypes2numpy(preds, num_preds, np.float32)
+        return preds
 
 
 class Booster(object):
@@ -1203,15 +1279,15 @@ class Booster(object):
     def __deepcopy__(self, _):
         return Booster(model_file=self.save_raw())
 
-    def copy(self):
-        """Copy the booster object.
-
-        Returns
-        -------
-        booster: `Booster`
-            a copied booster model
-        """
-        return self.__copy__()
+    #  def copy(self):
+        #  """Copy the booster object.
+#  
+        #  Returns
+        #  -------
+        #  booster: `Booster`
+            #  a copied booster model
+        #  """
+        #  return self.__copy__()
 
     #  def load_rabit_checkpoint(self):
         #  """Initialize the model by load from rabit checkpoint.
@@ -1326,31 +1402,31 @@ class Booster(object):
             grad, hess = fobj(pred, dtrain)
             self.boost(dtrain, grad, hess)
 
-    def boost(self, dtrain, grad, hess):
-        """Boost the booster for one iteration, with customized gradient
-        statistics.  Like :func:`xgboost.core.Booster.update`, this
-        function should not be called directly by users.
-
-        Parameters
-        ----------
-        dtrain : DMatrix
-            The training DMatrix.
-        grad : list
-            The first order of gradient.
-        hess : list
-            The second order of gradient.
-
-        """
-        if len(grad) != len(hess):
-            raise ValueError('grad / hess length mismatch: {} / {}'.format(len(grad), len(hess)))
-        if not isinstance(dtrain, DMatrix):
-            raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
-        self._validate_features(dtrain)
-
-        _check_call(_LIB.XGBoosterBoostOneIter(self.handle, dtrain.handle,
-                                               c_array(ctypes.c_float, grad),
-                                               c_array(ctypes.c_float, hess),
-                                               c_bst_ulong(len(grad))))
+    #  def boost(self, dtrain, grad, hess):
+        #  """Boost the booster for one iteration, with customized gradient
+        #  statistics.  Like :func:`xgboost.core.Booster.update`, this
+        #  function should not be called directly by users.
+#  
+        #  Parameters
+        #  ----------
+        #  dtrain : DMatrix
+            #  The training DMatrix.
+        #  grad : list
+            #  The first order of gradient.
+        #  hess : list
+            #  The second order of gradient.
+#  
+        #  """
+        #  if len(grad) != len(hess):
+            #  raise ValueError('grad / hess length mismatch: {} / {}'.format(len(grad), len(hess)))
+        #  if not isinstance(dtrain, DMatrix):
+            #  raise TypeError('invalid training matrix: {}'.format(type(dtrain).__name__))
+        #  self._validate_features(dtrain)
+#  
+        #  _check_call(_LIB.XGBoosterBoostOneIter(self.handle, dtrain.handle,
+                                               #  c_array(ctypes.c_float, grad),
+                                               #  c_array(ctypes.c_float, hess),
+                                               #  c_bst_ulong(len(grad))))
 
     def eval_set(self, evals, iteration=0, feval=None):
         # pylint: disable=invalid-name
@@ -1482,6 +1558,7 @@ class Booster(object):
         Returns
         -------
         prediction : numpy array
+        num_preds: number of predictions
         """
         option_mask = 0x00
         if output_margin:
@@ -1499,93 +1576,94 @@ class Booster(object):
             self._validate_features(data)
 
         length = c_bst_ulong()
-        preds = ctypes.POINTER(ctypes.c_float)()
+        #  preds = ctypes.POINTER(ctypes.c_float)()
+        preds = ctypes.c_char_p()
         _check_call(_LIB.XGBoosterPredict(self.handle, data.handle,
                                           ctypes.c_int(option_mask),
                                           ctypes.c_uint(ntree_limit),
                                           ctypes.byref(length),
                                           ctypes.byref(preds)))
                          
-        preds = ctypes2numpy(preds, length.value, np.float32)
-        if pred_leaf:
-            preds = preds.astype(np.int32)
+        #  preds = ctypes2numpy(preds, length.value, np.float32)
+        #  if pred_leaf:
+        #      preds = preds.astype(np.int32)
+        #  
+        #  nrow = data.num_row()
+        #  if preds.size != nrow and preds.size % nrow == 0:
+        #      chunk_size = int(preds.size / nrow)
+        #  
+        #      if pred_interactions:
+        #          ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
+        #          if ngroup == 1:
+        #              preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
+        #          else:
+        #              preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
+        #      elif pred_contribs:
+        #          ngroup = int(chunk_size / (data.num_col() + 1))
+        #          if ngroup == 1:
+        #              preds = preds.reshape(nrow, data.num_col() + 1)
+        #          else:
+        #              preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
+        #      else:
+        #          preds = preds.reshape(nrow, chunk_size)
+        return preds, length.value
 
-        nrow = data.num_row()
-        if preds.size != nrow and preds.size % nrow == 0:
-            chunk_size = int(preds.size / nrow)
-
-            if pred_interactions:
-                ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
-                if ngroup == 1:
-                    preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
-                else:
-                    preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
-            elif pred_contribs:
-                ngroup = int(chunk_size / (data.num_col() + 1))
-                if ngroup == 1:
-                    preds = preds.reshape(nrow, data.num_col() + 1)
-                else:
-                    preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
-            else:
-                preds = preds.reshape(nrow, chunk_size)
-        return preds
-
-    def save_model(self, fname):
-        """
-        Save the model to a file.
-
-        The model is saved in an XGBoost internal binary format which is
-        universal among the various XGBoost interfaces. Auxiliary attributes of
-        the Python Booster object (such as feature_names) will not be saved.
-        To preserve all attributes, pickle the Booster object.
-
-        Parameters
-        ----------
-        fname : string
-            Output file name
-        """
-        if isinstance(fname, STRING_TYPES):  # assume file name
-            _check_call(_LIB.XGBoosterSaveModel(self.handle, c_str(fname)))
-        else:
-            raise TypeError("fname must be a string")
-
-    def save_raw(self):
-        """
-        Save the model to a in memory buffer representation
-
-        Returns
-        -------
-        a in memory buffer representation of the model
-        """
-        length = c_bst_ulong()
-        cptr = ctypes.POINTER(ctypes.c_char)()
-        _check_call(_LIB.XGBoosterGetModelRaw(self.handle,
-                                              ctypes.byref(length),
-                                              ctypes.byref(cptr)))
-        return ctypes2buffer(cptr, length.value)
-
-    def load_model(self, fname):
-        """
-        Load the model from a file.
-
-        The model is loaded from an XGBoost internal binary format which is
-        universal among the various XGBoost interfaces. Auxiliary attributes of
-        the Python Booster object (such as feature_names) will not be loaded.
-        To preserve all attributes, pickle the Booster object.
-
-        Parameters
-        ----------
-        fname : string or a memory buffer
-            Input file name or memory buffer(see also save_raw)
-        """
-        if isinstance(fname, STRING_TYPES):
-            # assume file name, cannot use os.path.exist to check, file can be from URL.
-            _check_call(_LIB.XGBoosterLoadModel(self.handle, c_str(fname)))
-        else:
-            buf = fname
-            length = c_bst_ulong(len(buf))
-            ptr = (ctypes.c_char * len(buf)).from_buffer(buf)
-            _check_call(_LIB.XGBoosterLoadModelFromBuffer(self.handle, ptr, length))
+    #  def save_model(self, fname):
+        #  """
+        #  Save the model to a file.
+#  
+        #  The model is saved in an XGBoost internal binary format which is
+        #  universal among the various XGBoost interfaces. Auxiliary attributes of
+        #  the Python Booster object (such as feature_names) will not be saved.
+        #  To preserve all attributes, pickle the Booster object.
+#  
+        #  Parameters
+        #  ----------
+        #  fname : string
+            #  Output file name
+        #  """
+        #  if isinstance(fname, STRING_TYPES):  # assume file name
+            #  _check_call(_LIB.XGBoosterSaveModel(self.handle, c_str(fname)))
+        #  else:
+            #  raise TypeError("fname must be a string")
+#  
+    #  def save_raw(self):
+        #  """
+        #  Save the model to a in memory buffer representation
+#  
+        #  Returns
+        #  -------
+        #  a in memory buffer representation of the model
+        #  """
+        #  length = c_bst_ulong()
+        #  cptr = ctypes.POINTER(ctypes.c_char)()
+        #  _check_call(_LIB.XGBoosterGetModelRaw(self.handle,
+                                              #  ctypes.byref(length),
+                                              #  ctypes.byref(cptr)))
+        #  return ctypes2buffer(cptr, length.value)
+#  
+    #  def load_model(self, fname):
+        #  """
+        #  Load the model from a file.
+#  
+        #  The model is loaded from an XGBoost internal binary format which is
+        #  universal among the various XGBoost interfaces. Auxiliary attributes of
+        #  the Python Booster object (such as feature_names) will not be loaded.
+        #  To preserve all attributes, pickle the Booster object.
+#  
+        #  Parameters
+        #  ----------
+        #  fname : string or a memory buffer
+            #  Input file name or memory buffer(see also save_raw)
+        #  """
+        #  if isinstance(fname, STRING_TYPES):
+            #  # assume file name, cannot use os.path.exist to check, file can be from URL.
+            #  _check_call(_LIB.XGBoosterLoadModel(self.handle, c_str(fname)))
+        #  else:
+            #  buf = fname
+            #  length = c_bst_ulong(len(buf))
+            #  ptr = (ctypes.c_char * len(buf)).from_buffer(buf)
+            #  _check_call(_LIB.XGBoosterLoadModelFromBuffer(self.handle, ptr, length))
 
 
 # TODO: the commented out functions directly below all rely on get_dump()

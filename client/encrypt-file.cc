@@ -16,12 +16,13 @@
 #define TAG_BYTES 16
 
 // Creates a CSV file with format "IV,tag,encrypt(line)" (base64 encoded) for each line in input file
+// k_fname is the path to the key used for encryption
 void encryptFile(char* fname, char* e_fname, char* k_fname) {
   mbedtls_ctr_drbg_context ctr_drbg;
   mbedtls_entropy_context entropy;
   mbedtls_gcm_context gcm;
 
-  unsigned char key[KEY_BYTES];
+  char key[KEY_BYTES];
   unsigned char iv[IV_BYTES];
   unsigned char tag[TAG_BYTES];
 
@@ -40,21 +41,17 @@ void encryptFile(char* fname, char* e_fname, char* k_fname) {
     printf( "mbedtls_ctr_drbg_seed() failed - returned -0x%04x\n", -ret );
     exit(1);
   }
-  // Extract data for your key, in this case we generate 32 bytes (256 bits) of random data
-  ret = mbedtls_ctr_drbg_random( &ctr_drbg, key, KEY_BYTES );
-  if( ret != 0 ) {
-    printf( "mbedtls_ctr_drbg_random failed to extract key - returned -0x%04x\n", -ret );
-    exit(1);
-  }
 
-  // Set key to test_key for testing
-  // memcpy(key, test_key, KEY_BYTES);
-  memset(key, 0, KEY_BYTES);
+  std::ifstream keyfile;
+  keyfile.open(k_fname);
+
+  keyfile.read(key, KEY_BYTES);
+  keyfile.close();
 
   // Initialize the GCM context with our key and desired cipher
   ret = mbedtls_gcm_setkey(&gcm,                      // GCM context to be initialized
       MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
-      key,                       // encryption key
+      (unsigned char*) key,                       // encryption key
       KEY_BYTES * 8);            // key bits (must be 128, 192, or 256)
   if( ret != 0 ) {
     printf( "mbedtls_gcm_setkey failed to set the key for AES cipher - returned -0x%04x\n", -ret );
@@ -63,10 +60,7 @@ void encryptFile(char* fname, char* e_fname, char* k_fname) {
 
   std::ifstream infile(fname);
   std::ofstream myfile;
-  std::ofstream keyfile;
   myfile.open(e_fname);
-  keyfile.open(k_fname);
-  //myfile.open(e_fname, std::ios::out | std::ios::binary);
 
   std::string line;
   size_t index = 0;
@@ -113,15 +107,14 @@ void encryptFile(char* fname, char* e_fname, char* k_fname) {
       << dmlc::data::base64_encode(encrypted, length) << "\n";
     free(encrypted);
   }
-  keyfile << dmlc::data::base64_encode(key, KEY_BYTES);
   infile.close();
   myfile.close();
-  keyfile.close();
 }
 
 void decryptFile(char* fname, char* d_fname, char* k_fname) {
   mbedtls_gcm_context gcm;
-  unsigned char key[KEY_BYTES];
+  char key[KEY_BYTES];
+
 
   // Initialize GCM context (just makes references valid) - makes the context ready for mbedtls_gcm_setkey()
   mbedtls_gcm_init(&gcm);
@@ -129,29 +122,24 @@ void decryptFile(char* fname, char* d_fname, char* k_fname) {
 
   std::ifstream infile(fname);
   std::ofstream myfile;
-  std::ifstream keyfile(k_fname);
+  // std::ifstream keyfile(k_fname);
   myfile.open(d_fname);
+  std::ifstream keyfile;
 
-
-  std::string line;
-  // std::getline(keyfile, line);
-  // if (dmlc::data::base64_decode(line.c_str(), line.length(), (char*)key) != KEY_BYTES) {
-    // printf("Error reading keyfile\n");
-    // exit(1);
-  // }
-
-  // Set key to 0 for testing
-  memset(key, 0, KEY_BYTES);
+  keyfile.open(k_fname);
+  keyfile.read(key, KEY_BYTES);
+  keyfile.close();
 
   int ret = mbedtls_gcm_setkey(&gcm,                // GCM context to be initialized
       MBEDTLS_CIPHER_ID_AES,                        // cipher to use (a 128-bit block cipher)
-      key,                                          // encryption key
+      (unsigned char*) key,                                          // encryption key
       KEY_BYTES * 8);                               // key bits (must be 128, 192, or 256)
   if( ret != 0 ) {
     printf( "mbedtls_gcm_setkey failed to set the key for AES cipher - returned -0x%04x\n", -ret );
     exit(1);
   }
 
+  std::string line;
   size_t index = 0;
   while (std::getline(infile, line)) {
     const char* data = line.c_str();
@@ -218,7 +206,7 @@ int main(int argc, char** argv) {
     std::cout << "Usage: <input file> <output file> <key file>\n" << "The key is randomly generated";
     exit(1);
   }
-  encryptFile(argv[1], argv[2], argv[3]);
-  // decryptFile(argv[1], argv[2], argv[3]);
+  // encryptFile(argv[1], argv[2], argv[3]);
+  decryptFile(argv[1], argv[2], argv[3]);
   return 0;
 }
