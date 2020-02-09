@@ -53,6 +53,15 @@ Configure environment variables for Open Enclave SDK for Linux:
 
    source /opt/openenclave/share/openenclave/openenclaverc
 
+Make sure the Intel SGX driver is running:
+
+.. code-block:: bash
+   lsmod | grep intel_sgx
+Also ensure that the driver is enabled to automatically start across system reboots. If you use an Azure Confidential Compute VM, then the following works:
+
+.. code-block:: bash
+   systemctl enable intel-sgx-load-module
+
 
 **************************************
 Installing Secure XGBoost Dependencies 
@@ -129,7 +138,7 @@ The Python package is located at ``python-package/``.
    export PYTHONPATH=~/secure-xgboost/rpc
 
 
-Trouble Shooting
+Troubleshooting
 ================
 
 1. Compile failed after ``git pull``
