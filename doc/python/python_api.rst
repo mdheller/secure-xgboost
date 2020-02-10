@@ -1,10 +1,11 @@
 Python API Reference
 ====================
-This page gives the Python API reference of xgboost, please also refer to Python Package Introduction for more information about python package.
+This page gives the Python API reference of Secure XGBoost and supplementary modules.
 
 .. contents::
   :backlinks: none
   :local:
+
 
 Core Data Structure
 -------------------
@@ -72,3 +73,4 @@ Learning API
 .. .. autofunction:: xgboost.callback.reset_learning_rate
 .. 
 .. .. autofunction:: xgboost.callback.early_stop
+
