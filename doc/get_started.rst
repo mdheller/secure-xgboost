@@ -15,16 +15,16 @@ Links to Other Helpful Resources
 Python
 ******
 
-Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo/enclave/enclave-api-demo.py`. 
+Below is a snippet of the full Python demo located at :code:`secure-xgboost/demo/enclave/secure-xgboost-demo.py`. 
 
 .. code-block:: python
 
    import securexgboost as xgb
 
    OE_ENCLAVE_FLAG_DEBUG = 1
-   HOME_DIR = "/home/xgb/secure-xgboost/"
+   HOME_DIR = os.getcwd() + "/../../"
 
-   enclave = xgb.Enclave("/home/xgb/secure-xgboost/enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
+   enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 
    dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
    dtest = xgb.DMatrix(HOME_DIR + "demo/c-api/test.encrypted", encrypted=True) 
