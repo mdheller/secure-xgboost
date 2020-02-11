@@ -27,10 +27,10 @@ def xgb_load_train_predict():
     This code will have been agreed upon by all parties before being run.
     """
     print("Creating training matrix")
-    dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/client/train.encrypted", encrypted=True)
+    dtrain = xgb.DMatrix("/home/xgb/data/train.enc", encrypted=True)
 
     print("Creating test matrix")
-    dtest = xgb.DMatrix("/home/xgb/secure-xgboost/client/test.encrypted", encrypted=True) 
+    dtest = xgb.DMatrix("/home/xgb/data/test.enc", encrypted=True) 
 
     print("Creating Booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
@@ -46,7 +46,7 @@ def xgb_load_train_predict():
             "gamma": "0.1",
             "max_depth": "3",
             "verbosity": "1" 
-            }
+    }
     booster.set_param(params)
     print("All parameters set")
 
