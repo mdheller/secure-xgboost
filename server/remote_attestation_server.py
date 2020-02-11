@@ -151,17 +151,20 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
                 enc_preds, num_preds = xgb_load_train_predict()
                 #  print(enc_preds.value)
                 #  cptr = ctypes.POINTER(ctypes.c_float)(enc_preds.value)
-                #  print("finish predicting")
+                print("finish predicting")
 
                 # Serialize encrypted predictions
                 #  enc_preds_proto = pointer_to_proto(cptr, num_preds)
                 #  print("casted")
-
+                print(type(enc_preds.value))
+                print(type(num_preds))
                 return remote_attestation_pb2.Predictions(predictions=enc_preds.value, num_preds=num_preds, status=1)
             except Exception as e:
+                print("Threw an exception\n")
                 print(e)
                 return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=0)
         else:
+            print("Signal != 1\n")
             return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=0)
 
 

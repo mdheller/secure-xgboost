@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='remote_attestation',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x18remote_attestation.proto\x12\x12remote_attestation\x1a\rndarray.proto\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"\x96\x01\n\x06Report\x12+\n\x07pem_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12\x31\n\rremote_report\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x1a\n\x12remote_report_size\x18\x04 \x01(\r\"\x91\x01\n\x0c\x44\x61taMetadata\x12/\n\x0b\x65nc_sym_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12-\n\tsignature\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x0f\n\x07sig_len\x18\x04 \x01(\r\"E\n\x0bPredictions\x12\x13\n\x0bpredictions\x18\x01 \x01(\x0c\x12\x11\n\tnum_preds\x18\x02 \x01(\r\x12\x0e\n\x06status\x18\x03 \x01(\r2\xf3\x01\n\x11RemoteAttestation\x12J\n\x0eGetAttestation\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Report\"\x00\x12I\n\x07SendKey\x12 .remote_attestation.DataMetadata\x1a\x1a.remote_attestation.Status\"\x00\x12G\n\x0bSignalStart\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Status\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x18remote_attestation.proto\x12\x12remote_attestation\x1a\rndarray.proto\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"\x96\x01\n\x06Report\x12+\n\x07pem_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12\x31\n\rremote_report\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x1a\n\x12remote_report_size\x18\x04 \x01(\r\"\x91\x01\n\x0c\x44\x61taMetadata\x12/\n\x0b\x65nc_sym_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12-\n\tsignature\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x0f\n\x07sig_len\x18\x04 \x01(\r\"E\n\x0bPredictions\x12\x13\n\x0bpredictions\x18\x01 \x01(\x0c\x12\x11\n\tnum_preds\x18\x02 \x01(\r\x12\x0e\n\x06status\x18\x03 \x01(\r2\xf8\x01\n\x11RemoteAttestation\x12J\n\x0eGetAttestation\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Report\"\x00\x12I\n\x07SendKey\x12 .remote_attestation.DataMetadata\x1a\x1a.remote_attestation.Status\"\x00\x12L\n\x0bSignalStart\x12\x1a.remote_attestation.Status\x1a\x1f.remote_attestation.Predictions\"\x00\x62\x06proto3')
   ,
   dependencies=[ndarray__pb2.DESCRIPTOR,])
 
@@ -254,7 +254,7 @@ _REMOTEATTESTATION = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   serialized_start=462,
-  serialized_end=705,
+  serialized_end=710,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetAttestation',
@@ -280,7 +280,7 @@ _REMOTEATTESTATION = _descriptor.ServiceDescriptor(
     index=2,
     containing_service=None,
     input_type=_STATUS,
-    output_type=_STATUS,
+    output_type=_PREDICTIONS,
     serialized_options=None,
   ),
 ])

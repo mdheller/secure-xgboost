@@ -40,7 +40,7 @@ service RemoteAttestation {
   // A simple RPC.
   //
   // Signal to RPC server that the client is ready
-  rpc SignalStart(Status) returns (Status) {}
+  rpc SignalStart(Status) returns (Predictions) {}
 }
 
 // Current status of the node
