@@ -1,4 +1,4 @@
-import securexgboost as xgb
+import xgboost as xgb
 from remote_attestation_server import serve
 
 OE_ENCLAVE_FLAG_DEBUG = 1
