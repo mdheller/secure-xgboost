@@ -59,9 +59,9 @@ def xgb_load_train_predict():
 
 
     # Predict
-    #  crypto = xgb.CryptoUtils()
+    crypto = xgb.CryptoUtils()
     #  print("\n\nModel Predictions: ")
-    #  enc_preds, num_preds = booster.predict(dtest)
+    enc_preds, num_preds = booster.predict(dtest)
     #  print("\n\nDecrypt Predictions: ")
     #  # Decrypt Predictions
     #  preds = crypto.decrypt_predictions(sym_key, enc_preds, num_preds)
@@ -105,12 +105,16 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         signal = request.status
         if signal == 1:
             try:
-                xgb_load_train_predict()
-                return remote_attestation_pb2.Status(status=1)
+                enc_preds, num_preds = xgb_load_train_predict()
+
+                # Serialize encrypted predictions
+                enc_preds_proto = ndarray_to_proto(enc_preds, num_preds)
+
+                return remote_attestation_pb2.Predictions(predictions=enc_preds_proto, num_preds=num_preds, status=1)
             except:
-                return remote_attestation_pb2.Status(status=-1)
+                return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=-1)
         else:
-            return remote_attestation_pb2.Status(status=-1)
+            return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=-1)
 
 
 def serve():
