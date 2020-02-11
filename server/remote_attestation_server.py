@@ -21,6 +21,45 @@ import grpc
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 import xgboost as xgb
+from numproto import ndarray_to_proto
+import numpy as np
+import ctypes
+
+def ctypes2numpy(cptr, length, dtype):
+    """Convert a ctypes pointer array to a numpy array.
+    """
+    NUMPY_TO_CTYPES_MAPPING = {
+            np.float32: ctypes.c_float,
+            np.uint32: ctypes.c_uint,
+            }
+    if dtype not in NUMPY_TO_CTYPES_MAPPING:
+        raise RuntimeError('Supported types: {}'.format(NUMPY_TO_CTYPES_MAPPING.keys()))
+    ctype = NUMPY_TO_CTYPES_MAPPING[dtype]
+    if not isinstance(cptr, ctypes.POINTER(ctype)):
+        raise RuntimeError('expected {} pointer'.format(ctype))
+    res = np.zeros(length, dtype=dtype)
+    if not ctypes.memmove(res.ctypes.data, cptr, length * res.strides[0]):
+        raise RuntimeError('memmove failed')
+    return res
+
+def pointer_to_proto(pointer, pointer_len, nptype=np.uint32):
+    """
+    Convert C u_int or float pointer to proto for RPC serialization
+
+    Parameters
+    ----------
+    pointer : ctypes.POINTER
+    pointer_len : length of pointer
+    nptype : np type to cast to
+        if pointer is of type ctypes.c_uint, nptype should be np.uint32
+        if pointer is of type ctypes.c_float, nptype should be np.float32
+
+    Returns:
+        proto : proto.NDArray
+    """
+    ndarray = ctypes2numpy(pointer, pointer_len, nptype)
+    proto = ndarray_to_proto(ndarray)
+    return proto
 
 def xgb_load_train_predict():
     """
@@ -51,7 +90,7 @@ def xgb_load_train_predict():
     print("All parameters set")
 
     # Train and evaluate
-    n_trees = 10
+    n_trees = 4
     for i in range(n_trees):
         booster.update(dtrain, i)
         print("Tree finished")
@@ -61,11 +100,14 @@ def xgb_load_train_predict():
     # Predict
     crypto = xgb.CryptoUtils()
     #  print("\n\nModel Predictions: ")
+    # enc_preds is a c_char_p
     enc_preds, num_preds = booster.predict(dtest)
+
     #  print("\n\nDecrypt Predictions: ")
     #  # Decrypt Predictions
     #  preds = crypto.decrypt_predictions(sym_key, enc_preds, num_preds)
     #  print(preds)
+    return enc_preds, num_preds
 
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
 
@@ -105,16 +147,22 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         signal = request.status
         if signal == 1:
             try:
+                # enc_preds is a c_char_p
                 enc_preds, num_preds = xgb_load_train_predict()
+                #  print(enc_preds.value)
+                #  cptr = ctypes.POINTER(ctypes.c_float)(enc_preds.value)
+                #  print("finish predicting")
 
                 # Serialize encrypted predictions
-                enc_preds_proto = ndarray_to_proto(enc_preds, num_preds)
+                #  enc_preds_proto = pointer_to_proto(cptr, num_preds)
+                #  print("casted")
 
-                return remote_attestation_pb2.Predictions(predictions=enc_preds_proto, num_preds=num_preds, status=1)
-            except:
-                return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=-1)
+                return remote_attestation_pb2.Predictions(predictions=enc_preds.value, num_preds=num_preds, status=1)
+            except Exception as e:
+                print(e)
+                return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=0)
         else:
-            return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=-1)
+            return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=0)
 
 
 def serve():
