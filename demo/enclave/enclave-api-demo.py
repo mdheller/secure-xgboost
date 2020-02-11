@@ -1,4 +1,4 @@
-import xgboost as xgb
+import securexgboost as xgb
 import os
 
 OE_ENCLAVE_FLAG_DEBUG = 1
@@ -50,5 +50,3 @@ for i in range(n_trees):
 # Predict
 print("\n\nModel Predictions: ")
 print(booster.predict(dtest)[:20])
-print("\n\nTrue Labels: ")
-print(dtest.get_label()[:20])

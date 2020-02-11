@@ -41,7 +41,7 @@ def run(channel_addr, train_fname, train_sym_key_path, test_fname, test_sym_key_
     crypto_utils = xgb.CryptoUtils()
 
     # Encrypt and sign symmetric key used to encrypt training data
-    training_key_file = open(training_sym_key_path, 'rb')
+    training_key_file = open(train_sym_key_path, 'rb')
     training_sym_key = training_key_file.read() # The key will be type bytes
     training_key_file.close()
     training_sym_key = base64.b64decode(training_sym_key)
@@ -67,11 +67,11 @@ def run(channel_addr, train_fname, train_sym_key_path, test_fname, test_sym_key_
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
 
-        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=training_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
+        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=train_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
         print("Symmetric key for training data sent to server")
 
-        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=test_fname, enc_sym_key=enc_sym_key_test, key_size=enc_sym_key_size_test, signature=sig_test, sig_len=sig_len_test))
-        print("Symmetric key for test data sent to server")
+        #  response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=test_fname, enc_sym_key=enc_sym_key_test, key_size=enc_sym_key_size_test, signature=sig_test, sig_len=sig_len_test))
+        #  print("Symmetric key for test data sent to server")
         
     # Signal start
     with grpc.insecure_channel(channel_addr) as channel:

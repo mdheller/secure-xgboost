@@ -20,17 +20,17 @@ import grpc
 
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
-import xgboost as xgb
+import securexgboost as xgb
 
 def xgb_load_train_predict():
     """
     This code will have been agreed upon by all parties before being run.
     """
     print("Creating training matrix")
-    dtrain = xgb.DMatrix("../data/agaricus.txt.train.enc")
+    dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/client/train.encrypted", encrypted=True)
 
     print("Creating test matrix")
-    dtest = xgb.DMatrix("../data/agaricus.txt.test.enc") 
+    dtest = xgb.DMatrix("/home/xgb/secure-xgboost/client/test.encrypted", encrypted=True) 
 
     print("Creating Booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
@@ -45,7 +45,7 @@ def xgb_load_train_predict():
             "min_child_weight": "1",
             "gamma": "0.1",
             "max_depth": "3",
-            "verbosity": "3" 
+            "verbosity": "1" 
             }
     booster.set_param(params)
     print("All parameters set")
@@ -57,11 +57,15 @@ def xgb_load_train_predict():
         print("Tree finished")
         print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
+
     # Predict
-    print("\n\nModel Predictions: ")
-    print(booster.predict(dtest)[:50])
-    print("\n\nTrue Labels: ")
-    print(dtest.get_label()[:50])
+    #  crypto = xgb.CryptoUtils()
+    #  print("\n\nModel Predictions: ")
+    #  enc_preds, num_preds = booster.predict(dtest)
+    #  print("\n\nDecrypt Predictions: ")
+    #  # Decrypt Predictions
+    #  preds = crypto.decrypt_predictions(sym_key, enc_preds, num_preds)
+    #  print(preds)
 
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
 
@@ -83,14 +87,14 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         Sends encrypted symmetric key, signature over key, and filename of data that was encrypted using the symmetric key
         """
         # Get encrypted symmetric key, signature, and filename from request
-        data_fname = request.data_fname
+        #  data_fname = request.data_fname
         enc_sym_key = request.enc_sym_key
         key_size = request.key_size
         signature = request.signature
         sig_len = request.sig_len
 
         crypto_utils = xgb.CryptoUtils()
-        result = crypto_utils.add_client_key(data_fname, enc_sym_key, key_size, signature, sig_len)
+        result = crypto_utils.add_client_key(enc_sym_key, key_size, signature, sig_len)
 
         return remote_attestation_pb2.Status(status=result)
 

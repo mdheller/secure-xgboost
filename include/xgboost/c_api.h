@@ -669,7 +669,7 @@ XGB_DLL int sign_data(
     size_t* sig_len);
 
 XGB_DLL int decrypt_predictions(
-    uint8_t* key,
+    char* key,
     char* encrypted_preds,
     size_t preds_len,
     bst_float** preds);

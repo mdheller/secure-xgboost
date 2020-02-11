@@ -1123,7 +1123,60 @@ class CryptoUtils(object):
         sig_len = ctypes.c_size_t(sig_len)
 
         # Add client key
-        return _check_call(_LIB.add_client_key(data, data_len, signature, sig_len))
+        return _LIB.add_client_key(data, data_len, signature, sig_len)
+
+    def decrypt_predictions(self, key, encrypted_preds, num_preds):
+        """
+        Decrypt encrypted predictions
+
+        Parameters
+        ----------
+        key : byte array
+            key used to encrypt client files
+        encrypted_preds : c_char_p
+            encrypted predictions
+        num_preds : int
+            number of predictions
+
+        Returns
+        -------
+        preds : numpy array
+            plaintext predictions
+        """
+        #  key_as_int = int.from_bytes(key, sys.byteorder)
+        #  uint_key = ctypes.POINTER(ctypes.c_uint)()
+        #  uint_key = c_array(ctypes.c_uint, key)
+        c_char_p_key = ctypes.c_char_p(key)
+        size_t_num_preds = ctypes.c_size_t(num_preds)
+
+        #  preds = np.zeros(num_preds).ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+        preds = ctypes.POINTER(ctypes.c_float)()
+
+        _check_call(_LIB.decrypt_predictions(c_char_p_key, encrypted_preds, size_t_num_preds, ctypes.byref(preds)))
+
+        preds = ctypes2numpy(preds, num_preds, np.float32)
+        #  if pred_leaf:
+        #      preds = preds.astype(np.int32)
+        #  
+        #  nrow = data.num_row()
+        #  if preds.size != nrow and preds.size % nrow == 0:
+        #      chunk_size = int(preds.size / nrow)
+        #  
+        #      if pred_interactions:
+        #          ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
+        #          if ngroup == 1:
+        #              preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
+        #          else:
+        #              preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
+        #      elif pred_contribs:
+        #          ngroup = int(chunk_size / (data.num_col() + 1))
+        #          if ngroup == 1:
+        #              preds = preds.reshape(nrow, data.num_col() + 1)
+        #          else:
+        #              preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
+        #      else:
+        #          preds = preds.reshape(nrow, chunk_size)
+        return preds
 
 
 class Booster(object):
@@ -1482,6 +1535,7 @@ class Booster(object):
         Returns
         -------
         prediction : numpy array
+        num_preds: number of predictions
         """
         option_mask = 0x00
         if output_margin:
@@ -1499,36 +1553,37 @@ class Booster(object):
             self._validate_features(data)
 
         length = c_bst_ulong()
-        preds = ctypes.POINTER(ctypes.c_float)()
+        #  preds = ctypes.POINTER(ctypes.c_float)()
+        preds = ctypes.c_char_p()
         _check_call(_LIB.XGBoosterPredict(self.handle, data.handle,
                                           ctypes.c_int(option_mask),
                                           ctypes.c_uint(ntree_limit),
                                           ctypes.byref(length),
                                           ctypes.byref(preds)))
                          
-        preds = ctypes2numpy(preds, length.value, np.float32)
-        if pred_leaf:
-            preds = preds.astype(np.int32)
-
-        nrow = data.num_row()
-        if preds.size != nrow and preds.size % nrow == 0:
-            chunk_size = int(preds.size / nrow)
-
-            if pred_interactions:
-                ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
-                if ngroup == 1:
-                    preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
-                else:
-                    preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
-            elif pred_contribs:
-                ngroup = int(chunk_size / (data.num_col() + 1))
-                if ngroup == 1:
-                    preds = preds.reshape(nrow, data.num_col() + 1)
-                else:
-                    preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
-            else:
-                preds = preds.reshape(nrow, chunk_size)
-        return preds
+        #  preds = ctypes2numpy(preds, length.value, np.float32)
+        #  if pred_leaf:
+        #      preds = preds.astype(np.int32)
+        #  
+        #  nrow = data.num_row()
+        #  if preds.size != nrow and preds.size % nrow == 0:
+        #      chunk_size = int(preds.size / nrow)
+        #  
+        #      if pred_interactions:
+        #          ngroup = int(chunk_size / ((data.num_col() + 1) * (data.num_col() + 1)))
+        #          if ngroup == 1:
+        #              preds = preds.reshape(nrow, data.num_col() + 1, data.num_col() + 1)
+        #          else:
+        #              preds = preds.reshape(nrow, ngroup, data.num_col() + 1, data.num_col() + 1)
+        #      elif pred_contribs:
+        #          ngroup = int(chunk_size / (data.num_col() + 1))
+        #          if ngroup == 1:
+        #              preds = preds.reshape(nrow, data.num_col() + 1)
+        #          else:
+        #              preds = preds.reshape(nrow, ngroup, data.num_col() + 1)
+        #      else:
+        #          preds = preds.reshape(nrow, chunk_size)
+        return preds, length.value
 
     def save_model(self, fname):
         """
