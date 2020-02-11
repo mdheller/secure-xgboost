@@ -57,16 +57,6 @@ def xgb_load_train_predict():
         print("Tree finished")
         print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
 
-
-    # Predict
-    #  crypto = xgb.CryptoUtils()
-    #  print("\n\nModel Predictions: ")
-    #  enc_preds, num_preds = booster.predict(dtest)
-    #  print("\n\nDecrypt Predictions: ")
-    #  # Decrypt Predictions
-    #  preds = crypto.decrypt_predictions(sym_key, enc_preds, num_preds)
-    #  print(preds)
-
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
 
     def GetAttestation(self, request, context):
