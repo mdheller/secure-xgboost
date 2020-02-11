@@ -11,15 +11,15 @@ import remote_attestation_pb2_grpc
 
 import xgboost as xgb
 import argparse
+import os
 
-def run(channel_addr, train_fname, train_sym_key_path, test_fname, test_sym_key_path, keypair):
+def run(channel_addr, train_fname, key_path, test_fname, keypair):
     """
     The client will make 4 calls to the server that will run computation
     1. A call to retrieve the attestation report from the server. The client will use this report
     to verify that the it can trust the server.
-    2. A call to send the symmetric key used to encrypt the training data to the server.
-    3. A call to send the symmetric key used to encrypt the test data to the server.
-    4. A call to commence computation.
+    2. A call to send the symmetric key used to encrypt the data to the server.
+    3. A call to commence computation.
     """
     # Get remote report from enclave
     with grpc.insecure_channel(channel_addr) as channel:
@@ -38,41 +38,29 @@ def run(channel_addr, train_fname, train_sym_key_path, test_fname, test_sym_key_
     enclave_reference.verify_remote_report_and_set_pubkey()
     print("Report successfully verified")
 
+    # Encrypt and sign symmetric key used to encrypt data
+    key_file = open(key_path, 'rb')
+    key = key_file.read() # The key will be type bytes
+    key_file.close()
+    sym_key = base64.b64decode(key)
+
     crypto_utils = xgb.CryptoUtils()
 
-    # Encrypt and sign symmetric key used to encrypt training data
-    training_key_file = open(train_sym_key_path, 'rb')
-    training_sym_key = training_key_file.read() # The key will be type bytes
-    training_key_file.close()
-    training_sym_key = base64.b64decode(training_sym_key)
-
-    # Encrypt training data symmetric key
-    enc_sym_key_train, enc_sym_key_size_train = crypto_utils.encrypt_data_with_pk(training_sym_key, len(training_sym_key), pem_key, key_size)
+    # Encrypt symmetric key
+    enc_sym_key, enc_sym_key_size = crypto_utils.encrypt_data_with_pk(sym_key, len(sym_key), pem_key, key_size)
     print("Encrypted symmetric key")
 
     # Sign encrypted symmetric key
-    sig_train, sig_len_train = crypto_utils.sign_data(keypair, enc_sym_key_train, enc_sym_key_size_train) 
+    sig, sig_len = crypto_utils.sign_data(keypair, enc_sym_key, enc_sym_key_size) 
     print("Signed ciphertext")
 
-    # Encrypt and sign symmetric key used to encrypt test data
-    test_key_file = open(test_sym_key_path, 'rb')
-    test_sym_key = test_key_file.read() # The key will be type bytes
-    test_key_file.close()
-    test_sym_key = base64.b64decode(test_sym_key)
-
-    enc_sym_key_test, enc_sym_key_size_test = crypto_utils.encrypt_data_with_pk(test_sym_key, len(test_sym_key), pem_key, key_size)
-    sig_test, sig_len_test = crypto_utils.sign_data(keypair, enc_sym_key_test, enc_sym_key_size_test) 
-
-    # Send training and test data keys to the server
+    # Send data key to the server
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
 
-        response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=train_fname, enc_sym_key=enc_sym_key_train, key_size=enc_sym_key_size_train, signature=sig_train, sig_len=sig_len_train))
-        print("Symmetric key for training data sent to server")
+        response = stub.SendKey(remote_attestation_pb2.DataMetadata(sym_key=enc_sym_key, key_size=enc_sym_key_size, signature=sig, sig_len=sig_len))
+        print("Symmetric key for data sent to server")
 
-        #  response = stub.SendKey(remote_attestation_pb2.DataMetadata(data_fname=test_fname, enc_sym_key=enc_sym_key_test, key_size=enc_sym_key_size_test, signature=sig_test, sig_len=sig_len_test))
-        #  print("Symmetric key for test data sent to server")
-        
     # Signal start
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
@@ -87,9 +75,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip-addr", help="server IP address", required=True)
     parser.add_argument("--train-fname", help="path to training data file on server", required=True)
-    parser.add_argument("--train-key", help="path to key used to encrypt training data on client", required=True)
+    parser.add_argument("--key", help="path to key used to encrypt data on client", required=True)
     parser.add_argument("--test-fname", help="path to test data file on server", required=True)
-    parser.add_argument("--test-key", help="path to key used to encrypt test data on client", required=True)
     parser.add_argument("--keypair", help="path to keypair for signing data", required=True)
 
     args = parser.parse_args()
@@ -97,4 +84,4 @@ if __name__ == '__main__':
     channel_addr = str(args.ip_addr) + ":50051" 
 
     logging.basicConfig()
-    run(channel_addr, str(args.train_fname), str(args.train_key), str(args.test_fname), str(args.test_key), str(args.keypair))
+    run(channel_addr, str(args.train_fname), str(args.key), str(args.test_fname), str(args.keypair))

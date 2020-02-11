@@ -71,19 +71,19 @@ message Report {
 // training/test data
 message DataMetadata {
   // Filename of data
-  string data_fname = 1;
+  // string data_fname = 1;
 
   // Symmetric key used to encrypt data file, encrypted with
   // enclave public key
-  numproto.protobuf.NDArray enc_sym_key = 2;
+  numproto.protobuf.NDArray sym_key = 1;
 
-  // Length of enc_sym_key
-  uint32 key_size = 3;
+  // Length of sym_key
+  uint32 key_size = 2;
 
   // Signature over encrypted symmetric key, signed with client private key
-  numproto.protobuf.NDArray signature = 4;
+  numproto.protobuf.NDArray signature = 3;
 
   // Length of signature
-  uint32 sig_len = 5;
+  uint32 sig_len = 4;
 }
 

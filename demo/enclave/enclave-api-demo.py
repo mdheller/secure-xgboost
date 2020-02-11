@@ -1,4 +1,4 @@
-import securexgboost as xgb
+import xgboost as xgb
 import os
 
 OE_ENCLAVE_FLAG_DEBUG = 1
@@ -8,13 +8,13 @@ print("Creating enclave")
 
 HOME_DIR = os.getcwd() + "/../../"
 # Uncomment below for enclave simulation mode
-enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
-# enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
+#  enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 
 # Remote Attestation
-# print("Remote attestation")
-# enclave.get_remote_report_with_pubkey()
-# enclave.verify_remote_report_and_set_pubkey()
+print("Remote attestation")
+enclave.get_remote_report_with_pubkey()
+enclave.verify_remote_report_and_set_pubkey()
 
 print("Creating training matrix")
 dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)

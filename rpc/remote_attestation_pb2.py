@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='remote_attestation',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x18remote_attestation.proto\x12\x12remote_attestation\x1a\rndarray.proto\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"\x96\x01\n\x06Report\x12+\n\x07pem_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12\x31\n\rremote_report\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x1a\n\x12remote_report_size\x18\x04 \x01(\r\"\xa5\x01\n\x0c\x44\x61taMetadata\x12\x12\n\ndata_fname\x18\x01 \x01(\t\x12/\n\x0b\x65nc_sym_key\x18\x02 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x03 \x01(\r\x12-\n\tsignature\x18\x04 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x0f\n\x07sig_len\x18\x05 \x01(\r2\xf3\x01\n\x11RemoteAttestation\x12J\n\x0eGetAttestation\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Report\"\x00\x12I\n\x07SendKey\x12 .remote_attestation.DataMetadata\x1a\x1a.remote_attestation.Status\"\x00\x12G\n\x0bSignalStart\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Status\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x18remote_attestation.proto\x12\x12remote_attestation\x1a\rndarray.proto\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"\x96\x01\n\x06Report\x12+\n\x07pem_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12\x31\n\rremote_report\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x1a\n\x12remote_report_size\x18\x04 \x01(\r\"\x8d\x01\n\x0c\x44\x61taMetadata\x12+\n\x07sym_key\x18\x01 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x10\n\x08key_size\x18\x02 \x01(\r\x12-\n\tsignature\x18\x03 \x01(\x0b\x32\x1a.numproto.protobuf.NDArray\x12\x0f\n\x07sig_len\x18\x04 \x01(\r2\xf3\x01\n\x11RemoteAttestation\x12J\n\x0eGetAttestation\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Report\"\x00\x12I\n\x07SendKey\x12 .remote_attestation.DataMetadata\x1a\x1a.remote_attestation.Status\"\x00\x12G\n\x0bSignalStart\x12\x1a.remote_attestation.Status\x1a\x1a.remote_attestation.Status\"\x00\x62\x06proto3')
   ,
   dependencies=[ndarray__pb2.DESCRIPTOR,])
 
@@ -119,36 +119,29 @@ _DATAMETADATA = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='data_fname', full_name='remote_attestation.DataMetadata.data_fname', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='enc_sym_key', full_name='remote_attestation.DataMetadata.enc_sym_key', index=1,
-      number=2, type=11, cpp_type=10, label=1,
+      name='sym_key', full_name='remote_attestation.DataMetadata.sym_key', index=0,
+      number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='key_size', full_name='remote_attestation.DataMetadata.key_size', index=2,
-      number=3, type=13, cpp_type=3, label=1,
+      name='key_size', full_name='remote_attestation.DataMetadata.key_size', index=1,
+      number=2, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='signature', full_name='remote_attestation.DataMetadata.signature', index=3,
-      number=4, type=11, cpp_type=10, label=1,
+      name='signature', full_name='remote_attestation.DataMetadata.signature', index=2,
+      number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='sig_len', full_name='remote_attestation.DataMetadata.sig_len', index=4,
-      number=5, type=13, cpp_type=3, label=1,
+      name='sig_len', full_name='remote_attestation.DataMetadata.sig_len', index=3,
+      number=4, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -166,12 +159,12 @@ _DATAMETADATA = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=243,
-  serialized_end=408,
+  serialized_end=384,
 )
 
 _REPORT.fields_by_name['pem_key'].message_type = ndarray__pb2._NDARRAY
 _REPORT.fields_by_name['remote_report'].message_type = ndarray__pb2._NDARRAY
-_DATAMETADATA.fields_by_name['enc_sym_key'].message_type = ndarray__pb2._NDARRAY
+_DATAMETADATA.fields_by_name['sym_key'].message_type = ndarray__pb2._NDARRAY
 _DATAMETADATA.fields_by_name['signature'].message_type = ndarray__pb2._NDARRAY
 DESCRIPTOR.message_types_by_name['Status'] = _STATUS
 DESCRIPTOR.message_types_by_name['Report'] = _REPORT
@@ -207,8 +200,8 @@ _REMOTEATTESTATION = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=411,
-  serialized_end=654,
+  serialized_start=387,
+  serialized_end=630,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetAttestation',
