@@ -6,21 +6,23 @@ In this example, predictions are just printed to the console on the server. The 
 
 ### 1. Encrypt data locally.
 
-Use the `ohe_encrypt.py` script to one hot encode and encrypt the data. The script assumes that the key used to encrypt the data is in the same directory under `key.txt`. The script takes in three arguments.
+Use the `encrypt.py` script to generate a key and encrypt the sample data. It will output three files: `key.txt`, `train.enc`, and `test.enc`. 
 
 ```
-python3 ohe_encrypt.py --input_path <plaintext_data.csv> --output_path <desired_output_file_name.csv> --column_names <names_of_columns_to_one_hot_encode>
+python3 client/encrypt.py
 ```
 
 ### 2. Send encrypted data to the server
 
-We assume that there will be a mechanism to transfer the encrypted data to the server. For the purposes of this demo, the user can try, for example, `scp` to simulate this transfer.
+We assume that there will be a mechanism to transfer the encrypted data to the server. For the purposes of this demo, the user can try, for example, `scp` to simulate this transfer. Note that you will have to `scp` the files to the location you specified in the `DMatrix` constructor in the server setup.
 
 ### 3. Make client calls
 
 On the client, make the aforementioned four calls to the server. 
-The `remote_attestation_client.py` script takes in 5 arguments: server IP address, training data path on server, path to key used to encrypt training data on client, test data path on server, path to key used to encrypt test data on client.
+The `remote_attestation_client.py` script takes in 3 arguments: the IP address of the server, the path to the generated key, and the path to the keypair. We've included a sample keypair for this example.
 
 ```
-python3 remote_attestation_client.py
+python3 remote_attestation_client.py --ip-addr 13.80.151.7 --key key.txt --keypair keypair.pem
 ```
+
+
