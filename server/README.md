@@ -6,8 +6,8 @@ In this example we'll need to start an RPC process on the server to listen for c
 On the server with the enclave, start the RPC server to begin listening for client requests.
 
 ```
-python3 enclave_serve.py
+python3 server/enclave_serve.py
 ```
-The code run by the server once the client makes the final call is in the `xgb_load_train_predict()` function in `rpc/remote_attestation_server.py`. In this example, data is decrypted and loaded into a `DMatrix`, a model is trained, and predictions are made. 
+The code run by the server once the client makes the final call is in the `xgb_load_train_predict()` function in `server/remote_attestation_server.py`. In this example, data is decrypted and loaded into a `DMatrix`, a model is trained, and predictions are made. Note that in the `xgb_load_train_predict()` function, you need to specify from which location to load your data in in the `DMatrix` constructor. Choose a path, edit the path in the constructor, and remember it, as you will need this path as part of the client setup.
 
 Once the console outputs "Waiting for remote attestation...", proceed to the [client](../client) setup.
