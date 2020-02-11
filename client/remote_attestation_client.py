@@ -12,6 +12,9 @@ import remote_attestation_pb2_grpc
 import xgboost as xgb
 import argparse
 import os
+import ctypes
+
+from numproto import proto_to_ndarray
 
 def run(channel_addr, key_path, keypair):
     """
@@ -63,12 +66,28 @@ def run(channel_addr, key_path, keypair):
     # Signal start
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
+        print("Waiting for response...")
         response = stub.SignalStart(remote_attestation_pb2.Status(status=1))
+        print("Got a response")
+        #  print(response.predictions)
+        #  print(response.num_preds)
 
-    if response.status == 1:
-        print("Training succeeded!")
-    else:
-        print("Training failed")
+        if response.status == 1:
+            print("Training succeeded! Decrypting predictions...")
+           
+            enc_preds = response.predictions
+            print(enc_preds)
+            num_preds = response.num_preds
+
+            #  enc_preds = proto_to_ndarray(enc_preds_proto)
+            #  enc_preds_c_char_p = ctypes.c_char_p(enc_preds)
+
+            preds = crypto_utils.decrypt_predictions(sym_key, enc_preds, num_preds)
+            print("Predictions: ")
+            print(preds[:20])
+
+        else:
+            print("Training failed")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -79,7 +98,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     channel_addr = str(args.ip_addr) + ":50051" 
-    print(channel_addr)
 
     logging.basicConfig()
     run(channel_addr, str(args.key), str(args.keypair))
