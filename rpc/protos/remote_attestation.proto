@@ -75,7 +75,7 @@ message DataMetadata {
 
   // Symmetric key used to encrypt data file, encrypted with
   // enclave public key
-  numproto.protobuf.NDArray sym_key = 1;
+  numproto.protobuf.NDArray enc_sym_key = 1;
 
   // Length of sym_key
   uint32 key_size = 2;

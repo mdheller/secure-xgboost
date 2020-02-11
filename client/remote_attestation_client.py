@@ -13,7 +13,7 @@ import xgboost as xgb
 import argparse
 import os
 
-def run(channel_addr, train_fname, key_path, test_fname, keypair):
+def run(channel_addr, key_path, keypair):
     """
     The client will make 4 calls to the server that will run computation
     1. A call to retrieve the attestation report from the server. The client will use this report
@@ -40,9 +40,8 @@ def run(channel_addr, train_fname, key_path, test_fname, keypair):
 
     # Encrypt and sign symmetric key used to encrypt data
     key_file = open(key_path, 'rb')
-    key = key_file.read() # The key will be type bytes
+    sym_key = key_file.read() # The key will be type bytes
     key_file.close()
-    sym_key = base64.b64decode(key)
 
     crypto_utils = xgb.CryptoUtils()
 
@@ -74,14 +73,13 @@ def run(channel_addr, train_fname, key_path, test_fname, keypair):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip-addr", help="server IP address", required=True)
-    parser.add_argument("--train-fname", help="path to training data file on server", required=True)
     parser.add_argument("--key", help="path to key used to encrypt data on client", required=True)
-    parser.add_argument("--test-fname", help="path to test data file on server", required=True)
     parser.add_argument("--keypair", help="path to keypair for signing data", required=True)
 
     args = parser.parse_args()
 
     channel_addr = str(args.ip_addr) + ":50051" 
+    print(channel_addr)
 
     logging.basicConfig()
-    run(channel_addr, str(args.train_fname), str(args.key), str(args.test_fname), str(args.keypair))
+    run(channel_addr, str(args.key), str(args.keypair))
