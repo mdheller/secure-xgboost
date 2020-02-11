@@ -57,7 +57,7 @@ def run(channel_addr, key_path, keypair):
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
 
-        response = stub.SendKey(remote_attestation_pb2.DataMetadata(sym_key=enc_sym_key, key_size=enc_sym_key_size, signature=sig, sig_len=sig_len))
+        response = stub.SendKey(remote_attestation_pb2.DataMetadata(enc_sym_key=enc_sym_key, key_size=enc_sym_key_size, signature=sig, sig_len=sig_len))
         print("Symmetric key for data sent to server")
 
     # Signal start
