@@ -76,7 +76,7 @@ def run(channel_addr, key_path, keypair):
             print("Training succeeded! Decrypting predictions...")
            
             enc_preds = response.predictions
-            print(enc_preds)
+            #  print(enc_preds)
             num_preds = response.num_preds
 
             #  enc_preds = proto_to_ndarray(enc_preds_proto)

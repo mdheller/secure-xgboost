@@ -1054,7 +1054,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
 #ifdef __SGX__
-                             char **out_result) {
+                             uint8_t **out_result) {
 #else
                              const bst_float **out_result) {
 #endif
@@ -1624,7 +1624,7 @@ XGB_DLL int sign_data(char *keyfile, uint8_t* data, size_t data_size, uint8_t* s
   return 0;
 }
 
-XGB_DLL int decrypt_predictions(char* key, char* encrypted_preds, size_t num_preds, bst_float** preds) {
+XGB_DLL int decrypt_predictions(char* key, uint8_t* encrypted_preds, size_t num_preds, bst_float** preds) {
     size_t len = num_preds*sizeof(float);
     unsigned char* iv = (unsigned char*)encrypted_preds;
     unsigned char* tag = iv + CIPHER_IV_SIZE;

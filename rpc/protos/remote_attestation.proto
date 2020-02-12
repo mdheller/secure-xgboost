@@ -86,7 +86,7 @@ message DataMetadata {
 // Encrypted predictions served by enclave, to be decrypted at client
 message Predictions {
   // Encrypted predictions
-  bytes predictions = 1;
+  numproto.protobuf.NDArray predictions = 1;
 
   // Length of predictions
   uint32 num_preds = 2;

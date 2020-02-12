@@ -21,7 +21,7 @@ import grpc
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 import xgboost as xgb
-from numproto import ndarray_to_proto
+from numproto import ndarray_to_proto, proto_to_ndarray
 import numpy as np
 import ctypes
 
@@ -31,6 +31,7 @@ def ctypes2numpy(cptr, length, dtype):
     NUMPY_TO_CTYPES_MAPPING = {
             np.float32: ctypes.c_float,
             np.uint32: ctypes.c_uint,
+            np.uint8: ctypes.c_uint8
             }
     if dtype not in NUMPY_TO_CTYPES_MAPPING:
         raise RuntimeError('Supported types: {}'.format(NUMPY_TO_CTYPES_MAPPING.keys()))
@@ -42,7 +43,7 @@ def ctypes2numpy(cptr, length, dtype):
         raise RuntimeError('memmove failed')
     return res
 
-def pointer_to_proto(pointer, pointer_len, nptype=np.uint32):
+def pointer_to_proto(pointer, pointer_len, nptype=np.uint8):
     """
     Convert C u_int or float pointer to proto for RPC serialization
 
@@ -61,15 +62,31 @@ def pointer_to_proto(pointer, pointer_len, nptype=np.uint32):
     proto = ndarray_to_proto(ndarray)
     return proto
 
+def proto_to_pointer(proto):
+    """
+    Convert a serialized NDArray to a C pointer
+
+    Parameters
+    ----------
+    proto : proto.NDArray
+
+    Returns:
+        pointer :  ctypes.POINTER(ctypes.u_int)
+    """
+    ndarray = proto_to_ndarray(proto)
+    # FIXME make the ctype POINTER type configurable
+    pointer = ndarray.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
+    return pointer
+
 def xgb_load_train_predict():
     """
     This code will have been agreed upon by all parties before being run.
     """
     print("Creating training matrix")
-    dtrain = xgb.DMatrix("/home/xgb/data/train.enc", encrypted=True)
+    dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/client/train.enc", encrypted=True)
 
     print("Creating test matrix")
-    dtest = xgb.DMatrix("/home/xgb/data/test.enc", encrypted=True) 
+    dtest = xgb.DMatrix("/home/xgb/secure-xgboost/client/test.enc", encrypted=True) 
 
     print("Creating Booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
@@ -90,7 +107,7 @@ def xgb_load_train_predict():
     print("All parameters set")
 
     # Train and evaluate
-    n_trees = 4
+    n_trees = 10
     for i in range(n_trees):
         booster.update(dtrain, i)
         print("Tree finished")
@@ -98,7 +115,7 @@ def xgb_load_train_predict():
 
 
     # Predict
-    crypto = xgb.CryptoUtils()
+    #  crypto = xgb.CryptoUtils()
     #  print("\n\nModel Predictions: ")
     # enc_preds is a c_char_p
     enc_preds, num_preds = booster.predict(dtest)
@@ -153,12 +170,18 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
                 #  cptr = ctypes.POINTER(ctypes.c_float)(enc_preds.value)
                 print("finish predicting")
 
+                key_file = open("/home/xgb/secure-xgboost/client/key.txt", 'rb')
+                sym_key = key_file.read() # The key will be type bytes
+                key_file.close()
+                
+                crypto = xgb.CryptoUtils()
+                enc_preds_proto = pointer_to_proto(enc_preds, num_preds * 8)
+                unproto = proto_to_pointer(enc_preds_proto)
+                preds = crypto.decrypt_predictions(sym_key, enc_preds, num_preds)
+                print(preds)
+
                 # Serialize encrypted predictions
-                #  enc_preds_proto = pointer_to_proto(cptr, num_preds)
-                #  print("casted")
-                print(type(enc_preds.value))
-                print(type(num_preds))
-                return remote_attestation_pb2.Predictions(predictions=enc_preds.value, num_preds=num_preds, status=1)
+                return remote_attestation_pb2.Predictions(predictions=enc_preds_proto, num_preds=num_preds, status=1)
             except Exception as e:
                 print("Threw an exception\n")
                 print(e)

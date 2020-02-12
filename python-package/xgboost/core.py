@@ -1577,7 +1577,8 @@ class Booster(object):
 
         length = c_bst_ulong()
         #  preds = ctypes.POINTER(ctypes.c_float)()
-        preds = ctypes.c_char_p()
+        preds = ctypes.POINTER(ctypes.c_uint8)()
+        #  preds = ctypes.c_char_p()
         _check_call(_LIB.XGBoosterPredict(self.handle, data.handle,
                                           ctypes.c_int(option_mask),
                                           ctypes.c_uint(ntree_limit),

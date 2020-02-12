@@ -1217,7 +1217,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              unsigned ntree_limit,
                              xgboost::bst_ulong *len,
 #ifdef __ENCLAVE__
-                             char **out_result) {
+                             uint8_t **out_result) {
 #else
                              const bst_float **out_result) {
 #endif
@@ -1270,7 +1270,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
   memcpy(host_buf, buf, buf_len);
   free(buf);
   *len = static_cast<xgboost::bst_ulong>(preds.size());
-  *out_result = (char*)host_buf;
+  *out_result = (uint8_t*)host_buf;
 
 #else
   *out_result = dmlc::BeginPtr(preds);
