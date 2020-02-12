@@ -27,7 +27,7 @@ class RemoteAttestationStub(object):
     self.SignalStart = channel.unary_unary(
         '/remote_attestation.RemoteAttestation/SignalStart',
         request_serializer=remote__attestation__pb2.Status.SerializeToString,
-        response_deserializer=remote__attestation__pb2.Status.FromString,
+        response_deserializer=remote__attestation__pb2.Predictions.FromString,
         )
 
 
@@ -81,7 +81,7 @@ def add_RemoteAttestationServicer_to_server(servicer, server):
       'SignalStart': grpc.unary_unary_rpc_method_handler(
           servicer.SignalStart,
           request_deserializer=remote__attestation__pb2.Status.FromString,
-          response_serializer=remote__attestation__pb2.Status.SerializeToString,
+          response_serializer=remote__attestation__pb2.Predictions.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

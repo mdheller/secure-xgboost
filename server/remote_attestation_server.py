@@ -21,16 +21,18 @@ import grpc
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 import xgboost as xgb
+from rpc_utils import *
+
 
 def xgb_load_train_predict():
     """
     This code will have been agreed upon by all parties before being run.
     """
     print("Creating training matrix")
-    dtrain = xgb.DMatrix("/home/xgb/data/train.enc", encrypted=True)
+    dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/client/train.enc", encrypted=True)
 
     print("Creating test matrix")
-    dtest = xgb.DMatrix("/home/xgb/data/test.enc", encrypted=True) 
+    dtest = xgb.DMatrix("/home/xgb/secure-xgboost/client/test.enc", encrypted=True) 
 
     print("Creating Booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
@@ -54,8 +56,10 @@ def xgb_load_train_predict():
     n_trees = 10
     for i in range(n_trees):
         booster.update(dtrain, i)
-        print("Tree finished")
         print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+
+    enc_preds, num_preds = booster.predict(dtest)
+    return enc_preds, num_preds
 
 class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationServicer):
 
@@ -77,7 +81,6 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         Sends encrypted symmetric key, signature over key, and filename of data that was encrypted using the symmetric key
         """
         # Get encrypted symmetric key, signature, and filename from request
-        #  data_fname = request.data_fname
         enc_sym_key = request.enc_sym_key
         key_size = request.key_size
         signature = request.signature
@@ -95,12 +98,17 @@ class RemoteAttestationServicer(remote_attestation_pb2_grpc.RemoteAttestationSer
         signal = request.status
         if signal == 1:
             try:
-                xgb_load_train_predict()
-                return remote_attestation_pb2.Status(status=1)
-            except:
-                return remote_attestation_pb2.Status(status=-1)
+                enc_preds, num_preds = xgb_load_train_predict()
+
+                # Serialize encrypted predictions
+                enc_preds_proto = pointer_to_proto(enc_preds, num_preds * 8)
+
+                return remote_attestation_pb2.Predictions(predictions=enc_preds_proto, num_preds=num_preds, status=1)
+            except Exception as e:
+                print(e)
+                return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=0)
         else:
-            return remote_attestation_pb2.Status(status=-1)
+            return remote_attestation_pb2.Predictions(predictions=None, num_preds=None, status=0)
 
 
 def serve():

@@ -1,7 +1,13 @@
 ## Server Setup Instructions
 
 In this example we'll need to start an RPC process on the server to listen for client calls. The RPC server listens for client calls to perform remote attestation, to accept the keys used to encrypt the data that will be used to train a model, and to start the XGBoost job.
-### 1. Start RPC server
+
+### 1. Set PYTHONPATH
+Set the `$PYTHONPATH` environment variable to the `secure-xgboost/rpc` directory. You can also add in this your bashrc.
+
+`export PYTHONPATH=/path/to/secure-xgboost/rpc/`
+
+### 2. Start RPC server
 
 On the server with the enclave, start the RPC server to begin listening for client requests.
 

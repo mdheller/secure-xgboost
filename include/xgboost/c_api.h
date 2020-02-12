@@ -464,7 +464,7 @@ XGB_DLL int XGBoosterPredict(BoosterHandle handle,
                              unsigned ntree_limit,
                              bst_ulong *out_len,
 #ifdef __SGX__
-                             char **out_result);
+                             uint8_t **out_result);
 #else
                              const float **out_result);
 #endif
@@ -670,7 +670,7 @@ XGB_DLL int sign_data(
 
 XGB_DLL int decrypt_predictions(
     char* key,
-    char* encrypted_preds,
+    uint8_t* encrypted_preds,
     size_t preds_len,
     bst_float** preds);
 #endif // __SGX__ && __ENCLAVE__

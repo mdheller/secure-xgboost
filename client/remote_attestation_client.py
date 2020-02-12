@@ -12,6 +12,7 @@ import remote_attestation_pb2_grpc
 import xgboost as xgb
 import argparse
 import os
+from rpc_utils import *
 
 def run(channel_addr, key_path, keypair):
     """
@@ -63,12 +64,21 @@ def run(channel_addr, key_path, keypair):
     # Signal start
     with grpc.insecure_channel(channel_addr) as channel:
         stub = remote_attestation_pb2_grpc.RemoteAttestationStub(channel)
+        print("Waiting for training to finish...")
         response = stub.SignalStart(remote_attestation_pb2.Status(status=1))
 
-    if response.status == 1:
-        print("Training succeeded!")
-    else:
-        print("Training failed")
+        if response.status == 1:
+            print("Training succeeded! Decrypting predictions...")
+           
+            enc_preds_serialized = response.predictions
+            num_preds = response.num_preds
+
+            enc_preds = proto_to_pointer(enc_preds_serialized)
+            preds = crypto_utils.decrypt_predictions(sym_key, enc_preds, num_preds)
+
+            print("Predictions: ", preds)
+        else:
+            print("Training failed")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -79,7 +89,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     channel_addr = str(args.ip_addr) + ":50051" 
-    print(channel_addr)
 
     logging.basicConfig()
     run(channel_addr, str(args.key), str(args.keypair))

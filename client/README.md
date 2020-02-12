@@ -4,7 +4,12 @@ This setup will involve encrypting data on the client, transferring the data to 
 
 In this example, predictions are just printed to the console on the server. The user can, however, write code that runs on the server to encrypt the predictions and send them back to the client.  
 
-### 1. Encrypt data locally.
+### 1. Set PYTHONPATH
+Set the `$PYTHONPATH` environment variable to the `secure-xgboost/rpc` directory. You can also add in this your bashrc.
+
+`export PYTHONPATH=/path/to/secure-xgboost/rpc/`
+
+### 2. Encrypt data locally.
 
 Use the `encrypt.py` script to generate a key and encrypt the sample data. It will output three files: `key.txt`, `train.enc`, and `test.enc`. 
 
@@ -12,11 +17,11 @@ Use the `encrypt.py` script to generate a key and encrypt the sample data. It wi
 python3 client/encrypt.py
 ```
 
-### 2. Send encrypted data to the server
+### 3. Send encrypted data to the server
 
 We assume that there will be a mechanism to transfer the encrypted data to the server. For the purposes of this demo, the user can try, for example, `scp` to simulate this transfer. Note that you will have to `scp` the files to the location you specified in the `DMatrix` constructor in the server setup.
 
-### 3. Make client calls
+### 4. Make client calls
 
 On the client, make the aforementioned four calls to the server. 
 The `remote_attestation_client.py` script takes in 3 arguments: the IP address of the server, the path to the generated key, and the path to the keypair. We've included a sample keypair for this example.

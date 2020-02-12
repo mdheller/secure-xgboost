@@ -40,7 +40,7 @@ service RemoteAttestation {
   // A simple RPC.
   //
   // Signal to RPC server that the client is ready
-  rpc SignalStart(Status) returns (Status) {}
+  rpc SignalStart(Status) returns (Predictions) {}
 }
 
 // Current status of the node
@@ -51,16 +51,12 @@ message Status {
 // A report returned by the enclave for attestation 
 message Report {
   // Public key of enclave 
-  //uint64 pem_key = 1;
-  //bytes pem_key = 1;
   numproto.protobuf.NDArray pem_key = 1;
 
   // Size of public key
   uint32 key_size = 2;
 
   // Remote report of enclave
-  //uint64 remote_report = 3;
-  //bytes remote_report = 3;
   numproto.protobuf.NDArray remote_report = 3;
 
   // Size of remote report
@@ -86,4 +82,17 @@ message DataMetadata {
   // Length of signature
   uint32 sig_len = 4;
 }
+
+// Encrypted predictions served by enclave, to be decrypted at client
+message Predictions {
+  // Encrypted predictions
+  numproto.protobuf.NDArray predictions = 1;
+
+  // Length of predictions
+  uint32 num_preds = 2;
+    
+  // Status
+  uint32 status = 3;
+}
+
 
