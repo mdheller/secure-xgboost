@@ -102,15 +102,14 @@ We provide an example that mirrors a potential real life situation. This is for 
 ## Example 1
 This is an example of a scenario in which a party outsources all computation to a server with an enclave. This scenario can be extended to one in which *multiple* parties outsource all computation to the same central enclave, meaning that they collaborate by sending their data to the same location, at which a XGBoost model is trained over all parties' data.
 
-In this example, the enclave server will start an RPC server to listen for client requests. The client will make four requests to the server: a request for remote attestation, a request to transfer the key used to encrypt the training data, a request to transfer the key used to encrypt the test data, and finally a request to start the XGBoost job.
+In this example, the enclave server will start an RPC server to listen for client requests. The client will make three requests to the server: a request for remote attestation, a request to transfer the key used to the training data, and finally a request to start the XGBoost job.
 
 This assumes that the client will have told the server what code to run -- the code to run in this example can be found in the `xgb_load_train_predict()` function in `remote_attestation_server.py`. 
 
 First, perform [server setup](server/).
 Next, perform [client setup](client/).
 
-After server and client setup, the client should have initiated training and inference on the server. 
-You can find the predictions outputted by the trained model on the console of the server.
+After server and client setup, the client should have initiated training on the server. 
 
 
 # API
