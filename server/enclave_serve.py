@@ -1,4 +1,4 @@
-import xgboost as xgb
+import securexgboost as xgb
 from remote_attestation_server import serve
 import os
 

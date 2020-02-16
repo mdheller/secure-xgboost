@@ -9,7 +9,7 @@ import base64
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 
-import xgboost as xgb
+import securexgboost as xgb
 import argparse
 import os
 from rpc_utils import *

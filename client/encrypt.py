@@ -1,4 +1,4 @@
-import xgboost as xgb
+import securexgboost as xgb
 import os
 
 HOME_DIR = os.getcwd() + "/../"
