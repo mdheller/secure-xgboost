@@ -19,8 +19,8 @@
 #include "../../enclave/src/gbm/gbtree_model.h"
 #include "../../enclave/src/common/host_device_vector.h"
 #else
-#include "../../src/gbm/gbtree_model.h"
-#include "../../src/common/host_device_vector.h"
+#include "../../host/src/gbm/gbtree_model.h"
+#include "../../host/src/common/host_device_vector.h"
 #endif // __ENCLAVE__
 
 // Forward declarations

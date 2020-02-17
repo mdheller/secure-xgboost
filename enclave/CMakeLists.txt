@@ -92,8 +92,8 @@ else()
     set(DMLC_CMAKE_LITTLE_ENDIAN 1)
 endif()
 
-message("../dmlc-core/cmake/build_config.h.in -> ${CMAKE_SOURCE_DIR}/../dmlc-core/include/dmlc/build_config.h")
-configure_file("../dmlc-core/cmake/build_config.h.in" "${CMAKE_SOURCE_DIR}/../dmlc-core/include/dmlc/build_config.h")
+message("../host/dmlc-core/cmake/build_config.h.in -> ${CMAKE_SOURCE_DIR}/../host/dmlc-core/include/dmlc/build_config.h")
+configure_file("../host/dmlc-core/cmake/build_config.h.in" "${CMAKE_SOURCE_DIR}/../host/dmlc-core/include/dmlc/build_config.h")
 
 add_custom_command(OUTPUT xgboost_t.h xgboost_t.c xgboost_args.h 
     DEPENDS ${CMAKE_SOURCE_DIR}/xgboost.edl
