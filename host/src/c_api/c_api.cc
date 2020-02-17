@@ -1449,7 +1449,7 @@ XGB_DLL int encryptFile(char* fname, char* e_fname, char* k_fname) {
                 length,                                     // length of input data
                 iv,                                         // initialization vector
                 IV_BYTES,                                   // length of IV
-#if true // temporary macro for testing
+#if false // temporary macro for testing
                 add_data,                                   // additional data
                 // FIXME make this independent of platform
                 sizeof(size_t),                             // length of additional data
