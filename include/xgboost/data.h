@@ -23,9 +23,9 @@
 #include "../../enclave/src/common/group_data.h"
 #include "../../enclave/src/common/host_device_vector.h"
 #else
-#include "../../src/common/span.h"
-#include "../../src/common/group_data.h"
-#include "../../src/common/host_device_vector.h"
+#include "../../host/src/common/span.h"
+#include "../../host/src/common/group_data.h"
+#include "../../host/src/common/host_device_vector.h"
 #endif // __SGX__ && __ENCLAVE__
 
 namespace xgboost {

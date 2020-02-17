@@ -70,17 +70,13 @@ if (USE_CUDA)
   message(STATUS "CUDA GEN_CODE: ${GEN_CODE}")
 endif (USE_CUDA)
 
-# openenclave
-# find_package(OpenEnclave CONFIG REQUIRED)
-# target_link_libraries(file-encryptor_host openenclave::oehostapp)
-
 add_custom_command(OUTPUT xgboost_u.h xgboost_u.c xgboost_args.h 
     DEPENDS ${PROJECT_SOURCE_DIR}/enclave/xgboost.edl
     COMMAND openenclave::oeedger8r --untrusted ${CMAKE_SOURCE_DIR}/enclave/xgboost.edl)
 
 # dmlc-core
 msvc_use_static_runtime()
-add_subdirectory(${PROJECT_SOURCE_DIR}/dmlc-core)
+add_subdirectory(${PROJECT_SOURCE_DIR}/host/dmlc-core)
 set_target_properties(dmlc PROPERTIES
   CXX_STANDARD 11
   CXX_STANDARD_REQUIRED ON
@@ -91,21 +87,22 @@ list(APPEND LINKED_LIBRARIES_PRIVATE dmlc)
 # full rabit doesn't build on windows, so we can't import it as subdirectory
 if(MINGW OR R_LIB)
   set(RABIT_SOURCES
-    rabit/src/engine_empty.cc
-    rabit/src/c_api.cc)
+    host/rabit/src/engine_empty.cc
+    host/rabit/src/c_api.cc)
 else ()
   set(RABIT_SOURCES
-    rabit/src/allreduce_base.cc
-    rabit/src/allreduce_robust.cc
-    rabit/src/engine.cc
-    rabit/src/c_api.cc)
+    host/rabit/src/allreduce_base.cc
+    host/rabit/src/allreduce_robust.cc
+    host/rabit/src/engine.cc
+    host/rabit/src/c_api.cc)
 endif (MINGW OR R_LIB)
 add_library(rabit STATIC ${RABIT_SOURCES} ${PROJECT_BINARY_DIR}/xgboost_u.c)
 target_include_directories(rabit PRIVATE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/dmlc-core/include>
+  # $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/host/dmlc-core/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include/rabit>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rabit/include>)
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include/rabit>)
+  # $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/host/rabit/include/rabit>
+  # $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/host/rabit/include>)
   # ${PROJECT_BINARY_DIR}/src)
 target_link_libraries(rabit PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::oehostapp mbedcrypto mbedtls)
 set_target_properties(rabit
@@ -115,13 +112,8 @@ set_target_properties(rabit
   POSITION_INDEPENDENT_CODE ON)
 list(APPEND LINKED_LIBRARIES_PRIVATE rabit)
 
-# Exports some R specific definitions and objects
-if (R_LIB)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/R-package)
-endif (R_LIB)
-
 # core xgboost
-add_subdirectory(${PROJECT_SOURCE_DIR}/src)
+add_subdirectory(${PROJECT_SOURCE_DIR}/host/src)
 set(XGBOOST_OBJ_SOURCES "${XGBOOST_OBJ_SOURCES};$<TARGET_OBJECTS:objxgboost>")
 
 #-- Shared library
@@ -159,7 +151,7 @@ target_link_libraries(xgboost PRIVATE ${LINKED_LIBRARIES_PRIVATE} openenclave::o
 # # -- End CLI for xgboost
 # 
 # set_output_directory(runxgboost ${PROJECT_SOURCE_DIR})
-set_output_directory(xgboost ${PROJECT_SOURCE_DIR}/lib)
+set_output_directory(xgboost ${PROJECT_SOURCE_DIR}/build)
 # # Ensure these two targets do not build simultaneously, as they produce outputs with conflicting names
 # add_dependencies(xgboost runxgboost)
 
