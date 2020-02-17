@@ -1,4 +1,4 @@
-import xgboost as xgb
+import securexgboost as xgb
 import os
 
 OE_ENCLAVE_FLAG_DEBUG = 1
@@ -9,8 +9,8 @@ print("Creating enclave")
 HOME_DIR = os.getcwd() + "/../../../"
 
 # Uncomment below for enclave simulation mode
-enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
-# enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
+#  enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG | OE_ENCLAVE_FLAG_SIMULATE))
+enclave = xgb.Enclave(HOME_DIR + "enclave/build/xgboost_enclave.signed", flags=(OE_ENCLAVE_FLAG_DEBUG))
 
 # Remote Attestation
 # print("Remote attestation")
@@ -29,16 +29,12 @@ rabit_args = {
 rargs = [str.encode(str(k) + "=" + str(v)) for k, v in rabit_args.items()]
 
 xgb.rabit.init(rargs)
-xgb.rabit.tracker_print("We should see this message")
 
 print("Creating training matrix")
-dtrain = xgb.DMatrix(HOME_DIR + "demo/c-api/train.encrypted", encrypted=True)
+dtrain = xgb.DMatrix(HOME_DIR + "demo/data/agaricus.txt.train.enc", encrypted=True)
 
 print("Creating test matrix")
-dtest = xgb.DMatrix(HOME_DIR + "demo/c-api/test.encrypted", encrypted=True) 
-
-print("Creating Booster")
-booster = xgb.Booster(cache=(dtrain, dtest))
+dtest = xgb.DMatrix(HOME_DIR + "demo/data/agaricus.txt.test.enc", encrypted=True) 
 
 print("Beginning Training")
 
@@ -50,22 +46,22 @@ params = {
         "min_child_weight": "1",
         "gamma": "0.1",
         "max_depth": "3",
-        "verbosity": "3" 
+        "verbosity": "1" 
 }
-booster.set_param(params)
-print("All parameters set")
 
 # Train and evaluate
-n_trees = 10 
-for i in range(n_trees):
-  booster.update(dtrain, i)
-  print("Tree finished")
-  print(booster.eval_set([(dtrain, "train"), (dtest, "test")], i))
+num_rounds = 5 
+booster = xgb.train(params, dtrain, num_rounds, evals=[(dtrain, "train"), (dtest, "test")])
 
-# Predict
+# Get encrypted predictions
 print("\n\nModel Predictions: ")
-print(booster.predict(dtest)[:20])
-print("\n\nTrue Labels: ")
-print(dtest.get_label()[:20])
+predictions, num_preds = booster.predict(dtest)
+
+key_file = open("../key_zeros.txt", 'rb')
+sym_key = key_file.read() # The key will be type bytes
+key_file.close()
+
+# Decrypt predictions
+print(crypto.decrypt_predictions(sym_key, predictions, num_preds))
 
 xgb.rabit.finalize()

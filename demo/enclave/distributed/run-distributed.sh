@@ -1,1 +1,1 @@
-../../../dmlc-core/tracker/dmlc-submit --log-level DEBUG --cluster ssh --host-file hosts.config --num-workers $1 --worker-memory 1g python3 distr-training.py
+../../../host/dmlc-core/tracker/dmlc-submit --log-level DEBUG --cluster ssh --host-file hosts.config --num-workers $1 --worker-memory 1g python3 distr-training.py

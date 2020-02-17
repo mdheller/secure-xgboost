@@ -1,7 +1,7 @@
 import securexgboost as xgb
 import os
 
-HOME_DIR = os.getcwd() + "/../"
+HOME_DIR = os.getcwd() + "/../../../../"
 KEY_FILE = "key.txt"
 
 crypto_utils = xgb.CryptoUtils()

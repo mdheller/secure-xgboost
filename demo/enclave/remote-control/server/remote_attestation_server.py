@@ -21,18 +21,20 @@ import grpc
 import remote_attestation_pb2
 import remote_attestation_pb2_grpc
 from rpc_utils import *
-
+import os
 import securexgboost as xgb
+
+HOME_DIR = os.getcwd() + "/../../../../"
 
 def xgb_load_train_predict():
     """
     This code will have been agreed upon by all parties before being run.
     """
     print("Creating training matrix")
-    dtrain = xgb.DMatrix("/home/xgb/secure-xgboost/client/train.enc", encrypted=True)
+    dtrain = xgb.DMatrix(HOME_DIR + "demo/enclave/remote-control/client/train.enc", encrypted=True)
 
     print("Creating test matrix")
-    dtest = xgb.DMatrix("/home/xgb/secure-xgboost/client/test.enc", encrypted=True) 
+    dtest = xgb.DMatrix(HOME_DIR + "demo/enclave/remote-control/client/test.enc", encrypted=True) 
 
     print("Creating Booster")
     booster = xgb.Booster(cache=(dtrain, dtest))
