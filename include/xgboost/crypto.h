@@ -88,7 +88,7 @@ static int encrypt_symm(unsigned char* key, const unsigned char* data, size_t da
 static int encrypt_symm(mbedtls_gcm_context* gcm, mbedtls_ctr_drbg_context* ctr_drbg, const unsigned char* data, size_t data_len, unsigned char* aad, size_t aad_len, unsigned char* output, unsigned char* iv, unsigned char* tag) {
 
     // Extract data for your IV, in this case we generate 12 bytes (96 bits) of random data
-    int ret = mbedtls_ctr_drbg_random( &ctr_drbg, iv, CIPHER_IV_SIZE );
+    int ret = mbedtls_ctr_drbg_random(ctr_drbg, iv, CIPHER_IV_SIZE);
     if( ret != 0 ) {
         printf( "mbedtls_ctr_drbg_random failed to extract IV - returned -0x%04x\n", -ret );
         return ret;
