@@ -41,10 +41,6 @@
 #include <mbedtls/cipher.h>     // MBEDTLS_CIPHER_ID_AES
 #include <mbedtls/gcm.h>        // mbedtls_gcm_context
 
-#define KEY_BYTES 32
-#define IV_BYTES 12
-#define TAG_BYTES 16
-
 // TODO(rishabh): Ecall error handling
 // FIXME Check enclave initialized before doing ecalls
 
@@ -1383,14 +1379,22 @@ XGB_DLL int decrypt_predictions(char* key, uint8_t* encrypted_preds, size_t num_
 }
 
 // Input, output, key
-XGB_DLL int encryptFile(char* fname, char* e_fname, char* k_fname) {
+XGB_DLL int encrypt_file(char* fname, char* e_fname, char* k_fname) {
+    char key[CIPHER_KEY_SIZE];
+    std::ifstream keyfile;
+    keyfile.open(k_fname);
+    keyfile.read(key, CIPHER_KEY_SIZE);
+    keyfile.close();
+    return encrypt_file_with_keybuf(fname, e_fname, key);
+}
+
+XGB_DLL int encrypt_file_with_keybuf(char* fname, char* e_fname, char* key) {
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_entropy_context entropy;
     mbedtls_gcm_context gcm;
 
-    char key[KEY_BYTES];
-    unsigned char iv[IV_BYTES];
-    unsigned char tag[TAG_BYTES];
+    unsigned char iv[CIPHER_IV_SIZE];
+    unsigned char tag[CIPHER_TAG_SIZE];
 
     // Initialize the entropy pool and the random source
     mbedtls_entropy_init( &entropy );
@@ -1408,17 +1412,11 @@ XGB_DLL int encryptFile(char* fname, char* e_fname, char* k_fname) {
         exit(1);
     }
 
-    std::ifstream keyfile;
-    keyfile.open(k_fname);
-
-    keyfile.read(key, KEY_BYTES);
-    keyfile.close();
-
     // Initialize the GCM context with our key and desired cipher
-    ret = mbedtls_gcm_setkey(&gcm,                      // GCM context to be initialized
+    ret = mbedtls_gcm_setkey(&gcm,     // GCM context to be initialized
             MBEDTLS_CIPHER_ID_AES,     // cipher to use (a 128-bit block cipher)
-            (unsigned char*) key,                       // encryption key
-            KEY_BYTES * 8);            // key bits (must be 128, 192, or 256)
+            (unsigned char*) key,      // encryption key
+            CIPHER_KEY_SIZE * 8);      // key bits (must be 128, 192, or 256)
     if( ret != 0 ) {
         printf( "mbedtls_gcm_setkey failed to set the key for AES cipher - returned -0x%04x\n", -ret );
         exit(1);
@@ -1433,47 +1431,113 @@ XGB_DLL int encryptFile(char* fname, char* e_fname, char* k_fname) {
     while (std::getline(infile, line)) {
         size_t length = strlen(line.c_str());
 
-        // Extract data for your IV, in this case we generate 12 bytes (96 bits) of random data
-        ret = mbedtls_ctr_drbg_random( &ctr_drbg, iv, IV_BYTES );
-        if( ret != 0 ) {
-            printf( "mbedtls_ctr_drbg_random failed to extract IV - returned -0x%04x\n", -ret );
-            exit(1);
-        }
-
         unsigned char* encrypted = (unsigned char*) malloc(length*sizeof(char));
         // We use line index as AEAD data to prevent tampering across lines
         const unsigned char* add_data = (const unsigned char*) &index;
-        ret = mbedtls_gcm_crypt_and_tag( 
-                &gcm,                                       // GCM context
-                MBEDTLS_GCM_ENCRYPT,                        // mode
-                length,                                     // length of input data
-                iv,                                         // initialization vector
-                IV_BYTES,                                   // length of IV
-#if true // temporary macro for testing
-                add_data,                                   // additional data
-                // FIXME make this independent of platform
-                sizeof(size_t),                             // length of additional data
+        ret = encrypt_symm(
+                &gcm,
+                &ctr_drbg,
+                (const unsigned char*)line.c_str(),
+                length,
+#if false // FIXME disabled for testing
+                aad_data,
+                sizeof(size_t),
 #else
-                NULL,                                       // additional data
-                0,                                          // length of additional data
-#endif 
-                (const unsigned char*)line.c_str(),         // buffer holding the input data
-                encrypted,                                  // buffer for holding the output data
-                TAG_BYTES,                                  // length of the tag to generate
-                tag);                                       // buffer for holding the tag
+                NULL,
+                0,
+#endif
+                encrypted,
+                iv,
+                tag
+                );
         index++;
         if( ret != 0 ) {
             printf( "mbedtls_gcm_crypt_and_tag failed to encrypt the data - returned -0x%04x\n", -ret );
             exit(1);
         }
-        std::string encoded = dmlc::data::base64_encode(iv, IV_BYTES);
+        std::string encoded = dmlc::data::base64_encode(iv, CIPHER_IV_SIZE);
         myfile 
-            << dmlc::data::base64_encode(iv, IV_BYTES) << ","
-            << dmlc::data::base64_encode(tag, TAG_BYTES) << ","
+            << dmlc::data::base64_encode(iv, CIPHER_IV_SIZE) << ","
+            << dmlc::data::base64_encode(tag, CIPHER_TAG_SIZE) << ","
             << dmlc::data::base64_encode(encrypted, length) << "\n";
         free(encrypted);
     }
     infile.close();
     myfile.close();
     return 0;
+}
+
+XGB_DLL int decrypt_file_with_keybuf(char* fname, char* d_fname, char* key) {
+    mbedtls_gcm_context gcm;
+
+    // Initialize GCM context (just makes references valid) - makes the context ready for mbedtls_gcm_setkey()
+    mbedtls_gcm_init(&gcm);
+    int ret = mbedtls_gcm_setkey(&gcm,      // GCM context to be initialized
+            MBEDTLS_CIPHER_ID_AES,          // cipher to use (a 128-bit block cipher)
+            (const unsigned char*)key,      // encryption key
+            CIPHER_KEY_SIZE * 8);           // key bits (must be 128, 192, or 256)
+    if( ret != 0 ) {
+        printf( "mbedtls_gcm_setkey failed to set the key for AES cipher - returned -0x%04x\n", -ret );
+        exit(1);
+    }
+
+    std::ifstream infile(fname);
+    std::ofstream myfile;
+    myfile.open(d_fname);
+
+    std::string line;
+    size_t index = 0;
+    while (std::getline(infile, line)) {
+        const char* data = line.c_str();
+        char* p = const_cast<char*>(data);
+        int iv_pos = 0;
+        while(*p != '\0' && *p != ',') {
+            p++;
+            iv_pos++;
+        }
+        p++;
+        int tag_pos = iv_pos + 1;
+        while(*p != '\0' && *p != ',') {
+            p++;
+            tag_pos++;
+        }
+
+        size_t out_len;
+        char tag[CIPHER_TAG_SIZE];
+        char iv[CIPHER_IV_SIZE];
+
+        char* ct = (char *) malloc(line.size() * sizeof(char));
+
+        out_len = dmlc::data::base64_decode(data, iv_pos, iv);
+        out_len = dmlc::data::base64_decode(data + iv_pos + 1, tag_pos - iv_pos, tag);
+        out_len = dmlc::data::base64_decode(data + tag_pos + 1, line.size() - tag_pos, ct);
+
+        unsigned char* decrypted = (unsigned char*) malloc((out_len + 1) * sizeof(char));
+        const unsigned char* add_data = (const unsigned char*) &index;
+        int ret = decrypt_symm(
+                &gcm,
+                (const unsigned char*)ct,
+                out_len,
+                (unsigned char*)iv,
+                (unsigned char*)tag,
+#if false // FIXME disabled for testing
+                aad_data,
+                sizeof(size_t),
+#else
+                NULL,
+                0,
+#endif
+                decrypted
+                );
+        index++;
+        decrypted[out_len] = '\0';
+        free(ct);
+        if (ret != 0) {
+            std::cout << "mbedtls_gcm_auth_decrypt failed with error " << -ret << std::endl;
+            exit(1);
+        }
+        myfile << decrypted << "\n";
+    }
+    infile.close();
+    myfile.close();
 }

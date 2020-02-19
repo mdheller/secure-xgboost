@@ -674,10 +674,20 @@ XGB_DLL int decrypt_predictions(
     size_t preds_len,
     bst_float** preds);
 
-XGB_DLL int encryptFile(
+XGB_DLL int encrypt_file(
     char* fname,
     char* e_fname,
     char* k_fname);
+
+XGB_DLL int encrypt_file_with_keybuf(
+    char* fname,
+    char* e_fname,
+    char* key);
+
+XGB_DLL int decrypt_file_with_keybuf(
+    char* fname,
+    char* e_fname,
+    char* key);
 #endif // __SGX__ && __ENCLAVE__
 
 #if defined(__SGX__) && defined(__HOST__)

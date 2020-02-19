@@ -146,7 +146,7 @@ class TextParserBase : public ParserImpl<IndexType, DType> {
         out_len,
         (unsigned char*)iv,
         (unsigned char*)tag,
-#if true // FIXME disabled for testing
+#if false // FIXME disabled for testing
         (unsigned char*)add_data,
         sizeof(size_t),
 #else

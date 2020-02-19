@@ -85,6 +85,33 @@ static int encrypt_symm(unsigned char* key, const unsigned char* data, size_t da
   return ret;
 }
 
+static int encrypt_symm(mbedtls_gcm_context* gcm, mbedtls_ctr_drbg_context* ctr_drbg, const unsigned char* data, size_t data_len, unsigned char* aad, size_t aad_len, unsigned char* output, unsigned char* iv, unsigned char* tag) {
+
+    // Extract data for your IV, in this case we generate 12 bytes (96 bits) of random data
+    int ret = mbedtls_ctr_drbg_random( &ctr_drbg, iv, CIPHER_IV_SIZE );
+    if( ret != 0 ) {
+        printf( "mbedtls_ctr_drbg_random failed to extract IV - returned -0x%04x\n", -ret );
+        return ret;
+    }
+
+    ret = mbedtls_gcm_crypt_and_tag( 
+            gcm,                                        // GCM context
+            MBEDTLS_GCM_ENCRYPT,                        // mode
+            data_len,                                   // length of input data
+            iv,                                         // initialization vector
+            CIPHER_IV_SIZE,                             // length of IV
+            aad,                                        // additional data
+            aad_len,                                    // length of additional data
+            data,                                       // buffer holding the input data
+            output,                                     // buffer for holding the output data
+            CIPHER_TAG_SIZE,                            // length of the tag to generate
+            tag);                                       // buffer for holding the tag
+    if( ret != 0 ) {
+        printf( "mbedtls_gcm_crypt_and_tag failed to encrypt the data - returned -0x%04x\n", -ret );
+    }
+    return ret;
+}
+
 static int decrypt_symm(unsigned char* key, const unsigned char* data, size_t data_len, unsigned char* iv, unsigned char* tag, unsigned char* aad, size_t aad_len, unsigned char* output) {
   mbedtls_gcm_context gcm;
 
@@ -100,13 +127,8 @@ static int decrypt_symm(unsigned char* key, const unsigned char* data, size_t da
       data_len,                                 // length of the input ciphertext data (always same as plain)
       iv,                                       // initialization vector
       CIPHER_IV_SIZE,                           // length of IV
-#if true // temporary macro for testing
       aad,                                      // additional data
       aad_len,                                  // length of additional data
-#else
-      NULL,                                     // additional data
-      0,                                        // length of additional data
-#endif 
       tag,                                      // buffer holding the tag
       CIPHER_TAG_SIZE,                          // length of the tag
       data,                                     // buffer holding the input ciphertext data
@@ -124,13 +146,8 @@ static int decrypt_symm(mbedtls_gcm_context* gcm, const unsigned char* data, siz
       data_len,                                 // length of the input ciphertext data (always same as plain)
       iv,                                       // initialization vector
       CIPHER_IV_SIZE,                           // length of IV
-#if true // temporary macro for testing
       aad,                                      // additional data
       aad_len,                                  // length of additional data
-#else
-      NULL,                                     // additional data
-      0,                                        // length of additional data
-#endif 
       tag,                                      // buffer holding the tag
       CIPHER_TAG_SIZE,                          // length of the tag
       data,                                     // buffer holding the input ciphertext data

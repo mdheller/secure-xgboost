@@ -7,10 +7,10 @@ cc=g++
 CFLAGS ?=-O3 -g
 XGBOOST_ROOT ?=../..
 INCLUDE_DIR=-I$(XGBOOST_ROOT)/include -I$(XGBOOST_ROOT)/dmlc-core/include -I$(XGBOOST_ROOT)/rabit/include
-LIB_DIR=-L$(XGBOOST_ROOT)/lib -L/usr/lib/x86_64-linux-gnu/
+LIB_DIR=-L$(XGBOOST_ROOT)/build -L/usr/lib/x86_64-linux-gnu/
 #LIB_DIR=-Wl,-rpath,$(XGBOOST_ROOT)/lib
 
-SGX_SRC = $(SRC) encrypt.cc encrypt.h
+SGX_SRC = $(SRC) # encrypt.cc encrypt.h
 SGX_CFLAGS = $(CFLAGS) -D__SGX__ -D__HOST__ $(shell pkg-config oehost-g++ --cflags)
 SGX_LDFLAGS = $(shell pkg-config oehost-g++ --libs)
 
@@ -23,19 +23,19 @@ $(TGT_SGX): $(SGX_SRC) Makefile
 build: $(TGT)
 
 run: $(TGT)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT)
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build ./$(TGT)
 
 sgx: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed
 
 debug: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib /opt/openenclave/bin/oegdb -arg ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --simulate
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build /opt/openenclave/bin/oegdb -arg ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --simulate
 
 simulate: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --simulate
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --simulate
 
 encrypt: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/lib:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --encrypt
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --encrypt
 
 clean:
 	rm -f $(TGT) $(TGT_SGX)
