@@ -33,7 +33,7 @@ endif (PLUGIN_DENSE_PARSER)
 
 
 add_custom_command(OUTPUT xgboost_u.h xgboost_u.c xgboost_args.h 
-  DEPENDS ${PROJECT_SOURCE_DIR}/enclave/xgboost.edl
+    DEPENDS ${CMAKE_SOURCE_DIR}/enclave/xgboost.edl
   COMMAND openenclave::oeedger8r --untrusted ${CMAKE_SOURCE_DIR}/enclave/xgboost.edl)
 
 
@@ -82,7 +82,7 @@ endif (USE_CUDA)
 
 target_include_directories(objxgboost
   PRIVATE
-  ${PROJECT_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include
   # ${PROJECT_SOURCE_DIR}/include/dmlc-core/include
   # ${PROJECT_SOURCE_DIR}/rabit/include
   ${CMAKE_CURRENT_BINARY_DIR})

@@ -96,10 +96,10 @@ message("../host/dmlc-core/cmake/build_config.h.in -> ${CMAKE_SOURCE_DIR}/../hos
 configure_file("../host/dmlc-core/cmake/build_config.h.in" "${CMAKE_SOURCE_DIR}/../host/dmlc-core/include/dmlc/build_config.h")
 
 add_custom_command(OUTPUT xgboost_t.h xgboost_t.c xgboost_args.h 
-    DEPENDS ${CMAKE_SOURCE_DIR}/xgboost.edl
-    COMMAND openenclave::oeedger8r --trusted ${CMAKE_SOURCE_DIR}/xgboost.edl)
+    DEPENDS ${PROJECT_SOURCE_DIR}/xgboost.edl
+    COMMAND openenclave::oeedger8r --trusted ${PROJECT_SOURCE_DIR}/xgboost.edl)
 
-add_executable(xgboost_enclave ${CMAKE_SOURCE_DIR}/ecalls.cpp ${CPU_SOURCES} ${RABIT_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/xgboost_t.c)
+add_executable(xgboost_enclave ${PROJECT_SOURCE_DIR}/ecalls.cpp ${CPU_SOURCES} ${RABIT_SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/xgboost_t.c)
 
 
 target_include_directories(xgboost_enclave
@@ -175,7 +175,7 @@ target_link_libraries(xgboost_enclave openenclave::oeenclave openenclave::oelibc
 # Sign enclave
 add_custom_command(OUTPUT xgboost_enclave.signed
 	DEPENDS xgboost_enclave xgboost.conf private.pem
-    COMMAND openenclave::oesign sign -e $<TARGET_FILE:xgboost_enclave> -c ${CMAKE_SOURCE_DIR}/xgboost.conf -k ${CMAKE_SOURCE_DIR}/private.pem)
+    COMMAND openenclave::oesign sign -e $<TARGET_FILE:xgboost_enclave> -c ${PROJECT_SOURCE_DIR}/xgboost.conf -k ${PROJECT_SOURCE_DIR}/private.pem)
 
 # Dump enclave info
 add_custom_command(OUTPUT xgboost_enclave.info

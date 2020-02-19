@@ -26,16 +26,16 @@ run: $(TGT)
 	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build ./$(TGT)
 
 sgx: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build ./$(TGT_SGX) ../../build/enclave/xgboost_enclave.signed
 
 debug: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build /opt/openenclave/bin/oegdb -arg ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --simulate
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build /opt/openenclave/bin/oegdb -arg ./$(TGT_SGX) ../../build/enclave/xgboost_enclave.signed --simulate
 
 simulate: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --simulate
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../build/enclave/xgboost_enclave.signed --simulate
 
 encrypt: $(TGT_SGX)
-	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../enclave/build/xgboost_enclave.signed --encrypt
+	LD_LIBRARY_PATH=$(XGBOOST_ROOT)/build:/usr/lib/x86_64-linux-gnu/ ./$(TGT_SGX) ../../build/enclave/xgboost_enclave.signed --encrypt
 
 clean:
 	rm -f $(TGT) $(TGT_SGX)
