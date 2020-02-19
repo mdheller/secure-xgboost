@@ -21,7 +21,7 @@ def find_lib_path():
     curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
     # make pythonpack hack: copy this directory one level upper for setup.py
     dll_path = [curr_path, os.path.join(curr_path, '../../build/'),
-                os.path.join(curr_path, './lib/'),
+                os.path.join(curr_path, './build/'),
                 os.path.join(sys.prefix, 'securexgboost')]
     if sys.platform == 'win32':
         if platform.architecture()[0] == '64bit':

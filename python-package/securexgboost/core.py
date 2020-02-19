@@ -1072,7 +1072,7 @@ class CryptoUtils(object):
         output_path = ctypes.c_char_p(output_file_bytes)
         key_path = ctypes.c_char_p(key_file_bytes)
 
-        _check_call(_LIB.encryptFile(input_path, output_path, key_path))
+        _check_call(_LIB.encrypt_file(input_path, output_path, key_path))
 
     def encrypt_data_with_pk(self, data, data_len, pem_key, key_size):
         """
